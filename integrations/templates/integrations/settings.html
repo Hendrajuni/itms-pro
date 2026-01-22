@@ -1,0 +1,179 @@
+{% extends "layouts/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between card-body bg-white rounded-3 shadow-sm mb-4">
+            <h4 class="mb-sm-0 font-size-18">Notification Gateway Settings</h4>
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="javascript: void(0);">Settings</a></li>
+                    <li class="breadcrumb-item active">Integrations</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card">
+            <div class="card-body">
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#telegram-settings" role="tab">
+                            <span class="d-block d-sm-none"><i class="fas fa-paper-plane"></i></span>
+                            <span class="d-none d-sm-block">Telegram Configuration</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#whatsapp-settings" role="tab">
+                            <span class="d-block d-sm-none"><i class="fab fa-whatsapp"></i></span>
+                            <span class="d-none d-sm-block">WhatsApp Configuration</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#email-settings" role="tab">
+                            <span class="d-block d-sm-none"><i class="fas fa-envelope"></i></span>
+                            <span class="d-none d-sm-block">Email (SMTP)</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Tab panes -->
+                <div class="tab-content p-3 text-muted">
+                    <!-- Telegram Tab -->
+                    <div class="tab-pane active" id="telegram-settings" role="tabpanel">
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {{ telegram_form|crispy }}
+                                    <div class="mt-3">
+                                        <button type="submit" name="submit_telegram" class="btn btn-primary">Save Telegram Settings</button>
+                                        <button type="button" class="btn btn-info ms-2" onclick="testNotification('telegram')">Test Telegram</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="alert alert-info" role="alert">
+                                    <h5 class="alert-heading">How to setup Telegram Bot:</h5>
+                                    <p class="mb-0">
+                                        1. Chat with <b>@BotFather</b> on Telegram.<br>
+                                        2. Send <code>/newbot</code> to create a new bot.<br>
+                                        3. Copy the <b>HTTP API Token</b> and paste it here.<br>
+                                        4. Add your bot to the target group or chat.<br>
+                                        5. Get the <b>Chat ID</b> (use <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> or similar tools).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WhatsApp Tab -->
+                    <div class="tab-pane" id="whatsapp-settings" role="tabpanel">
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {{ whatsapp_form|crispy }}
+                                    <div class="mt-3">
+                                        <button type="submit" name="submit_whatsapp" class="btn btn-success">Save WhatsApp Settings</button>
+                                        <button type="button" class="btn btn-info ms-2" onclick="testNotification('whatsapp')">Test WhatsApp</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="alert alert-success" role="alert">
+                                    <h5 class="alert-heading">Supported Providers:</h5>
+                                    <p>Currently configured for Fonnte, Twilio, etc.</p>
+                                    <hr>
+                                    <p class="mb-0">
+                                        Ensure your API URL and Token are correct. <br>
+                                        For <b>Fonnte</b>, use <code>https://api.fonnte.com/send</code>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Tab -->
+                    <div class="tab-pane" id="email-settings" role="tabpanel">
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {{ email_form|crispy }}
+                                    <div class="mt-3">
+                                        <button type="submit" name="submit_email" class="btn btn-warning">Save Email Settings</button>
+                                        <button type="button" class="btn btn-info ms-2" onclick="testNotification('email')">Test Email</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="alert alert-warning" role="alert">
+                                    <h5 class="alert-heading">SMTP Configuration:</h5>
+                                    <p class="mb-0">
+                                        Configure your SMTP server details here.<br>
+                                        <b>Gmail Example:</b><br>
+                                        Host: <code>smtp.gmail.com</code><br>
+                                        Port: <code>587</code><br>
+                                        Use TLS: Checked
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function testNotification(provider) {
+    let target = '';
+    if (provider === 'telegram') {
+        target = document.querySelector('#id_telegram-chat_id').value;
+    } else if (provider === 'whatsapp') {
+        target = document.querySelector('#id_whatsapp-default_target_number').value;
+    } else if (provider === 'email') {
+        // For email test, we might want to ask for a recipient or use a default
+        // For now let's use prompt or just grab the smtp_user if it's an email
+        target = prompt("Enter recipient email address:");
+        if (target === null) return; // Cancelled
+    }
+
+    if (!target) {
+        alert('Please save settings or fill the target field first.');
+        return;
+    }
+
+    if (!confirm('Send a test message to ' + target + '?')) return;
+
+    const formData = new FormData();
+    formData.append('provider', provider);
+    formData.append('target', target);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    fetch('{% url "integrations:test_notification" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred.');
+    });
+}
+</script>
+{% endblock %}

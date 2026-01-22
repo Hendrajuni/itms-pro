@@ -140,6 +140,10 @@
             <a href="{% url 'site_settings' %}" class="list-group-item list-group-item-action py-2 {% if 'settings' in request.path %}active{% endif %}">
                 <i class="fas fa-cogs me-3" style="width: 20px;"></i>Configuration
             </a>
+
+            <a href="{% url 'integrations:settings' %}" class="list-group-item list-group-item-action py-2 {% if 'integrations' in request.path %}active{% endif %}">
+                <i class="fas fa-plug me-3" style="width: 20px;"></i>Integrations
+            </a>
             {% endif %}
 
             <a href="{% url 'audit_log_list' %}" class="list-group-item list-group-item-action py-2 {% if 'audit-log' in request.path %}active{% endif %}">

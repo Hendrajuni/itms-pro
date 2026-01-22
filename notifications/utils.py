@@ -1,26 +1,10 @@
-import requests
-from .models import TelegramConfig
+from integrations.utils import send_telegram
 
 def send_telegram_message(message):
     """
-    Sends a message to the active Telegram group.
+    Wrapper for integrations.utils.send_telegram to maintain compatibility
+    with existing signals, using the default configured chat_id.
     """
-    try:
-        config = TelegramConfig.objects.filter(is_active=True).first()
-        if not config:
-            # print("No active Telegram Config found.")
-            return
-
-        url = f"https://api.telegram.org/bot{config.bot_token}/sendMessage"
-        payload = {
-            'chat_id': config.alert_chat_id,
-            'text': message,
-            'parse_mode': 'Markdown'
-        }
-        
-        response = requests.post(url, data=payload, timeout=5)
-        if response.status_code != 200:
-            print(f"Failed to send Telegram message: {response.text}")
-            
-    except Exception as e:
-        print(f"Error sending Telegram message: {e}")
+    # send_telegram(target_chat_id, message)
+    # Passing None as target_chat_id will fallback to the default chat_id in config
+    send_telegram(None, message)

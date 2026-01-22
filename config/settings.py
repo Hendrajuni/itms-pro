@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'network',
     'knowledge',
     'notifications',
+    'integrations',
 
     'administration',
     'crispy_forms',

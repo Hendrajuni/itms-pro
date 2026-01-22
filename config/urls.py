@@ -26,6 +26,7 @@ urlpatterns = [
     path('network/', include('network.urls')),
     path('knowledge/', include('knowledge.urls')),
     path('notifications/', include('notifications.urls')),
+    path('integrations/', include('integrations.urls')),
     path('administration/', include('administration.urls')),
     path('', include('core.urls')),
 ]
