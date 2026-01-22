@@ -1,0 +1,150 @@
+{% extends 'layouts/base.html' %}
+{% load static crispy_forms_tags humanize %}
+
+{% block title %}My Profile - ITMS{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- ID Card Column -->
+    <div class="col-md-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <!-- Avatar -->
+                <div class="mb-3 position-relative d-inline-block">
+                    {% if user.photo %}
+                        <img src="{{ user.photo.url }}" class="rounded-circle shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" 
+                             style="width: 120px; height: 120px; font-size: 3rem;">
+                            {{ user.first_name|make_list|first|upper }}{{ user.last_name|make_list|first|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    <span class="position-absolute bottom-0 end-0 p-2 border border-2 border-white rounded-circle 
+                        {% if user.is_online %}bg-success{% else %}bg-secondary{% endif %}"
+                        title="{% if user.is_online %}Online{% else %}Offline{% endif %}">
+                        <span class="visually-hidden">Status</span>
+                    </span>
+                </div>
+
+                <h4 class="fw-bold text-dark mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                <p class="text-muted mb-3">{{ user.job_title|default:"Staff Member" }}</p>
+
+                <span class="badge {% if user.is_superuser %}bg-danger{% else %}bg-primary{% endif %} px-3 py-2 rounded-pill mb-4">
+                    {% if user.is_superuser %}Administrator{% else %}Staff{% endif %}
+                </span>
+
+                <div class="text-start mt-4 px-2">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="text-muted me-3" style="width: 20px;"><i class="fas fa-building"></i></div>
+                        <div>
+                            <small class="text-muted d-block uppercase">Department</small>
+                            <span class="fw-semibold text-dark">{{ user.department.name|default:"Unassigned" }}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="text-muted me-3" style="width: 20px;"><i class="fas fa-map-marker-alt"></i></div>
+                        <div>
+                            <small class="text-muted d-block uppercase">Location</small>
+                            <span class="fw-semibold text-dark">{{ user.location.name|default:"Unassigned" }}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="text-muted me-3" style="width: 20px;"><i class="fas fa-envelope"></i></div>
+                        <div>
+                            <small class="text-muted d-block uppercase">Email Address</small>
+                            <span class="fw-semibold text-dark">{{ user.email }}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="text-muted me-3" style="width: 20px;"><i class="fas fa-clock"></i></div>
+                        <div>
+                            <small class="text-muted d-block uppercase">Last Login</small>
+                            <span class="text-dark">{{ user.last_login|timesince }} ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Column -->
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold {% if active_tab == 'info' %}active border-bottom-0 text-primary{% else %}text-muted{% endif %}" 
+                           href="{% url 'user_profile' %}">
+                           <i class="fas fa-user-edit me-2"></i>Edit Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold {% if active_tab == 'security' %}active border-bottom-0 text-primary{% else %}text-muted{% endif %}" 
+                           href="{% url 'user_password_change' %}">
+                           <i class="fas fa-lock me-2"></i>Security
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="card-body p-4">
+                {% if active_tab == 'info' %}
+                    <h5 class="fw-bold mb-4">Personal Information</h5>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.first_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.last_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.email|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.phone_number|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.department|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.location|as_crispy_field }}
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                {{ form.job_title|as_crispy_field }}
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                {{ form.notes|as_crispy_field }}
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                {{ form.photo|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                {% elif active_tab == 'security' %}
+                    <h5 class="fw-bold mb-4">Change Password</h5>
+                    <div class="alert alert-info small mb-4">
+                        <i class="fas fa-info-circle me-1"></i> Ensure your new password is strong (at least 8 characters, mixed case, numbers).
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="submit" class="btn btn-danger px-4">
+                                <i class="fas fa-key me-2"></i>Update Password
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

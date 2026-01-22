@@ -1,0 +1,41 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Staff Dashboard - ITMS{% endblock %}
+
+{% block content %}
+<div class="row g-3 my-2">
+    <div class="col-md-12">
+        <h3 class="fs-4 mb-3">Welcome back, {{ user.first_name|default:user.username }}!</h3>
+    </div>
+
+    <!-- Stats -->
+    <div class="col-md-6">
+        <div class="p-3 bg-white shadow-sm d-flex justify-content-around align-items-center rounded">
+            <div>
+                <h3 class="fs-2">{{ my_tickets_count }}</h3>
+                <p class="fs-5">My Active Tickets</p>
+            </div>
+            <i class="fas fa-ticket-alt fs-1 primary-text border rounded-full secondary-bg p-3"></i>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="p-3 bg-white shadow-sm d-flex justify-content-around align-items-center rounded">
+            <div>
+                <h3 class="fs-2">{{ my_assets_count }}</h3>
+                <p class="fs-5">My Assets</p>
+            </div>
+            <i class="fas fa-laptop fs-1 primary-text border rounded-full secondary-bg p-3"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Action -->
+<div class="row my-4">
+    <div class="col-md-12 text-center">
+        <a href="{% url 'ticket_create' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-plus me-2"></i>Create New Ticket
+        </a>
+    </div>
+</div>
+{% endblock %}

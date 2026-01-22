@@ -1,0 +1,83 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit Software{% else %}Add Software{% endif %} | ITMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">{% if form.instance.pk %}Edit Software{% else %}Add New Software{% endif %}</h1>
+    <a href="{% url 'software_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Back to List
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Software Information</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold">Software Name</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold">Vendor</label>
+                            {{ form.vendor }}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold">Category</label>
+                            {{ form.category }}
+                        </div>
+                        <div class="col-md-6">
+                             <label class="form-label small text-muted text-uppercase fw-bold">License Type</label>
+                            {{ form.license_type }}
+                        </div>
+
+                        <div class="col-12">
+                             <label class="form-label small text-muted text-uppercase fw-bold">License Key</label>
+                            {{ form.license_key }}
+                        </div>
+
+                        <div class="col-md-6">
+                             <label class="form-label small text-muted text-uppercase fw-bold">Purchase Date</label>
+                            {{ form.purchase_date }}
+                        </div>
+                        <div class="col-md-6">
+                             <label class="form-label small text-muted text-uppercase fw-bold">Expiry Date</label>
+                            {{ form.expiry_date }}
+                            <small class="text-muted d-block mt-1">Leave blank for Perpetual licenses</small>
+                        </div>
+
+                         <div class="col-md-6">
+                             <label class="form-label small text-muted text-uppercase fw-bold">Price</label>
+                            {{ form.price }}
+                        </div>
+                        <div class="col-md-6">
+                             <label class="form-label small text-muted text-uppercase fw-bold">Total Seats</label>
+                            {{ form.seats_total }}
+                        </div>
+                        
+                        <div class="col-12">
+                             <label class="form-label small text-muted text-uppercase fw-bold">Notes</label>
+                            {{ form.notes }}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-1"></i> Save Software
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

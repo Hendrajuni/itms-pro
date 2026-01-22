@@ -1,0 +1,223 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Daily Log Calendar - ITMS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Daily Activity Calendar</h1>
+            <p class="text-muted small mb-0">Visualize team movements and daily logs.</p>
+        </div>
+        <div>
+             <a href="{% url 'dailylog_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-list me-1"></i> List View
+            </a>
+            <a href="{% url 'dailylog_create' %}" class="btn btn-primary ms-2 shadow-sm">
+                <i class="fas fa-plus me-1"></i> Create New Log
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow border-0">
+    <div class="card-header bg-white py-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <!-- Legend & Filters -->
+        <div class="d-flex align-items-center flex-wrap gap-3">
+            <h6 class="mb-0 fw-bold text-primary me-2"><i class="fas fa-filter me-2"></i>Filters:</h6>
+            
+            <div class="form-check form-switch">
+                <input class="form-check-input filter-checkbox" type="checkbox" id="filter-HO" value="HO" checked>
+                <label class="form-check-label small" for="filter-HO">
+                    <span class="badge rounded-circle p-1 me-1" style="background-color: #0d6efd;"> </span> Head Office
+                </label>
+            </div>
+            
+            <div class="form-check form-switch">
+                <input class="form-check-input filter-checkbox" type="checkbox" id="filter-SITE" value="SITE" checked>
+                <label class="form-check-label small" for="filter-SITE">
+                    <span class="badge rounded-circle p-1 me-1" style="background-color: #fd7e14;"> </span> Site / Visit
+                </label>
+            </div>
+
+            <div class="form-check form-switch">
+                <input class="form-check-input filter-checkbox" type="checkbox" id="filter-REMOTE" value="REMOTE" checked>
+                <label class="form-check-label small" for="filter-REMOTE">
+                    <span class="badge rounded-circle p-1 me-1" style="background-color: #198754;"> </span> Remote / WFH
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <style>
+            /* Calendar Container Styles */
+            #calendar {
+                font-family: 'Inter', sans-serif;
+            }
+            
+            /* Custom Event Styles */
+            .fc-event {
+                border: none !important;
+                background: transparent !important;
+                margin-bottom: 4px !important;
+                cursor: pointer;
+                transition: transform 0.1s;
+            }
+            .fc-event:hover {
+                transform: scale(1.02);
+                z-index: 50;
+            }
+            
+            /* Hide events based on parent class */
+            #calendar.hide-HO .event-type-HO,
+            #calendar.hide-SITE .event-type-SITE,
+            #calendar.hide-REMOTE .event-type-REMOTE {
+                display: none !important;
+            }
+            
+            /* Header & Grid Styling */
+            .fc-col-header-cell {
+                background-color: #f8f9fa;
+                padding: 10px 0 !important;
+            }
+            .fc-daygrid-day-number {
+                font-weight: 600;
+                color: #555;
+                padding: 8px 12px !important;
+            }
+            .fc-day-today {
+                background-color: #f0f7ff !important; /* Light blue tint for today */
+            }
+        </style>
+        <div id="calendar" class="p-4"></div>
+    </div>
+</div>
+
+<!-- Event Info Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white py-2">
+                <h6 class="modal-title fw-bold" id="eventTitle">Log Details</h6>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center mb-4">
+                    <div id="modalAvatar" class="rounded-circle border border-2 shadow-sm me-3 d-flex align-items-center justify-content-center bg-light text-primary fw-bold" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                        <!-- Initials injected here -->
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0" id="modalUserName">User Name</h5>
+                        <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i> <span id="eventLocation"></span></small>
+                    </div>
+                </div>
+                
+                <div class="bg-light p-3 rounded mb-3 border">
+                    <small class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Activity Summary</small>
+                    <div id="eventSummary" class="mt-2 text-dark"></div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center text-muted small">
+                    <span><i class="far fa-calendar me-1"></i> <span id="eventDate"></span></span>
+                    <div id="eventAction"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- FullCalendar CSS/JS via CDN -->
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.8/index.global.min.js'></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            themeSystem: 'bootstrap5',
+            initialView: 'dayGridMonth',
+            contentHeight: 'auto',
+            dayMaxEvents: 4, // Allow more events
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,dayGridWeek'
+            },
+            events: '{% url "dailylog_events_json" %}',
+            
+            // Custom Class Logic for Filtering
+            eventClassNames: function(arg) {
+                return ['event-type-' + arg.event.extendedProps.type];
+            },
+
+            // Custom Content Rendering (Avatar + Name)
+            eventContent: function(arg) {
+                let initials = arg.event.extendedProps.initials;
+                let location = arg.event.extendedProps.location;
+                let color = arg.event.backgroundColor;
+
+                // Create inner HTML - SOLID COLOR STYLE
+                let html = document.createElement('div');
+                html.className = 'd-flex align-items-center px-2 py-1 shadow-sm rounded-pill overflow-hidden';
+                html.style.backgroundColor = color; 
+                html.style.border = '1px solid rgba(255,255,255,0.2)';
+                
+                html.innerHTML = `
+                    <div class="flex-shrink-0 d-flex align-items-center justify-content-center bg-white rounded-circle border border-2 border-white" style="width: 24px; height: 24px;">
+                         <span class="fw-bold text-primary" style="font-size: 0.65rem;">${initials}</span>
+                    </div>
+                    <div class="ms-2 text-truncate" style="max-width: 140px;">
+                        <div class="fw-bold text-white shadow-sm" style="font-size: 0.75rem; line-height: 1.1; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${arg.event.title}</div>
+                        <div class="text-white-50 d-none d-lg-block" style="font-size: 0.65rem;">${location}</div>
+                    </div>
+                `;
+                return { domNodes: [html] };
+            },
+
+            eventClick: function(info) {
+                var props = info.event.extendedProps;
+                
+                // Populate Modal
+                document.getElementById('modalUserName').textContent = info.event.title;
+                document.getElementById('modalAvatar').textContent = props.initials; // User Initials
+                document.getElementById('eventLocation').textContent = props.location;
+                document.getElementById('eventDate').textContent = info.event.start.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                document.getElementById('eventSummary').innerHTML = props.summary_html || 'No summary available.';
+                
+                // Action Buttons
+                var actionDiv = document.getElementById('eventAction');
+                actionDiv.innerHTML = ''; 
+                
+                if (props.can_edit) {
+                    var btn = document.createElement('a');
+                    btn.href = props.edit_url;
+                    btn.className = 'btn btn-primary btn-sm rounded-pill px-3';
+                    btn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit Log';
+                    actionDiv.appendChild(btn);
+                }
+                
+                var modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                modal.show();
+            }
+        });
+        calendar.render();
+
+        // Filter Logic
+        document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const type = this.value; // HO, SITE, REMOTE
+                if (this.checked) {
+                    calendarEl.classList.remove('hide-' + type);
+                } else {
+                    calendarEl.classList.add('hide-' + type);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

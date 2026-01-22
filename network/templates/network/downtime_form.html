@@ -1,0 +1,70 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Report Downtime - ITMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0 border-top border-5 border-danger">
+            <div class="card-header bg-white py-3">
+                <h4 class="fw-bold text-danger mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Report Network Outage
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-info-circle me-1"></i> This will trigger an immediate system-wide alert to all users.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Incident Title</label>
+                        {{ form.title }}
+                        <div class="form-text">e.g., "Server Room Power Failure", "ISP Link Down"</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Impact Level</label>
+                            {{ form.impact }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Start Time</label>
+                            {{ form.start_time }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Affected Node (Optional)</label>
+                            {{ form.node }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Affected Asset (Optional)</label>
+                            {{ form.asset }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                         <label class="form-label">Root Cause (Initial Guess)</label>
+                         {{ form.root_cause }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Description</label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'downtime_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-danger px-4 fw-bold">BROADCAST ALERT</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

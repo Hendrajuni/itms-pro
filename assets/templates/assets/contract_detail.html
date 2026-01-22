@@ -1,0 +1,67 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Contract Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="m-0 fw-bold">{{ contract.title }}</h5>
+                {% if contract.status == 'ACTIVE' %}
+                    <span class="badge bg-success">Active</span>
+                {% elif contract.status == 'EXPIRED' %}
+                    <span class="badge bg-danger">Expired</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ contract.status }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <small class="text-uppercase text-muted fw-bold">Vendor</small>
+                        <p class="fs-5 mb-0">{{ contract.vendor.name }}</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <small class="text-uppercase text-muted fw-bold">Type</small>
+                        <p class="fs-5 mb-0">{{ contract.get_contract_type_display }}</p>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <small class="text-uppercase text-muted fw-bold">Duration</small>
+                        <p class="mb-0">{{ contract.start_date }} to {{ contract.end_date }}</p>
+                        <small class="text-muted">{{ contract.days_remaining }} days remaining</small>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <small class="text-uppercase text-muted fw-bold">Cost</small>
+                        <p class="fs-4 fw-bold text-primary mb-0">Rp {{ contract.cost|intcomma }}</p>
+                    </div>
+                </div>
+
+                {% if contract.notes %}
+                <div class="mb-4">
+                    <small class="text-uppercase text-muted fw-bold">Notes</small>
+                    <div class="p-3 bg-light rounded mt-1">
+                        {{ contract.notes|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                    <a href="{% url 'contract_list' %}" class="btn btn-outline-secondary">Back to List</a>
+                    {% if contract.document %}
+                    <a href="{{ contract.document.url }}" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-download me-2"></i>Download Contract
+                    </a>
+                    {% else %}
+                    <button class="btn btn-light" disabled>No Document</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

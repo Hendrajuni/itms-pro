@@ -1,0 +1,152 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Software Detail - {{ software.name }} | ITMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">{{ software.name }}</h1>
+        <p class="text-muted mb-0 small">Software License Management</p>
+    </div>
+    <div>
+        <button onclick="window.print()" class="btn btn-secondary me-2">
+            <i class="fas fa-print me-1"></i> Print
+        </button>
+        <a href="{% url 'software_list' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i> Back
+        </a>
+        <a href="{% url 'software_update' software.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit me-1"></i> Edit Software
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column: License Info -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">License Information</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Vendor</span>
+                        <span class="fw-bold">{{ software.vendor.name|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">License Type</span>
+                        <span class="badge bg-light text-dark border">{{ software.get_license_type_display }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <small class="text-muted d-block mb-1">License Key</small>
+                        <div class="bg-light p-2 rounded font-monospace small text-break">
+                            {{ software.license_key|default:"-" }}
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Purchase Date</span>
+                        <span class="fw-bold">{{ software.purchase_date|date:"d M Y"|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Expiry Date</span>
+                        {% if software.expiry_date %}
+                            <span class="fw-bold {% if software.days_until_expiry < 30 %}text-danger{% endif %}">
+                                {{ software.expiry_date|date:"d M Y" }}
+                            </span>
+                        {% else %}
+                            <span class="fw-bold text-success">Perpetual</span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Price</span>
+                        <span class="fw-bold">Rp {{ software.price|floatformat:0|intcomma }}</span>
+                    </li>
+                </ul>
+                
+                <h6 class="text-muted text-uppercase mb-3 small fw-bold mt-4">Seat Usage</h6>
+                {% with percent=software.availability_percentage used=software.seats_used total=software.seats_total %}
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>{{ used }} / {{ total }} Assigned</span>
+                    <span class="fw-bold">{{ percent|floatformat:0 }}%</span>
+                </div>
+                <div class="progress mb-3" style="height: 10px;">
+                    <div class="progress-bar {% if percent >= 100 %}bg-danger{% elif percent >= 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ percent }}%"></div>
+                </div>
+                {% endwith %}
+
+                <div class="mt-4">
+                    <small class="text-muted d-block mb-2 text-uppercase fw-bold">Notes</small>
+                    <div class="p-3 bg-light rounded text-muted small">
+                        {{ software.notes|linebreaks|default:"No notes." }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Allocations -->
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">License Allocations</h6>
+                <a href="{% url 'software_allocation_add' software.pk %}" class="btn btn-sm btn-success shadow-sm">
+                    <i class="fas fa-plus fa-sm text-white-50"></i> Assign License
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Assigned To</th>
+                                <th>Type</th>
+                                <th>Assigned Date</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alloc in allocations %}
+                            <tr>
+                                <td>
+                                    {% if alloc.employee %}
+                                        <i class="fas fa-user text-muted me-2"></i> {{ alloc.employee.get_full_name|default:alloc.employee.username }}
+                                    {% elif alloc.asset %}
+                                        <i class="fas fa-desktop text-muted me-2"></i> {{ alloc.asset.name }}
+                                        <small class="text-muted">({{ alloc.asset.asset_code }})</small>
+                                    {% else %}
+                                        <span class="text-muted">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if alloc.employee %}User{% else %}Device{% endif %}
+                                </td>
+                                <td>{{ alloc.assigned_date|date:"d M Y" }}</td>
+                                <td class="text-end">
+                                    <form method="post" action="{% url 'software_allocation_delete' alloc.pk %}" class="d-inline" onsubmit="return confirm('Revoke this license assignment?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    <i class="fas fa-ticket-alt fs-2 mb-2 opacity-50"></i>
+                                    <p class="mb-0">No licenses assigned yet.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

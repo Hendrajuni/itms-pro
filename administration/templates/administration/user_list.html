@@ -1,0 +1,267 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}User Management - ITMS{% endblock %}
+{% block header_title %}Access Control{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">User Management</h3>
+            <p class="text-muted small">Manage team members, roles, and permissions.</p>
+        </div>
+        <div class="d-flex text-center gap-4">
+            <div>
+                <h4 class="fw-bold text-dark mb-0">{{ total_users }}</h4>
+                <small class="text-muted">Total Users</small>
+            </div>
+            <div>
+                <h4 class="fw-bold text-success mb-0">{{ active_users }}</h4>
+                <small class="text-muted">Active</small>
+            </div>
+            <div>
+                <h4 class="fw-bold text-danger mb-0">{{ inactive_users }}</h4>
+                <small class="text-muted">Inactive</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Toolbar -->
+<form method="get" class="row g-2 mb-4 align-items-center bg-light p-3 rounded shadow-sm border">
+    <div class="col-auto">
+        <label class="fw-bold text-muted small me-2"><i class="fas fa-filter"></i> Filters:</label>
+    </div>
+    
+    <!-- Department -->
+    <div class="col-auto">
+        <select name="dept" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 150px;">
+            <option value="">All Departments</option>
+            {% for d in departments %}
+                <option value="{{ d.id }}" {% if request.GET.dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Location -->
+    <div class="col-auto">
+        <select name="loc" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 150px;">
+            <option value="">All Locations</option>
+            {% for l in locations %}
+                <option value="{{ l.id }}" {% if request.GET.loc == l.id|stringformat:"s" %}selected{% endif %}>{{ l.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Status -->
+    <div class="col-auto">
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 120px;">
+            <option value="">All Status</option>
+            <option value="online" {% if request.GET.status == 'online' %}selected{% endif %}>🟢 Online</option>
+            <option value="offline" {% if request.GET.status == 'offline' %}selected{% endif %}>🔴 Offline</option>
+        </select>
+    </div>
+
+    <!-- Reset -->
+    <div class="col-auto ms-auto">
+        {% if request.GET.dept or request.GET.loc or request.GET.status %}
+            <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-sync-alt me-1"></i> Reset Filters
+            </a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+            <i class="fas fa-users me-2"></i>Users
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold" id="groups-tab" data-bs-toggle="tab" data-bs-target="#groups" type="button" role="tab">
+            <i class="fas fa-shield-alt me-2"></i>Groups & Roles
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="adminTabsContent">
+    
+    <!-- USERS TAB -->
+    <div class="tab-pane fade show active" id="users" role="tabpanel">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">User</th>
+                                <th>Role</th>
+                                <th>Online</th>
+                                <th>Dept.</th>
+                                <th>Location</th>
+                                <th>Groups</th>
+                                <th>Last Login</th>
+                                <th>Status</th>
+                                <th class="text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white me-3" style="width: 32px; height: 32px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                                            {{ u.username|make_list|first|upper }}
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold text-dark">{{ u.get_full_name|default:u.username }}</h6>
+                                            <small class="text-muted">{{ u.email }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if u.is_superuser %}
+                                        <span class="badge bg-danger">Superuser</span>
+                                    {% elif u.is_staff %}
+                                        <span class="badge bg-primary">Staff</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">User</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if u.is_online %}
+                                        <i class="fas fa-circle text-success small"></i> <span class="small text-muted ms-1">Online</span>
+                                    {% else %}
+                                        <i class="fas fa-circle text-danger small"></i> <span class="small text-muted ms-1">Offline</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badgex text-dark small">{{ u.department.name|default:"-" }}</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ u.location.name|default:"-" }}</small>
+                                </td>
+                                <td>
+                                    {% for group in u.groups.all %}
+                                        <span class="badge bg-light text-dark border me-1">{{ group.name }}</span>
+                                    {% empty %}
+                                        <span class="text-muted small">-</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if u.last_login %}
+                                        <small class="text-muted">{{ u.last_login|timesince }} ago</small>
+                                    {% else %}
+                                        <span class="text-danger small fw-bold">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="post" action="{% url 'user_toggle_status' u.pk %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" onchange="this.form.submit()" 
+                                                {% if u.is_active %}checked{% endif %} 
+                                                {% if u == request.user %}disabled{% endif %}>
+                                        </div>
+                                    </form>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#resetPasswordModal" 
+                                        onclick="setupResetModal('{{ u.id }}', '{{ u.username }}')">
+                                        <i class="fas fa-key small"></i>
+                                    </button>
+                                    <a href="/admin/core/customuser/{{ u.id }}/change/" target="_blank" class="btn btn-sm btn-light border">
+                                        <i class="fas fa-pen small"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GROUPS TAB -->
+    <div class="tab-pane fade" id="groups" role="tabpanel">
+        <div class="row g-4">
+            {% for group in groups %}
+            <div class="col-md-4 col-xl-3">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0 text-primary">{{ group.name }}</h5>
+                            <span class="badge bg-light text-dark border">{{ group.user_count }} Members</span>
+                        </div>
+                        <p class="text-muted small mb-3">Permissions linked to this role.</p>
+                        
+                        <div class="d-flex align-items-center">
+                            {% for user in group.user_set.all|slice:":3" %}
+                            <div class="avatar-circle-sm bg-secondary text-white border border-white" 
+                                style="width: 24px; height: 24px; display:flex; align-items:center; justify-content:center; border-radius:50%; margin-right:-8px; font-size: 0.6rem;">
+                                {{ user.username|make_list|first|upper }}
+                            </div>
+                            {% endfor %}
+                            {% if group.user_count > 3 %}
+                            <div class="avatar-circle-sm bg-light text-muted border border-white small ps-2" style="margin-left: 12px;">
+                                +{{ group.user_count|add:"-3" }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white border-top-0">
+                        <a href="/admin/auth/group/{{ group.id }}/change/" target="_blank" class="btn btn-sm btn-outline-primary w-100">Manage Permissions</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reset Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="resetPasswordForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Reset password for user <strong id="modalUserName"></strong>?</p>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        {{ password_form.new_password1 }} <!-- Rendering partial fields manually for style if needed, or simple input -->
+                        <input type="password" name="new_password1" class="form-control" required placeholder="Enter new password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" name="new_password2" class="form-control" required placeholder="Confirm new password">
+                    </div>
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-exclamation-triangle me-1"></i> User will be logged out properly.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setupResetModal(userId, username) {
+        document.getElementById('modalUserName').textContent = username;
+        document.getElementById('resetPasswordForm').action = `/administration/users/reset-password/${userId}/`;
+    }
+</script>
+{% endblock %}

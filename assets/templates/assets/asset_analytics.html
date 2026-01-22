@@ -1,0 +1,287 @@
+{% extends "layouts/base.html" %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid py-4" id="report-content">
+    
+    <!-- HEADER -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-gray-800 mb-1">Asset Analytics</h1>
+            <p class="text-muted mb-0">Overview of asset inventory, value, and maintenance.</p>
+        </div>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print me-2"></i> Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- ROW 1: KPI CARDS -->
+    <div class="row g-3 mb-4">
+        <!-- Total Assets -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase fw-bold text-primary mb-1" style="font-size: 0.75rem;">Total Assets</div>
+                            <div class="h3 mb-0 fw-bold text-gray-800">{{ total_assets|intcomma }}</div>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
+                            <i class="fas fa-cubes fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Value -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase fw-bold text-success mb-1" style="font-size: 0.75rem;">Asset Value</div>
+                            <div class="h3 mb-0 fw-bold text-gray-800">Rp {{ total_value|floatformat:0|intcomma }}</div>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
+                            <i class="fas fa-dollar-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maintenance Cost -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase fw-bold text-warning mb-1" style="font-size: 0.75rem;">Maintenance Cost</div>
+                            <div class="h3 mb-0 fw-bold text-gray-800">Rp {{ total_maintenance_cost|floatformat:0|intcomma }}</div>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle">
+                            <i class="fas fa-tools fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Needs Repair -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-danger">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase fw-bold text-danger mb-1" style="font-size: 0.75rem;">Needs Repair</div>
+                            <div class="h3 mb-0 fw-bold text-gray-800">{{ assets_broken }}</div>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2: CHARTS (Category & Location) -->
+    <div class="row g-3 mb-4">
+        <!-- Pie Chart -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-gray-800">Assets by Category</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bar Chart -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-gray-800">Assets by Location (Top 10)</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="locationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 3: PURCHASE TRENDS & RECENT PURCHASES -->
+    <div class="row g-3 mb-4">
+        <!-- Purchase History Chart -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-center text-primary">Purchase History (Yearly Trend)</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 350px;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Purchases Table -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-gray-800">Recent Purchases</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Asset</th>
+                                    <th>User</th>
+                                    <th>Date</th>
+                                    <th class="text-end pe-3">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asset in recent_purchases %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <div class="fw-bold text-dark">{{ asset.name|truncatechars:20 }}</div>
+                                        <div class="small text-muted">{{ asset.asset_code }}</div>
+                                    </td>
+                                    <td>
+                                        {% if asset.assigned_to %}
+                                            <div class="fw-bold text-dark small">{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</div>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted border">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small">{{ asset.purchase_date|date:"d M Y" }}</td>
+                                    <td class="text-end pe-3 small">Rp {{ asset.purchase_price|floatformat:0|intcomma }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center py-3 text-muted">No data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- CHART.JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Common Chart Options
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#6c757d';
+
+    // 1. Category Chart (Doughnut)
+    const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+    new Chart(ctxCategory, {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_category_labels|safe }},
+            datasets: [{
+                data: {{ chart_category_data|safe }},
+                backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            },
+            cutout: '70%',
+        }
+    });
+
+    // 2. Location Chart (Horizontal Bar)
+    const ctxLocation = document.getElementById('locationChart').getContext('2d');
+    new Chart(ctxLocation, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_location_labels|safe }},
+            datasets: [{
+                label: 'Asset Count',
+                data: {{ chart_location_data|safe }},
+                backgroundColor: '#4e73df',
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            indexAxis: 'y', // Horizontal
+            maintainAspectRatio: false,
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // 3. Trend Chart (Line)
+    const ctxTrend = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctxTrend, {
+        type: 'line',
+        data: {
+            labels: {{ chart_trend_labels|safe }},
+            datasets: [{
+                label: 'Assets Purchased',
+                data: {{ chart_trend_data|safe }},
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: 'rgba(78, 115, 223, 1)',
+                pointRadius: 3,
+                pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                pointBorderColor: 'rgba(78, 115, 223, 1)',
+                pointHoverRadius: 3,
+                tension: 0.3,
+                fill: true
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                x: { grid: { display: false } },
+                y: { ticks: { maxTicksLimit: 5 }, grid: { color: "rgb(234, 236, 244)", borderDash: [2] } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+</script>
+
+<!-- PRINT STYLES -->
+<style>
+@media print {
+    #sidebar-wrapper, .navbar, .btn {
+        display: none !important;
+    }
+    #report-content {
+        margin: 0;
+        padding: 0;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+    }
+    canvas {
+        max-width: 100% !important;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,329 @@
+/* --- Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* --- Theme Variables --- */
+:root {
+  --bs-font-sans-serif: 'Inter', sans-serif;
+
+  /* Light Mode (Default) */
+  --bg-body: #F3F4F6;
+  --bg-card: #FFFFFF;
+  --text-main: #1F2937;
+  --text-muted: #6B7280;
+  --border-color: #E5E7EB;
+
+  --sidebar-width: 260px;
+  --primary-color: #0d6efd;
+  --primary-soft: rgba(13, 110, 253, 0.1);
+}
+
+[data-theme="dark"] {
+  --bg-body: #0F172A;
+  --bg-card: #1E293B;
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --border-color: #334155;
+
+  --primary-soft: rgba(13, 110, 253, 0.2);
+}
+
+/* --- Global Resets & Typography --- */
+body {
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  font-family: var(--bs-font-sans-serif);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-main);
+}
+
+/* --- Wrapper & Layout --- */
+#wrapper {
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* --- Sidebar Base --- */
+#sidebar-wrapper {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  background-color: var(--bg-card);
+  border-right: 1px solid var(--border-color);
+  transition: transform 0.3s ease-in-out;
+  overflow-y: auto;
+}
+
+#page-content-wrapper {
+  width: 100%;
+  transition: margin-left 0.3s ease-in-out;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Sidebar Links --- */
+.sidebar-heading {
+  padding: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.list-group-item {
+  background-color: transparent !important;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  margin: 0.2rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+  background-color: var(--bg-body);
+  color: var(--primary-color);
+}
+
+.list-group-item.active {
+  background-color: var(--primary-soft);
+  color: var(--primary-color);
+}
+
+/* --- Responsive Logic --- */
+
+/* Desktop (Large Screens) */
+@media (min-width: 992px) {
+  #sidebar-wrapper {
+    transform: translateX(0);
+    /* Visible by default */
+  }
+
+  #page-content-wrapper {
+    margin-left: var(--sidebar-width);
+  }
+
+  /* Collapsed State on Desktop */
+  #wrapper.toggled #sidebar-wrapper {
+    transform: translateX(calc(var(--sidebar-width) * -1));
+  }
+
+  #wrapper.toggled #page-content-wrapper {
+    margin-left: 0;
+  }
+}
+
+/* Mobile (Small Screens) */
+@media (max-width: 991.98px) {
+  #sidebar-wrapper {
+    transform: translateX(-100%);
+    /* Hidden by default */
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  #page-content-wrapper {
+    margin-left: 0;
+  }
+
+  /* Open State on Mobile */
+  #wrapper.toggled #sidebar-wrapper {
+    transform: translateX(0);
+  }
+
+  /* Backdrop */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 900;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  #wrapper.toggled .sidebar-backdrop {
+    display: block;
+    opacity: 1;
+  }
+}
+
+/* --- Components --- */
+.card {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  color: var(--text-main);
+}
+
+/* --- Widgets & Utilities --- */
+.icon-box {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 1.25rem;
+}
+
+.text-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.text-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+/* Soft Backgrounds */
+.bg-primary-soft {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.bg-success-soft {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.bg-danger-soft {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.bg-warning-soft {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.bg-info-soft {
+  background-color: rgba(6, 182, 212, 0.15);
+  color: #06b6d4;
+}
+
+/* =========================================
+   BADGE SOFT STYLES (Untuk Tiket & Status)
+   ========================================= */
+
+.badge-soft-primary,
+.badge-soft-secondary,
+.badge-soft-success,
+.badge-soft-danger,
+.badge-soft-warning,
+.badge-soft-info {
+  padding: 0.5em 0.8em;
+  font-weight: 600;
+  border-radius: 50rem;
+  /* Bentuk Pill */
+  display: inline-block;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  /* Force text color agar tidak tertimpa setting dark mode global */
+}
+
+/* HIJAU (Open / Low) - Background Hijau Muda, Teks Hijau Tua */
+.badge-soft-success {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+}
+
+/* MERAH (High / Critical) - Background Merah Muda, Teks Merah Tua */
+.badge-soft-danger {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+/* KUNING (Medium / In Progress) - Background Kuning Muda, Teks Coklat/Oranye */
+.badge-soft-warning {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+/* BIRU (Resolved) - Background Biru Muda, Teks Biru Tua */
+.badge-soft-info {
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+/* ABU-ABU (Closed / Fallback) - Background Abu Muda, Teks Abu Tua */
+.badge-soft-secondary {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+/* FIX DARK MODE OVERRIDES */
+/* Agar saat mode gelap, warnanya tetap terbaca (sedikit diredam supaya tidak sakit mata) */
+[data-theme="dark"] .badge-soft-success {
+  background-color: #064e3b !important;
+  color: #a7f3d0 !important;
+}
+
+[data-theme="dark"] .badge-soft-danger {
+  background-color: #7f1d1d !important;
+  color: #fecaca !important;
+}
+
+[data-theme="dark"] .badge-soft-warning {
+  background-color: #78350f !important;
+  color: #fde68a !important;
+}
+
+[data-theme="dark"] .badge-soft-info {
+  background-color: #1e3a8a !important;
+  color: #bfdbfe !important;
+}
+
+[data-theme="dark"] .badge-soft-secondary {
+  background-color: #374151 !important;
+  color: #d1d5db !important;
+}
+
+
+.navbar {
+  background-color: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border-color);
+  height: 70px;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.btn-icon-only {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.btn-icon-only:hover {
+  background-color: var(--bg-body);
+  color: var(--text-main);
+}

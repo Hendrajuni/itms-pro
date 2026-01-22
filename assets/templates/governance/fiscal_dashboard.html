@@ -1,0 +1,268 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Fiscal Dashboard{% endblock %}
+
+{% block content %}
+<!-- Print Styles -->
+<style>
+    @media print {
+        @page { size: A4; margin: 2cm; }
+        body { font-family: 'Times New Roman', serif; background-color: #fff !important; }
+        .sidebar, .topbar, .btn, footer, .no-print { display: none !important; }
+        .card { border: none !important; box-shadow: none !important; }
+        .card-header { background-color: #fff !important; border-bottom: 2px solid #000 !important; color: #000 !important; }
+        .card-body { padding: 0 !important; margin-bottom: 20px; }
+        .progress { display: none !important; }
+        .print-only { display: block !important; }
+        .badge { border: 1px solid #000; color: #000 !important; background: transparent !important; }
+        .text-gray-800 { color: #000 !important; }
+        .text-primary, .text-success, .text-info { color: #000 !important; }
+        /* Force show all tab contents when printing */
+        .tab-content > .tab-pane { display: block !important; opacity: 1 !important; visibility: visible !important; margin-bottom: 30px; }
+        .nav-tabs { display: none !important; }
+    }
+    .print-only { display: none; }
+    .signature-box { border-top: 1px solid #000; width: 200px; padding-top: 10px; margin-top: 50px; text-align: center; }
+</style>
+
+<!-- Executive Header (Print Only) -->
+<div class="print-only mb-5">
+    <div class="text-center">
+        <h2 class="font-weight-bold text-uppercase mb-1">Executive Budget Report</h2>
+        <p class="mb-0">Fiscal Year: <strong>{{ fiscal_year.year }}</strong></p>
+        <p class="small text-muted">Generated: {% now "d F Y" %}</p>
+    </div>
+    <hr class="my-4" style="border-top: 2px solid #000;">
+</div>
+
+<!-- Screen Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <div class="d-flex align-items-center">
+        <h1 class="h3 mb-0 text-gray-800 me-3">Fiscal Dashboard</h1>
+        
+        <!-- Year Selector -->
+        <form method="GET" class="d-inline-flex">
+            <select name="year" class="form-select form-select-sm shadow-sm" onchange="this.form.submit()" style="width: auto; min-width: 100px;">
+                {% for y in available_years %}
+                <option value="{{ y }}" {% if fiscal_year.year == y %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    <div>
+        <button onclick="window.print()" class="btn btn-primary shadow-sm">
+            <i class="fas fa-print fa-sm text-white-50 me-2"></i>Print Report
+        </button>
+    </div>
+</div>
+
+{% if not fiscal_year %}
+<div class="alert alert-warning">
+    No Fiscal Year found. Please add one in the Admin Panel.
+</div>
+{% else %}
+
+<!-- Budget Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body px-4">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Budget</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp {{ total_allocated|intcomma }}</div>
+                    </div>
+                    <div class="col-auto no-print">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Placeholder Spent -->
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body px-4">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Allocated / Used</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp {{ total_allocated|intcomma }}</div>
+                         <small class="text-muted d-block mt-1">100% Allocated</small>
+                    </div>
+                    <div class="col-auto no-print">
+                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+             <div class="card-body px-4">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Remaining</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp 0</div>
+                    </div>
+                    <div class="col-auto no-print">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs Navigation -->
+<ul class="nav nav-tabs mb-4 no-print" id="budgetTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="category-tab" data-bs-toggle="tab" data-bs-target="#category" type="button" role="tab">By Category</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="department-tab" data-bs-toggle="tab" data-bs-target="#department" type="button" role="tab">By Department</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location" type="button" role="tab">By Location</button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="budgetTabsContent">
+    
+    <!-- 1. By Category -->
+    <div class="tab-pane fade show active" id="category" role="tabpanel">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Budget by Category</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Category</th>
+                                <th class="text-end">Allocation (Rp)</th>
+                                <th class="text-center" style="width: 20%;">% of Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in by_category %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td class="text-end">{{ item.total|intcomma }}</td>
+                                <td class="align-middle">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-xs font-weight-bold">{{ item.percent }}%</span>
+                                        <div class="progress flex-grow-1 no-print" style="height: 6px;">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ item.percent }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                             {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted">No data found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. By Department -->
+    <div class="tab-pane fade" id="department" role="tabpanel">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                 <h6 class="m-0 font-weight-bold text-primary">Budget by Department</h6>
+            </div>
+            <div class="card-body">
+                 <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Department</th>
+                                <th class="text-end">Allocation (Rp)</th>
+                                <th class="text-center" style="width: 20%;">% of Total</th>
+                            </tr>
+                        </thead>
+                         <tbody>
+                            {% for item in by_department %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td class="text-end">{{ item.total|intcomma }}</td>
+                                <td class="align-middle">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-xs font-weight-bold">{{ item.percent }}%</span>
+                                        <div class="progress flex-grow-1 no-print" style="height: 6px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ item.percent }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted">No data found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. By Location -->
+    <div class="tab-pane fade" id="location" role="tabpanel">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                 <h6 class="m-0 font-weight-bold text-primary">Budget by Location</h6>
+            </div>
+            <div class="card-body">
+                 <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
+                         <thead class="bg-light">
+                            <tr>
+                                <th>Location</th>
+                                <th class="text-end">Allocation (Rp)</th>
+                                <th class="text-center" style="width: 20%;">% of Total</th>
+                            </tr>
+                        </thead>
+                         <tbody>
+                            {% for item in by_location %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td class="text-end">{{ item.total|intcomma }}</td>
+                                <td class="align-middle">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-xs font-weight-bold">{{ item.percent }}%</span>
+                                        <div class="progress flex-grow-1 no-print" style="height: 6px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ item.percent }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                             {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted">No data found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signature Section (Print Only) -->
+<div class="print-only mt-5">
+    <div class="d-flex justify-content-end">
+        <div class="signature-box">
+            <p class="mb-0 fw-bold">Approved By</p>
+            <br><br>
+            <p class="mb-0">( Owner / Director )</p>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}

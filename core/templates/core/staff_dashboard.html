@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Staff Dashboard</title>
+</head>
+
+<body>
+    <h1>Welcome, Staff - {{ user.username }}</h1>
+    <p>Department: {{ user.department }}</p>
+    <a href="{% url 'logout' %}">Logout</a>
+</body>
+
+</html>

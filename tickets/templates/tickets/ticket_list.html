@@ -1,0 +1,147 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize rbac_tags ticket_tags %}
+
+{% block title %}My Tickets - ITMS{% endblock %}
+{% block header_title %}Ticket Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="text-dark fw-bold">Tickets</h3>
+    <a href="{% url 'ticket_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>New Ticket
+    </a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">
+                            <a href="?{% param_replace sort='id' order='asc' %}" class="text-dark text-decoration-none">ID</a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='topic' order='asc' %}" class="text-dark text-decoration-none">Topic</a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='title' order='asc' %}" class="text-dark text-decoration-none">Title & Description</a>
+                        </th>
+                        <th>
+                           <a href="?{% param_replace sort='requester' order='asc' %}" class="text-dark text-decoration-none">Requester</a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='priority' order='asc' %}" class="text-dark text-decoration-none">Priority</a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='status' order='asc' %}" class="text-dark text-decoration-none">Status</a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='created' order='desc' %}" class="text-dark text-decoration-none">
+                                Date
+                                {% if current_sort == 'created' %}
+                                    {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                {% else %}
+                                    <i class="fas fa-sort text-muted opacity-25"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-primary">#{{ ticket.id }}</td>
+
+                        <!-- Re-added Topic Column -->
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ ticket.topic.name|default:"-" }}</span>
+                        </td>
+
+                        <td>
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold text-dark">{{ ticket.title }}</span>
+                                <small class="text-muted mt-1">{{ ticket.description|truncatechars:50 }}</small>
+                            </div>
+                        </td>
+
+                        <!-- requester: using 'with' to prevent auto-format breakage -->
+                        <td>
+                            {% with full_name=ticket.created_by.get_full_name|default:ticket.created_by.username %}
+                            {% with initial=full_name|first|upper dept=ticket.created_by.department|default:"staff" %}
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                                    style="width: 32px; height: 32px; font-size: 0.8rem; font-weight: 600;">
+                                    {{ initial }}
+                                </div>
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold small">{{ full_name }}</span>
+                                    <small class="text-muted" style="font-size: 0.7rem;">{{ dept }}</small>
+                                </div>
+                            </div>
+                            {% endwith %}
+                            {% endwith %}
+                        </td>
+
+                        <!-- priority -->
+                        <td>
+                            {% if ticket.priority == 'Critical' %}
+                            <span class="badge badge-soft-danger">Critical</span>
+                            {% elif ticket.priority == 'High' %}
+                            <span class="badge badge-soft-danger">High</span>
+                            {% elif ticket.priority == 'Medium' %}
+                            <span class="badge badge-soft-warning">Medium</span>
+                            {% elif ticket.priority == 'Low' %}
+                            <span class="badge badge-soft-success">Low</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ ticket.priority }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- status -->
+                        <td>
+                            {% if ticket.status == 'Open' %}
+                            <span class="badge badge-soft-success">Open</span>
+                            {% elif ticket.status == 'Assigned' %}
+                            <span class="badge badge-soft-info">Assigned</span>
+                            {% elif ticket.status == 'In_Progress' %}
+                            <span class="badge badge-soft-warning">In Progress</span>
+                            {% elif ticket.status == 'Pending_Vendor' %}
+                            <span class="badge badge-soft-secondary">Pending Vendor</span>
+                            {% elif ticket.status == 'Resolved' %}
+                            <span class="badge badge-soft-info">Resolved</span>
+                            {% elif ticket.status == 'Closed' %}
+                            <span class="badge badge-soft-secondary">Closed</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ ticket.status }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-muted small">
+                            <i class="far fa-calendar-alt me-1"></i>{{ ticket.created_at|date:"d M Y" }}
+                        </td>
+
+                        <td class="text-end pe-4">
+                            <a href="{% url 'ticket_detail' ticket.id %}" class="btn btn-icon btn-light text-primary"
+                                title="View Detail">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
+                            <p>No tickets found yet.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            {% include 'includes/pagination.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

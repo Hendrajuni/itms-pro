@@ -1,0 +1,192 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit Daily Log{% else %}Create New Daily Log{% endif %} - ITMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-11">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark">
+                    {% if form.instance.pk %}Edit Daily Log{% else %}Create New Daily Log{% endif %}
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="dailyLogForm">
+                    {% csrf_token %}
+                    
+                    <!-- PARENT FORM FIELDS -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Date</label>
+                            {{ form.date }}
+                            {% if form.date.errors %}<div class="text-danger small">{{ form.date.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Work Location</label>
+                             {{ form.work_location }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Shift</label>
+                            {{ form.shift }}
+                        </div>
+                         <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Executor</label>
+                            {{ form.executor }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Status</label>
+                            {{ form.status }}
+                        </div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label class="form-label fw-bold small text-uppercase text-muted">General Summary</label>
+                        {{ form.note }}
+                    </div>
+
+                    <!-- INLINE ITEMS -->
+                    <h5 class="fw-bold border-bottom pb-2 mb-3">Daily Activities</h5>
+                    
+                    {{ items.management_form }}
+                    
+                    {% if items.non_form_errors %}
+                    <div class="alert alert-danger">{{ items.non_form_errors }}</div>
+                    {% endif %}
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered align-middle" id="items-table">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th style="width: 25%">Task / Note</th>
+                                    <th style="width: 15%">Category</th>
+                                    <th style="width: 12%">Status</th>
+                                    <th style="width: 18%">Time (Start - End)</th>
+                                    <th style="width: 20%">Related To</th>
+                                    <th style="width: 5%">Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-body">
+                                {% for item_form in items %}
+                                <tr class="item-row">
+                                    {{ item_form.id }}
+                                    <td>
+                                        <div class="mb-1">{{ item_form.task_name }}</div>
+                                        {{ item_form.note }}
+                                        {% if item_form.task_name.errors %}<div class="text-danger small">{{ item_form.task_name.errors.0 }}</div>{% endif %}
+                                    </td>
+                                    <td>{{ item_form.category }}</td>
+                                    <td>{{ item_form.status }}</td>
+                                    <td>
+                                        <div class="input-group input-group-sm mb-1">
+                                            {{ item_form.start_time }}
+                                            <span class="input-group-text">-</span>
+                                            {{ item_form.end_time }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="mb-1">{{ item_form.related_asset }}</div>
+                                        <div>{{ item_form.related_infra }}</div>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        {% if items.can_delete and item_form.instance.pk %}
+                                            {{ item_form.DELETE }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                     <!-- HIDDEN EMPTY FORM TEMPLATE for JS Cloning -->
+                    <table style="display:none">
+                        <tr id="empty-row-template">
+                            {{ items.empty_form.id }}
+                            <td>
+                                <div class="mb-1">{{ items.empty_form.task_name }}</div>
+                                {{ items.empty_form.note }}
+                            </td>
+                            <td>{{ items.empty_form.category }}</td>
+                            <td>{{ items.empty_form.status }}</td>
+                            <td>
+                                <div class="input-group input-group-sm mb-1">
+                                    {{ items.empty_form.start_time }}
+                                    <span class="input-group-text">-</span>
+                                    {{ items.empty_form.end_time }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="mb-1">{{ items.empty_form.related_asset }}</div>
+                                <div>{{ items.empty_form.related_infra }}</div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-row" title="Remove Row"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </table>
+
+                     <div class="mb-4">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="add-row">
+                            <i class="fas fa-plus me-1"></i> Add Another Activity
+                        </button>
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="d-flex justify-content-end align-items-center border-top pt-3">
+                        <a href="{% url 'dailylog_list' %}" class="btn btn-light me-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">
+                            <i class="fas fa-save me-2"></i>Save Daily Log
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Init Select2 on existing selects
+        function initSelect2(element) {
+            $(element).find('select').select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
+        }
+        initSelect2(document); // Init on load
+
+        // ADD ROW LOGIC
+        $('#add-row').click(function() {
+            var formIdx = $('#id_dailylogitem_set-TOTAL_FORMS').val();
+            var newRow = $('#empty-row-template').clone();
+            newRow.removeAttr('id').addClass('item-row');
+            
+            // Rewrite names
+            newRow.html(newRow.html().replace(/__prefix__/g, formIdx));
+            
+            // Append to table
+            $('#items-body').append(newRow);
+            
+            // Update Management Form
+            $('#id_dailylogitem_set-TOTAL_FORMS').val(parseInt(formIdx) + 1);
+            
+            // Init Select2 for new row
+            initSelect2(newRow);
+        });
+
+        // REMOVE ROW LOGIC (for dynamic rows)
+        $(document).on('click', '.remove-row', function() {
+            $(this).closest('tr').remove();
+            // Note: Decrementing TOTAL_FORMS is risky in Django formsets if we delete from middle.
+            // But for purely new JS rows it's okayish, or just leave it and let Django ignore missing indices?
+            // Actually standard django formset handling is robust enough usually if we don't mess up IDs.
+            // Better to hide it and set DELETE checkbox if it exists? 
+            // The empty form doesn't have a DELETE checkbox usually unless we add one.
+            // For now, simple remove from DOM works for unsaved rows.
+        });
+    });
+</script>
+{% endblock %}

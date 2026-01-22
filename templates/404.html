@@ -1,0 +1,19 @@
+{% extends 'layouts/base_auth.html' %}
+
+{% block title %}Page Not Found - ITMS{% endblock %}
+
+{% block content %}
+<div class="container d-flex flex-column justify-content-center align-items-center vh-100 text-center">
+    <div class="mb-4">
+        <i class="fas fa-search-location text-primary" style="font-size: 5rem;"></i>
+    </div>
+    <h1 class="display-1 fw-bold text-dark">404</h1>
+    <h2 class="h4 mb-4 text-muted">Page Not Found</h2>
+    <p class="lead mb-5 text-secondary" style="max-width: 500px;">
+        The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+    </p>
+    <a href="/" class="btn btn-primary px-4 py-2 rounded-pill shadow-sm">
+        <i class="fas fa-home me-2"></i>Return to Dashboard
+    </a>
+</div>
+{% endblock %}

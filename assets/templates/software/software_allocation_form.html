@@ -1,0 +1,68 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Assign License | ITMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Assign License</h1>
+    <a href="{% url 'software_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Cancel
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Assignment Details</h6>
+            </div>
+            <div class="card-body">
+                
+                {% if software %}
+                <div class="alert alert-info d-flex align-items-center">
+                    <i class="fas fa-info-circle me-3 fs-4"></i>
+                    <div>
+                        <strong>Assigning: {{ software.name }}</strong><br>
+                        <small>Remaining Seats: {{ software.seats_used }} / {{ software.seats_total }}</small>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.software }}
+                    
+                    <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Assign to User</label>
+                        {{ form.employee }}
+                    </div>
+                    
+                    <div class="text-center my-2 text-muted small fw-bold">- OR -</div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Assign to Asset (Device)</label>
+                        {{ form.asset }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Assigned Date</label>
+                        {{ form.assigned_date }}
+                    </div>
+                    
+                     <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Notes</label>
+                        {{ form.notes }}
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-1"></i> Confirm Assignment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

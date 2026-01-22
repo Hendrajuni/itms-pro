@@ -1,0 +1,267 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Device Manager - ITMS{% endblock %}
+{% block header_title %}Network Devices{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">Device Manager</h3>
+            <p class="text-muted small">Monitor servers, routers, and switches.</p>
+        </div>
+        <div class="d-flex text-center gap-4">
+            <div>
+                <h4 class="fw-bold text-success mb-0">{{ online_count }}</h4>
+                <small class="text-muted">Online</small>
+            </div>
+            <div>
+                <h4 class="fw-bold text-danger mb-0">{{ offline_count }}</h4>
+                <small class="text-muted">Offline</small>
+            </div>
+            <div>
+                <h4 class="fw-bold text-dark mb-0">{{ total_count }}</h4>
+                <small class="text-muted">Total</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3 align-items-center">
+    <div class="col-md-4">
+        <form method="get" class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Search devices..." value="{{ request.GET.q|default:'' }}">
+            <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+        </form>
+    </div>
+    <div class="col-md-8 text-end">
+        <div class="btn-group" role="group">
+            <a href="?view=grid{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-outline-secondary {% if view_mode == 'grid' %}active{% endif %}">
+                <i class="fas fa-th-large"></i> Grid
+            </a>
+            <a href="?view=list{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-outline-secondary {% if view_mode == 'list' %}active{% endif %}">
+                <i class="fas fa-list"></i> List
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if view_mode == 'grid' %}
+<!-- GRID VIEW -->
+<div class="row g-4">
+    {% for node in nodes %}
+    <div class="col-md-4 col-lg-3">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-light rounded p-2 me-2 text-primary">
+                            {% if node.type == 'Server' %}
+                                <i class="fas fa-server fa-lg"></i>
+                            {% elif node.type == 'Router' %}
+                                <i class="fas fa-route fa-lg"></i>
+                            {% elif node.type == 'Switch' %}
+                                <i class="fas fa-random fa-lg"></i>
+                            {% elif node.type == 'Access_Point' %}
+                                <i class="fas fa-wifi fa-lg"></i>
+                            {% else %}
+                                <i class="fas fa-desktop fa-lg"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="fw-bold m-0 text-dark">{{ node.name }}</h6>
+                            <small class="text-muted">{{ node.get_type_display }}</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamic Badge -->
+                    <span id="badge-{{ node.id }}" class="badge rounded-pill 
+                        {% if node.status == 'Online' %}bg-success
+                        {% elif node.status == 'Offline' %}bg-danger
+                        {% else %}bg-secondary{% endif %}">
+                        {{ node.status }}
+                    </span>
+                </div>
+
+                <!-- Info -->
+                <div class="mb-3">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="fas fa-globe text-muted me-2" style="width:16px;"></i>
+                        <span class="font-monospace small">{{ node.ip_address }}</span>
+                        {% if node.ip_address %}
+                        <a href="#" class="ms-2 text-muted" onclick="copyToClipboard('{{ node.ip_address }}')"><i class="far fa-copy"></i></a>
+                        {% else %}
+                        <span class="text-danger small ms-1">(No IP)</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex align-items-center mb-1">
+                         <i class="fas fa-map-marker-alt text-muted me-2" style="width:16px;"></i>
+                         <span class="small">{{ node.location.name }}</span>
+                    </div>
+                    {% if node.mac_address %}
+                    <div class="d-flex align-items-center">
+                         <i class="fas fa-fingerprint text-muted me-2" style="width:16px;"></i>
+                         <span class="font-monospace small text-muted">{{ node.mac_address }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+            </div>
+            <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center pb-3">
+                <small class="text-muted" style="font-size: 0.7rem;">
+                    Last: <span id="time-{{ node.id }}">{{ node.last_checked|time:"H:i:s"|default:"Never" }}</span>
+                </small>
+                {% if node.ip_address %}
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="pingNode(this, {{ node.id }})">
+                    <i class="fas fa-bolt me-1"></i>Check
+                </button>
+                {% else %}
+                <button class="btn btn-sm btn-light rounded-pill px-3" disabled>No IP</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+        <i class="fas fa-network-wired fa-3x mb-3 opacity-25"></i>
+        <p>No devices found.</p>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- TABLE VIEW -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Node</th>
+                        <th>IP Address</th>
+                        <th>Type</th>
+                        <th>Location</th>
+                        <th>Last Checked</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for node in nodes %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3 text-secondary">
+                                    {% if node.type == 'Server' %}<i class="fas fa-server"></i>
+                                    {% elif node.type == 'Router' %}<i class="fas fa-route"></i>
+                                    {% elif node.type == 'Switch' %}<i class="fas fa-random"></i>
+                                    {% elif node.type == 'Access_Point' %}<i class="fas fa-wifi"></i>
+                                    {% else %}<i class="fas fa-desktop"></i>{% endif %}
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">{{ node.name }}</h6>
+                                    {% if node.mac_address %}<small class="text-muted font-monospace">{{ node.mac_address }}</small>{% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="font-monospace">{{ node.ip_address|default:"-" }}</span>
+                            {% if node.ip_address %}
+                            <a href="#" class="ms-2 text-muted" onclick="copyToClipboard('{{ node.ip_address }}')"><i class="far fa-copy small"></i></a>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ node.get_type_display }}</span></td>
+                        <td>{{ node.location.name }}</td>
+                        <td>
+                            <span id="time-{{ node.id }}" class="small text-muted">
+                                {{ node.last_checked|timesince }} ago
+                            </span>
+                        </td>
+                        <td>
+                            <span id="badge-{{ node.id }}" class="badge rounded-pill 
+                                {% if node.status == 'Online' %}bg-success
+                                {% elif node.status == 'Offline' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ node.status }}
+                            </span>
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if node.ip_address %}
+                            <button class="btn btn-sm btn-light border" onclick="pingNode(this, {{ node.id }})" title="Ping Check">
+                                <i class="fas fa-bolt text-warning"></i>
+                            </button>
+                            {% else %}
+                            <button class="btn btn-sm btn-light border" disabled><i class="fas fa-ban text-muted"></i></button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No devices found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- AJAX Ping Script (Works for both layouts) -->
+<script>
+async function pingNode(btn, nodeId) {
+    const originalContent = btn.innerHTML;
+    const badge = document.getElementById(`badge-${nodeId}`);
+    const timeSpan = document.getElementById(`time-${nodeId}`);
+
+    // 1. Loading State
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+
+    try {
+        // 2. Fetch Ping API
+        const response = await fetch(`/network/nodes/ping/${nodeId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            // 3. Update Badge
+            if (data.node_status === 'Online') {
+                badge.className = 'badge rounded-pill bg-success';
+                badge.textContent = 'Online';
+            } else {
+                badge.className = 'badge rounded-pill bg-danger';
+                badge.textContent = 'Offline';
+            }
+            // 4. Update Time
+            // Note: 'data.last_checked' formats as H:M:S, but table uses timesince. 
+            // Ideally we update text to "Just now" or the H:M:S. 
+            timeSpan.textContent = data.last_checked;
+        } else {
+            alert("Error: " + data.message);
+        }
+
+    } catch (error) {
+        console.error('Ping failed:', error);
+        alert("Network Error: Failed to reach server.");
+    } finally {
+        // 5. Restore Button
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    // Silent copy
+}
+</script>
+{% endblock %}

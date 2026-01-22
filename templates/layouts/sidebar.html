@@ -1,0 +1,155 @@
+{% load rbac_tags %}
+<div id="sidebar-wrapper">
+    <div class="sidebar-heading d-flex align-items-center justify-content-center">
+        {% if site_settings.logo %}
+        <div class="bg-white rounded p-1 me-2" style="width: 40px; height: 40px; display:flex; align-items:center; justify-content:center;">
+             <img src="{{ site_settings.logo.url }}" alt="Logo" style="max-height: 30px; max-width: 30px;">
+        </div>
+        {% else %}
+        <div class="bg-primary text-white rounded p-1 me-2"
+            style="width: 32px; height: 32px; display:flex; align-items:center; justify-content:center;">
+            <i class="fas fa-cube"></i>
+        </div>
+        {% endif %}
+        <span>{{ site_settings.site_name|default:"ITMS Pro" }}</span>
+    </div>
+
+    <div class="list-group list-group-flush my-2 px-3">
+        <!-- MAIN MENU -->
+        <small class="text-uppercase fw-bold text-muted mb-1 ps-3" style="font-size: 0.7rem;">Main Menu</small>
+
+        <a href="/"
+            class="list-group-item list-group-item-action py-2 {% if request.path == '/' or '/dashboard/' in request.path %}active{% endif %}">
+            <i class="fas fa-tachometer-alt me-3" style="width: 20px;"></i>Dashboard
+        </a>
+
+        <a href="{% url 'ticket_list' %}"
+            class="list-group-item list-group-item-action py-2 {% if 'tickets' in request.path %}active{% endif %}">
+            <i class="fas fa-ticket-alt me-3" style="width: 20px;"></i>Ticketing
+        </a>
+
+        <a href="{% url 'knowledge_home' %}"
+            class="list-group-item list-group-item-action py-2 {% if 'knowledge' in request.path %}active{% endif %}">
+            <i class="fas fa-book-open me-3" style="width: 20px;"></i>Knowledge Base
+        </a>
+
+        <!-- MY ASSETS (For Standard Staff Only) -->
+        {% if not user.is_superuser and not user|has_group:"IT Support" and not user|has_group:"Admin" %}
+        <a href="{% url 'asset_list' %}?q={{ request.user.username }}" class="list-group-item list-group-item-action py-2">
+            <i class="fas fa-laptop-house me-3" style="width: 20px;"></i>My Assets
+        </a>
+        {% endif %}
+
+        <!-- IT STAFF & ADMIN ONLY -->
+        {% if user|has_group:"IT Support" or user|has_group:"Admin" %}
+            
+            <!-- INVENTORY -->
+            <div class="my-2"></div>
+            <small class="text-uppercase fw-bold text-muted mb-1 ps-3" style="font-size: 0.7rem;">Inventory</small>
+
+            <a href="{% url 'asset_list' %}" class="list-group-item list-group-item-action py-2 {% if 'assets' in request.path and not 'analytics' in request.path and not 'reports' in request.path %}active{% endif %}">
+                <i class="fas fa-box me-3" style="width: 20px;"></i>Hardware
+            </a>
+
+            <a href="{% url 'software_list' %}" class="list-group-item list-group-item-action py-2 {% if 'software' in request.path %}active{% endif %}">
+                <i class="fas fa-compact-disc me-3" style="width: 20px;"></i>Software
+            </a>
+
+            <a href="{% url 'contract_list' %}" class="list-group-item list-group-item-action py-2 {% if 'contracts' in request.path %}active{% endif %}">
+                <i class="fas fa-file-contract me-3" style="width: 20px;"></i>Contracts & Licenses
+            </a>
+
+            <!-- INFRASTRUCTURE -->
+            <div class="my-2"></div>
+            <small class="text-uppercase fw-bold text-muted mb-1 ps-3" style="font-size: 0.7rem;">Infrastructure</small>
+
+            <a href="{% url 'cloud_list' %}" class="list-group-item list-group-item-action py-2 {% if 'cloud' in request.path %}active{% endif %}">
+                <i class="fas fa-cloud me-3" style="width: 20px;"></i>Cloud Hosting
+            </a>
+
+            <a href="{% url 'infra_list' %}" class="list-group-item list-group-item-action py-2 {% if 'infrastructure' in request.path %}active{% endif %}">
+                <i class="fas fa-server me-3" style="width: 20px;"></i>Infrastructure
+            </a>
+
+
+
+            <a href="{% url 'maintenance_dashboard' %}" class="list-group-item list-group-item-action py-2 {% if 'maintenance' in request.path %}active{% endif %}">
+                <i class="fas fa-tools me-3" style="width: 20px;"></i>Maintenance
+            </a>
+
+
+            <!-- NETWORK -->
+            <div class="my-2"></div>
+            <small class="text-uppercase fw-bold text-muted mb-1 ps-3" style="font-size: 0.7rem;">Network</small>
+            
+            <a href="{% url 'downtime_list' %}" class="list-group-item list-group-item-action py-2 {% if 'downtime' in request.path %}active{% endif %}">
+                <i class="fas fa-satellite-dish me-3" style="width: 20px;"></i>NOC Monitor
+            </a>
+
+            <a href="{% url 'network_node_list' %}" class="list-group-item list-group-item-action py-2 {% if 'nodes' in request.path %}active{% endif %}">
+                <i class="fas fa-network-wired me-3" style="width: 20px;"></i>Network Nodes
+            </a>
+
+            <a href="{% url 'ip_list' %}" class="list-group-item list-group-item-action py-2 {% if 'ips' in request.path %}active{% endif %}">
+                <i class="fas fa-sitemap me-3" style="width: 20px;"></i>IP Address (IPAM)
+            </a>
+
+            <!-- REPORTS -->
+            <div class="my-2"></div>
+            <small class="text-uppercase fw-bold text-muted mb-1 ps-3" style="font-size: 0.7rem;">Reports</small>
+
+            <a href="{% url 'asset_analytics' %}" class="list-group-item list-group-item-action py-2 {% if 'analytics' in request.path %}active{% endif %}">
+                <i class="fas fa-chart-pie me-3" style="width: 20px;"></i>Asset Analytics
+            </a>
+
+            <a href="{% url 'asset_financials' %}" class="list-group-item list-group-item-action py-2 {% if 'reports/financials' in request.path %}active{% endif %}">
+                <i class="fas fa-file-invoice-dollar me-3" style="width: 20px;"></i>Lifecycle
+            </a>
+
+            <!-- GOVERNANCE -->
+            <div class="my-2"></div>
+            <small class="text-uppercase fw-bold text-muted mb-1 ps-3" style="font-size: 0.7rem;">Governance</small>
+            
+            <a href="{% url 'project_list' %}" class="list-group-item list-group-item-action py-2 {% if 'governance/projects' in request.path %}active{% endif %}">
+                <i class="fas fa-project-diagram me-3" style="width: 20px;"></i>Projects
+            </a>
+
+            {% if user.is_superuser or user|has_group:"Manager" or user|has_group:"Admin" %}
+            <a href="{% url 'fiscal_year_list' %}" class="list-group-item list-group-item-action py-2 {% if 'governance/fiscal' in request.path %}active{% endif %}">
+                <i class="fas fa-search-dollar me-3" style="width: 20px;"></i>Fiscal Years
+            </a>
+            {% endif %}
+
+            <a href="{% url 'dailylog_list' %}" class="list-group-item list-group-item-action py-2 {% if 'governance/logs' in request.path %}active{% endif %}">
+                <i class="fas fa-clipboard-list me-3" style="width: 20px;"></i>Daily Logs
+            </a>
+        {% endif %}
+
+        <!-- SUPERUSER & MANAGER ONLY -->
+        {% if user.is_superuser or user|has_group:"Manager" %}
+
+
+            <div class="my-2"></div>
+            <small class="text-uppercase fw-bold text-muted mb-1 ps-3" style="font-size: 0.7rem;">Administration</small>
+
+            {% if user.is_superuser %}
+            <a href="{% url 'user_list' %}" class="list-group-item list-group-item-action py-2 {% if 'users' in request.path %}active{% endif %}">
+                <i class="fas fa-users-cog me-3" style="width: 20px;"></i>Users & Groups
+            </a>
+            
+            <a href="{% url 'site_settings' %}" class="list-group-item list-group-item-action py-2 {% if 'settings' in request.path %}active{% endif %}">
+                <i class="fas fa-cogs me-3" style="width: 20px;"></i>Configuration
+            </a>
+            {% endif %}
+
+            <a href="{% url 'audit_log_list' %}" class="list-group-item list-group-item-action py-2 {% if 'audit-log' in request.path %}active{% endif %}">
+                <i class="fas fa-shield-alt me-3" style="width: 20px;"></i>Recent Activity
+            </a>
+
+            <a href="/admin/" class="list-group-item list-group-item-action py-2" target="_blank">
+                <i class="fas fa-cogs me-3" style="width: 20px;"></i>Django Admin
+            </a>
+        {% endif %}
+
+    </div>
+</div>

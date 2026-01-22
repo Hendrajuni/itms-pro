@@ -1,0 +1,310 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ infrastructure.name }} - Datasheet{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Print Styles */
+    @media print {
+        /* Hide UI elements */
+        #sidebar-wrapper, .navbar, footer, .btn, .no-print, .alert, .breadcrumb {
+            display: none !important;
+        }
+        
+        /* Reset Layout */
+        body, #wrapper, #page-content-wrapper {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            width: 100% !important;
+            overflow: visible !important;
+        }
+
+        .container-fluid {
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+
+        /* Card Cleanups */
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+            margin-bottom: 20px !important;
+        }
+        .card-header {
+            background: none !important;
+            border-bottom: 1px solid #333 !important;
+            padding-left: 0 !important;
+            color: #000 !important;
+        }
+        
+        /* Two Column Layout Preservation */
+        .row {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+        }
+        .col-lg-8 {
+            width: 60% !important;
+        }
+        .col-lg-4 {
+            width: 40% !important;
+        }
+        
+        /* Image Sizing */
+        img.img-fluid {
+            max-height: 200px !important;
+        }
+        
+        /* Print Header (Visible only in print) */
+        .print-header {
+            display: block !important;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .print-header h1 { margin: 0; font-size: 24px; font-weight: bold; }
+        .print-header p { margin: 0; font-size: 12px; color: #666; }
+    }
+
+    .print-header { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Print Header -->
+<div class="print-header">
+    <div class="d-flex justify-content-between align-items-end">
+        <div>
+            <h1>INFRASTRUCTURE DATASHEET</h1>
+            <p>IT Management System Pro</p>
+        </div>
+        <div class="text-end">
+            <p>Generated: {% now "d M Y H:i" %}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Screen Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <h1 class="h3 mb-0 text-gray-800">Infrastructure Detail</h1>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-info text-white">
+            <i class="fas fa-print me-1"></i> Print Datasheet
+        </button>
+        <a href="{% url 'infra_update' infrastructure.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit me-1"></i> Edit
+        </a>
+        <a href="{% url 'infra_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Info -->
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                     <!-- Photo & QR Column -->
+                     <div class="col-md-4 text-center mb-4 mb-md-0 d-flex flex-column align-items-center">
+                        {% if infrastructure.photo %}
+                            <img src="{{ infrastructure.photo.url }}" alt="{{ infrastructure.name }}" class="img-fluid rounded shadow-sm mb-3" style="max-height: 250px;">
+                        {% else %}
+                             <div class="bg-light d-flex align-items-center justify-content-center rounded mb-3" style="height: 200px; width: 100%;">
+                                <i class="fas fa-cube fa-5x text-muted opacity-25"></i>
+                             </div>
+                        {% endif %}
+                        
+                        <!-- QR Code -->
+                        <div class="p-3 border rounded bg-light text-center w-100">
+                             <img src="{{ infrastructure.get_qr_code_base64 }}" alt="QR Code" class="img-fluid mb-2" style="max-width: 120px;">
+                             <div class="small fw-bold text-uppercase text-muted" style="font-size: 0.7rem;">Scan for History</div>
+                             <div class="small font-monospace mt-1">{{ infrastructure.infra_id }}</div>
+                        </div>
+                     </div>
+                     
+                     <!-- Details Column -->
+                     <div class="col-md-8">
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <th style="width: 140px;" class="text-muted">Name</th>
+                                <td class="fw-bold fs-5">{{ infrastructure.name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">ID</th>
+                                <td>{{ infrastructure.infra_id }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Type</th>
+                                <td><span class="badge bg-light text-dark border">{{ infrastructure.get_type_display }}</span></td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Location</th>
+                                <td>{{ infrastructure.location.name|default:"-" }}</td>
+                            </tr>
+                             <tr>
+                                <th class="text-muted">Capacity/Spec</th>
+                                <td>{{ infrastructure.capacity|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Condition</th>
+                                <td>
+                                     {% if infrastructure.condition == 'GOOD' or infrastructure.condition == 'EXCELLENT' %}
+                                        <span class="badge bg-success">{{ infrastructure.get_condition_display }}</span>
+                                    {% elif infrastructure.condition == 'CRITICAL' or infrastructure.condition == 'POOR' %}
+                                        <span class="badge bg-danger">{{ infrastructure.get_condition_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ infrastructure.get_condition_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr><td colspan="2"><hr class="my-1"></td></tr>
+                            <tr>
+                                <th class="text-muted">Last Maint</th>
+                                <td>{{ infrastructure.last_maintenance_date|date:"d M Y"|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Next Maint</th>
+                                <td>
+                                     {% if infrastructure.next_maintenance_date %}
+                                        {% if infrastructure.next_maintenance_date < today %}
+                                            <span class="text-danger fw-bold">{{ infrastructure.next_maintenance_date|date:"d M Y" }} <i class="fas fa-exclamation-triangle"></i></span>
+                                        {% else %}
+                                            <span class="text-success">{{ infrastructure.next_maintenance_date|date:"d M Y" }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <div class="mt-4">
+                            <h6 class="font-weight-bold text-muted small text-uppercase">Notes</h6>
+                            <p class="text-muted bg-light p-3 rounded small border">
+                                {{ infrastructure.notes|default:"No notes available."|linebreaks }}
+                            </p>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linked Assets -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Linked Hardware Assets</h6>
+            </div>
+            <div class="card-body">
+                {% if infrastructure.assets.exists %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Asset Name</th>
+                                    <th>Status</th>
+                                    <th>Assigned To</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asset in infrastructure.assets.all %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if asset.photo %}
+                                                <img src="{{ asset.photo.url }}" class="rounded me-2" width="32" height="32" style="object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                                    <i class="fas fa-cube text-muted small"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <a href="{% url 'asset_detail' asset.pk %}" class="fw-bold text-dark text-decoration-none">{{ asset.name }}</a>
+                                                <div class="small text-muted">{{ asset.asset_code }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if asset.status == 'AVAILABLE' %}
+                                            <span class="badge bg-success">Available</span>
+                                        {% elif asset.status == 'IN_USE' %}
+                                            <span class="badge bg-primary">In Use</span>
+                                        {% elif asset.status == 'MAINTENANCE' %}
+                                            <span class="badge bg-warning text-dark">Maintenance</span>
+                                        {% elif asset.status == 'BROKEN' %}
+                                            <span class="badge bg-danger">Broken</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ asset.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if asset.assigned_to %}
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                                    {{ asset.assigned_to.username|slice:":2"|upper }}
+                                                </div>
+                                                <span>{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-3 my-0">
+                        <i class="fas fa-link mb-2 opacity-50 d-block fs-4"></i>
+                        No hardware assets linked to this infrastructure.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Maintenance History -->
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                 <h6 class="m-0 font-weight-bold text-primary">Maintenance History</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if maintenance_history %}
+                    <ul class="list-group list-group-flush">
+                    {% for logs in maintenance_history %}
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <small class="text-muted">{{ logs.scheduled_date|date:"d M Y" }}</small>
+                                <span class="badge bg-info text-white">{{ logs.status }}</span>
+                            </div>
+                            <p class="mb-1 fw-bold">{{ logs.title }}</p>
+                            <small class="text-muted">{{ logs.get_maintenance_type_display }}</small>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted text-center py-4 my-0">No maintenance history recorded.</p>
+                {% endif %}
+            </div>
+            <div class="card-footer text-center no-print">
+                 <a href="{% url 'infra_maintenance_create' %}?infra={{ infrastructure.pk }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-plus me-1"></i> Schedule Maintenance
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

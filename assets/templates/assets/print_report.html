@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory Report - {% now "Y-m-d" %}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            font-size: 12px;
+            margin: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header p {
+            margin: 5px 0 0;
+            color: #666;
+        }
+
+        @media print {
+            @page {
+                margin: 1cm;
+                size: legal landscape;
+            }
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+    <div class="header">
+        <h1>Asset Inventory Report</h1>
+        <p>Generated on: {% now "d F Y H:i" %}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Asset Name</th>
+                <th>Category</th>
+                <th>Brand/Model</th>
+                <th>Assigned To</th>
+                <th>Location</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset in assets %}
+            <tr>
+                <td>{{ asset.asset_code }}</td>
+                <td>{{ asset.name }}</td>
+                <td>{{ asset.category.name|default:"-" }}</td>
+                <td>
+                    {{ asset.brand|default:"" }}
+                    {% if asset.model %}{{ asset.model }}{% endif %}
+                </td>
+                <td>
+                    {% if asset.assigned_to %}
+                    {{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>{{ asset.location.name|default:"-" }}</td>
+                <td>{{ asset.get_status_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+
+</html>

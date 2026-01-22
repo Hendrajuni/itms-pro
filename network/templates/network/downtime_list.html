@@ -1,0 +1,114 @@
+{% extends 'layouts/base.html' %}
+{% load static rbac_tags %}
+
+{% block title %}NOC Monitor - ITMS{% endblock %}
+{% block header_title %}Network Operations Center{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">System Status Monitor</h3>
+            <p class="text-muted small">Real-time infrastructure health check.</p>
+        </div>
+        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+        <a href="{% url 'report_downtime' %}" class="btn btn-danger btn-lg shadow-sm">
+            <i class="fas fa-exclamation-triangle me-2"></i>Report Downtime
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- SECTION 1: ACTIVE INCIDENTS (THE RED ZONE) -->
+{% if active_incidents %}
+<div class="row g-4 mb-5">
+    <div class="col-12">
+        <h5 class="text-danger fw-bold border-bottom pb-2 mb-3">
+            <i class="fas fa-satellite-dish me-2 fa-spin"></i>ACTIVE INCIDENTS
+        </h5>
+    </div>
+    {% for incident in active_incidents %}
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm border-start border-5 border-danger bg-danger bg-opacity-10">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge bg-danger mb-2">CRITICAL - {{ incident.get_impact_display }}</span>
+                        <h4 class="fw-bold text-danger mb-1">{{ incident.title }}</h4>
+                        <p class="text-dark mb-2">{{ incident.description }}</p>
+                        
+                        <div class="d-flex align-items-center text-muted small mt-3">
+                            <span class="me-3"><i class="fas fa-network-wired me-1"></i>Node: <strong>{{ incident.node.name|default:"-" }}</strong></span>
+                            <span class="me-3"><i class="far fa-clock me-1"></i>Started: {{ incident.start_time|timesince }} ago</span>
+                            <span><i class="fas fa-user-ninja me-1"></i>Tech: {{ incident.technician.username|default:"Unassigned" }}</span>
+                        </div>
+                    </div>
+                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                    <div class="text-end">
+                        <a href="{% url 'resolve_downtime' incident.pk %}" class="btn btn-outline-danger bg-white">
+                            <i class="fas fa-check-circle me-1"></i>Resolve Incident
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="alert alert-success d-flex align-items-center shadow-sm border-0" role="alert">
+            <i class="fas fa-check-circle fa-2x me-3"></i>
+            <div>
+                <h4 class="alert-heading fw-bold mb-0">All Systems Operational</h4>
+                <p class="mb-0 small">No active downtime incidents reported.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- SECTION 2: HISTORY -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+        <h6 class="fw-bold m-0 text-dark">Recent Incident History</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Date</th>
+                    <th>Incident</th>
+                    <th>Duration</th>
+                    <th>Root Cause</th>
+                    <th>Resolution</th>
+                    <th>Tech</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in history_list %}
+                <tr>
+                    <td class="ps-4 small text-muted">{{ item.start_time|date:"d M Y, H:i" }}</td>
+                    <td>
+                        <span class="fw-bold d-block text-dark">{{ item.title }}</span>
+                        <span class="badge bg-light text-secondary border">{{ item.get_impact_display }}</span>
+                    </td>
+                    <td class="fw-bold text-dark">{{ item.duration }}</td>
+                    <td>{{ item.get_root_cause_display }}</td>
+                    <td class="small text-muted">{{ item.resolution|truncatechars:50 }}</td>
+                    <td>
+                        <span class="badge bg-primary rounded-pill">{{ item.technician.username|first|upper }}</span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No history found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

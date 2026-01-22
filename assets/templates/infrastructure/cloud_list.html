@@ -1,0 +1,119 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Cloud & Domains | ITMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Cloud & Domain Management</h1>
+    <div>
+        <button onclick="window.print()" class="btn btn-secondary me-2">
+            <i class="fas fa-print me-1"></i> Print
+        </button>
+        <a href="{% url 'cloud_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Service
+        </a>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Digital Asset Inventory</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="cloudTable" width="100%" cellspacing="0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Service Details</th>
+                        <th>Type</th>
+                        <th>Spec / IP</th>
+                        <th>Cost</th>
+                        <th>Renewal Status</th>
+                        <th>Status</th>
+                        <th class="text-end" style="width: 15%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cloud_assets %}
+                    <tr>
+                        <td class="align-middle">
+                            <span class="fw-bold text-dark">{{ item.name }}</span>
+                            <div class="small text-muted d-flex align-items-center gap-2">
+                                {{ item.provider }}
+                                {% if item.login_url %}
+                                <a href="{{ item.login_url }}" target="_blank" class="text-decoration-none">
+                                    <i class="fas fa-external-link-alt fa-xs"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="align-middle">
+                            {% if item.service_type == 'DOMAIN' %}
+                                <span class="badge bg-info text-dark border">Domain</span>
+                            {% elif item.service_type == 'VPS' %}
+                                <span class="badge bg-primary">VPS</span>
+                            {% elif item.service_type == 'SSL' %}
+                                <span class="badge bg-warning text-dark">SSL</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ item.get_service_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                             {% if item.ip_address %}
+                                <i class="fas fa-network-wired text-muted me-1"></i> {{ item.ip_address }}
+                             {% else %}
+                                <span class="text-muted">-</span>
+                             {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            Rp {{ item.cost|floatformat:0|intcomma }} <small class="text-muted">/ {{ item.get_billing_cycle_display }}</small>
+                        </td>
+                        <td class="align-middle">
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold">{{ item.expiry_date|date:"d M Y" }}</span>
+                                {% with days=item.days_until_expiry %}
+                                    {% if days is not None %}
+                                        <small class="{% if days < 0 %}text-danger fw-bold{% elif days < 30 %}text-warning fw-bold{% else %}text-success{% endif %}">
+                                            {% if days < 0 %}{% widthratio days 1 -1 %} Days Overdue
+                                            {% elif days == 0 %}Expires Today
+                                            {% else %}{{ days }} Days Left{% endif %}
+                                        </small>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </td>
+                        <td class="align-middle text-center">
+                            {% if item.status == 'ACTIVE' %}
+                                <span class="badge bg-success rounded-circle p-2" title="Active"> </span>
+                            {% elif item.status == 'SUSPENDED' %}
+                                <span class="badge bg-danger rounded-circle p-2" title="Suspended"> </span>
+                            {% elif item.status == 'PENDING' %}
+                                <span class="badge bg-warning rounded-circle p-2" title="Pending"> </span>
+                            {% else %}
+                                <span class="badge bg-secondary rounded-circle p-2" title="{{ item.get_status_display }}"> </span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle text-end">
+                            <a href="{% url 'cloud_update' item.pk %}" class="btn btn-sm btn-warning text-white" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                             <form method="post" action="{% url 'cloud_delete' item.pk %}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this asset?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No cloud assets found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

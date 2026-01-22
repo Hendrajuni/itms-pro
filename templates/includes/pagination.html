@@ -1,0 +1,44 @@
+{% load asset_tags %}
+
+{% with param_name=page_param|default:'page' %}
+{% if is_paginated %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?{% param_replace_dynamic param_name page_obj.previous_page_number %}" tabindex="-1" aria-disabled="true">Previous</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+        </li>
+        {% endif %}
+
+        {% for i in paginator.page_range %}
+            {% if page_obj.number == i %}
+            <li class="page-item active" aria-current="page">
+                <a class="page-link" href="#">{{ i }}</a>
+            </li>
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?{% param_replace_dynamic param_name i %}">{{ i }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?{% param_replace_dynamic param_name page_obj.next_page_number %}">Next</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" href="#">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+    <div class="text-center text-muted small mt-2">
+        Page {{ page_obj.number }} of {{ paginator.num_pages }}
+    </div>
+</nav>
+{% endif %}
+{% endwith %}

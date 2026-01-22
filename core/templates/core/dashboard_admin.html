@@ -1,0 +1,197 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Executive Dashboard - ITMS{% endblock %}
+{% block content %}
+{% if expiring_contracts %}
+<div class="alert alert-warning d-flex align-items-center mb-4 shadow-sm" role="alert">
+    <i class="fas fa-exclamation-triangle me-3 display-6 text-warning"></i>
+    <div class="flex-grow-1">
+        <h5 class="alert-heading fw-bold mb-1">Action Required: {{ expiring_contracts|length }} Contracts Expiring Soon</h5>
+        <ul class="mb-0 small text-dark">
+            {% for c in expiring_contracts %}
+            <li><strong>{{ c.title }}</strong> ends on {{ c.end_date|date:"M d" }} ({{ c.days_remaining }} days left).</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <a href="{% url 'contract_list' %}" class="btn btn-warning btn-sm fw-bold text-dark border-dark">Review All</a>
+</div>
+{% endif %}
+
+<div class="mb-4">
+    <h3 class="fw-bold text-dark">
+        {{ greeting }}, {{ request.user.first_name|default:request.user.username }}!
+    </h3>
+    <p class="text-muted mb-0">
+        <i class="fas fa-quote-left me-2 text-primary"></i>{{ daily_quote }}
+    </p>
+</div>
+<div class="row g-4 mb-4">
+    <!-- Stat Card: Total Assets -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card p-4 h-100 d-flex flex-row align-items-center justify-content-between">
+            <div>
+                <span class="text-label d-block mb-1">Total Assets</span>
+                <span class="text-value">{{ total_assets }}</span>
+            </div>
+            <div class="icon-box bg-primary-soft">
+                <i class="fas fa-boxes"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Card: Tickets (Month) -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card p-4 h-100 d-flex flex-row align-items-center justify-content-between">
+            <div>
+                <span class="text-label d-block mb-1">Tickets (Month)</span>
+                <span class="text-value">{{ total_tickets_month }}</span>
+            </div>
+            <div class="icon-box bg-success-soft">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Card: High Priority Tickets -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card p-4 h-100 d-flex flex-row align-items-center justify-content-between">
+            <div>
+                <span class="text-label d-block mb-1">High Priority</span>
+                <span class="text-value {% if tickets_high > 0 %}text-danger{% endif %}">{{ tickets_high }}</span>
+            </div>
+            <div class="icon-box bg-danger-soft">
+                <i class="fas fa-fire"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Card: Server Status (Mockup based on new data or existing) -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card p-4 h-100 d-flex flex-row align-items-center justify-content-between">
+            <div>
+                <span class="text-label d-block mb-1">Server Status</span>
+                <span class="text-value">OK</span> <!-- Placeholder, could be dynamic -->
+            </div>
+            <div class="icon-box bg-warning-soft">
+                <i class="fas fa-server"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-bottom py-3">
+                <h6 class="m-0 fw-bold">Ticket Categories</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chartTicketCategories" style="max-height: 250px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-bottom py-3">
+                <h6 class="m-0 fw-bold">Asset Distribution</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chartAssetDistribution" style="max-height: 250px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 & Timeline -->
+<div class="row g-4 mb-4">
+    <!-- Ticket Trend Chart -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-transparent border-bottom py-3">
+                <h6 class="m-0 fw-bold">Ticket Trend (Last 6 Months)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chartTicketTrend" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Activity Feed -->
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center bg-transparent border-0 pt-3 ps-3 pe-3">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-satellite-dish me-2 text-danger"></i>Live Operations</h6>
+                <span class="badge bg-light text-dark border">Real-time</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="timeline-container p-3" style="max-height: 400px; overflow-y: auto;">
+                    {% for activity in activity_feed %}
+                    <div class="timeline-item pb-3">
+                        <div class="timeline-marker bg-{{ activity.color }} {% if forloop.first %}pulse-animation{% endif %}"></div>
+                        <div class="timeline-content ms-3 ps-3 border-start border-2">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ activity.title }}</span>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ activity.time|timesince }} ago</small>
+                            </div>
+                            <p class="mb-0 text-muted small mt-1">{{ activity.description|truncatechars:60 }}</p>
+                            <div class="d-flex align-items-center mt-1">
+                                <i class="{{ activity.icon }} text-{{ activity.color }} me-1" style="font-size: 0.7rem;"></i>
+                                <small class="text-{{ activity.color }}" style="font-size: 0.75rem;">{{ activity.type }}</small>
+                                <span class="mx-1 text-muted">•</span>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ activity.user }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4 text-muted">No recent activity</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+   /* Timeline Styles */
+   .timeline-item { position: relative; }
+   
+   .timeline-marker {
+       position: absolute;
+       left: -6px;
+       top: 0;
+       width: 14px;
+       height: 14px;
+       border-radius: 50%;
+       border: 2px solid #fff;
+       z-index: 2;
+       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+   }
+   
+   .timeline-content {
+       position: relative;
+       top: -5px; /* Align text with dot */
+   }
+
+   /* Breathing/Pulse Animation for the newest item */
+   .pulse-animation {
+       box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+       animation: pulse-red 2s infinite;
+   }
+   
+   @keyframes pulse-red {
+       0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+       70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+       100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+   }
+   
+   /* Custom Scrollbar */
+   .timeline-container::-webkit-scrollbar { width: 4px; }
+   .timeline-container::-webkit-scrollbar-thumb { background-color: #dee2e6; border-radius: 4px; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard_charts.js' %}"></script>
+{% endblock %}

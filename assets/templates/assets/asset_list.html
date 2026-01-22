@@ -1,0 +1,379 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize rbac_tags asset_tags %}
+
+{% block title %}My Assets - ITMS{% endblock %}
+{% block header_title %}Asset Management{% endblock %}
+
+{% block content %}
+    <!-- Toolbar Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-dark fw-bold mb-0">
+            {% if selected_category %}
+                {{ selected_category.name }}
+            {% else %}
+                All Assets
+            {% endif %}
+        </h3>
+        <div class="d-flex gap-2">
+            {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+            <!-- View Mode Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-white border dropdown-toggle" type="button" id="viewModeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    {% if view_mode == 'financial' %}
+                        <i class="fas fa-file-invoice-dollar me-2 text-success"></i>Financial
+                    {% elif view_mode == 'lifecycle' %}
+                        <i class="fas fa-recycle me-2 text-warning"></i>Lifecycle
+                    {% else %}
+                        <i class="fas fa-list me-2 text-primary"></i>Operational
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="viewModeDropdown">
+                    <li><a class="dropdown-item" href="?{% param_replace mode='operational' %}"><i class="fas fa-list me-2 text-muted"></i>Operational</a></li>
+                    <li><a class="dropdown-item" href="?{% param_replace mode='financial' %}"><i class="fas fa-file-invoice-dollar me-2 text-muted"></i>Financial</a></li>
+                    <li><a class="dropdown-item" href="?{% param_replace mode='lifecycle' %}"><i class="fas fa-recycle me-2 text-muted"></i>Lifecycle</a></li>
+                </ul>
+            </div>
+
+            <!-- Filter Form -->
+            <form method="get" class="d-flex position-relative me-2 align-items-center">
+                <input type="hidden" name="mode" value="{{ view_mode }}">
+                
+                <!-- Preserve category filter -->
+                {% if current_category %}
+                <input type="hidden" name="category" value="{{ current_category }}">
+                {% endif %}
+                
+                <!-- Location Filter -->
+                <select name="loc" class="form-select form-select-sm me-2" onchange="this.form.submit()" style="max-width: 130px; border-color: #e3e6f0;">
+                    <option value="">All Locations</option>
+                    {% for l in locations %}
+                    <option value="{{ l.id }}" {% if request.GET.loc == l.id|stringformat:"s" %}selected{% endif %}>{{ l.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Department Filter -->
+                <select name="dept" class="form-select form-select-sm me-2" onchange="this.form.submit()" style="max-width: 130px; border-color: #e3e6f0;">
+                    <option value="">All Depts</option>
+                    {% for d in departments %}
+                    <option value="{{ d.id }}" {% if request.GET.dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            {% else %}
+            <!-- Dummy form for Staff to handle Search -->
+            <form method="get" class="d-flex position-relative me-2 align-items-center">
+            {% endif %}
+
+                <!-- Reset Button -->
+                <!-- Reset Button -->
+                {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                    {% if request.GET.loc or request.GET.dept or request.GET.q or request.GET.category %}
+                    <a href="{% url 'asset_list' %}?mode={{ view_mode }}" class="btn btn-sm btn-light text-danger me-2 border" title="Clear Filters">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+
+                    <!-- Search -->
+                    <div class="position-relative">
+                        <input type="text" name="q" class="form-control form-control-sm pe-5" placeholder="Search..."
+                            value="{{ request.GET.q|default:'' }}" style="width: 200px;">
+                        <button type="submit" class="btn btn-link btn-sm position-absolute end-0 top-0 text-muted text-decoration-none" style="height: 100%; top: 0;">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                {% endif %}
+            </form>
+
+            {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+            <!-- Export Excel -->
+            <a href="{% url 'asset_export' %}?mode={{ view_mode }}&q={{ request.GET.q|default:'' }}&category={{ current_category|default:'' }}" target="_blank"
+                class="btn btn-success text-white" title="Export to Excel">
+                <i class="fas fa-file-excel me-2"></i>Export
+            </a>
+            
+            <!-- Scan QR (Desktop/Tablet) -->
+            <a href="{% url 'asset_scanner' %}" class="btn btn-outline-primary d-none d-md-inline-block">
+                <i class="fas fa-qrcode me-2"></i>Scan QR
+            </a>
+
+            <!-- Add Asset -->
+            <a href="{% url 'asset_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Asset
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row gx-3">
+    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+    <!-- Filter Sidebar (Desktop) -->
+    <div class="col-md-2 d-none d-md-block mb-4">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="m-0 fw-bold text-dark"><i class="fas fa-folder me-2 text-warning"></i>Categories</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="?{% param_replace category='' %}" class="list-group-item list-group-item-action border-0 py-2 {% if not current_category %}active fw-bold{% endif %}">
+                    <i class="fas fa-th-large me-2"></i>All Assets
+                    <span class="badge bg-light text-dark rounded-pill float-end border">{{ paginator.count|default:page_obj.paginator.count }}</span>
+                </a>
+                
+                {% for cat in category_counts %}
+                <a href="?{% param_replace category=cat.id %}" class="list-group-item list-group-item-action border-0 py-2 {% if current_category == cat.id|stringformat:'s' %}active fw-bold{% endif %}">
+                    <span>{{ cat.name }}</span>
+                    <span class="badge {% if current_category == cat.id|stringformat:'s' %}bg-white text-primary{% else %}bg-primary{% endif %} rounded-pill float-end">
+                        {{ cat.asset_count }}
+                    </span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-10">
+    {% else %}
+    <!-- Full Width Content for Standard Users -->
+    <div class="col-md-12">
+    {% endif %}
+
+
+        <form id="bulk-form" method="post" action="{% url 'asset_print_labels_bulk' %}" target="_blank">
+            {% csrf_token %}
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-primary">Asset List</h6>
+                    <button type="submit" class="btn btn-sm btn-secondary" id="bulk-print-btn" disabled>
+                        <i class="fas fa-print me-2"></i>Print Selected Labels
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-modern align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4" style="width: 40px;">
+                                    <input type="checkbox" class="form-check-input" id="select-all">
+                                </th>
+                                <th class="">
+                                    <a href="?{% param_replace sort='name' order='asc' %}" class="text-dark text-decoration-none">
+                                        Asset 
+                                        {% if current_sort == 'name' %}
+                                            {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                        {% else %}
+                                            <i class="fas fa-sort text-muted opacity-25"></i>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                
+                                {% if view_mode == 'financial' %}
+                                    <th>
+                                        <a href="?{% param_replace sort='category' order='asc' %}" class="text-dark text-decoration-none">Category</a>
+                                    </th>
+                                    <th class="text-end">
+                                        <a href="?{% param_replace sort='price' order='desc' %}" class="text-dark text-decoration-none">Purchase Price</a>
+                                    </th>
+                                    <th class="text-end">Current Value</th>
+                                    <th class="text-end">Maint. Cost</th>
+                                {% elif view_mode == 'lifecycle' %}
+                                    <th>
+                                        <a href="?{% param_replace sort='purchase_date' order='asc' %}" class="text-dark text-decoration-none">Purchase Date</a>
+                                    </th>
+                                    <th>Age</th>
+                                    <th>Warranty</th>
+                                    <th>Status Detail</th>
+                                {% else %}
+                                    <th class="d-none d-lg-table-cell">Specs</th>
+                                    <th class="d-none d-lg-table-cell">Location</th>
+                                    <th>User</th>
+                                    <th class="d-none d-xl-table-cell">Financial</th>
+                                {% endif %}
+                                
+                                {% if view_mode != 'lifecycle' %}
+                                    <th>
+                                        <a href="?{% param_replace sort='status' order='asc' %}" class="text-dark text-decoration-none">Status</a>
+                                    </th>
+                                {% endif %}
+                                
+                                <th class="text-end pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asset in assets %}
+                            <tr>
+                                <!-- Checkbox -->
+                                <td class="ps-4">
+                                    <input type="checkbox" class="form-check-input asset-checkbox" name="selected_assets" value="{{ asset.id }}">
+                                </td>
+                                <!-- Col 1: Asset Common -->
+                                <td class="">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm me-3 bg-light rounded d-flex align-items-center justify-content-center border"
+                                            style="width: 48px; height: 48px; min-width: 48px;">
+                                            {% if asset.photo %}
+                                            <img src="{{ asset.photo.url }}" alt="Img" class="img-fluid rounded"
+                                                style="width: 100%; height: 100%; object-fit: cover;">
+                                            {% else %}
+                                            <i class="fas fa-cube text-muted fs-4 opacity-50"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div style="min-width: 140px;">
+                                            <h6 class="mb-0 fw-bold"><a href="{% url 'asset_detail' asset.pk %}" class="text-dark text-decoration-none">{{ asset.name }}</a></h6>
+                                            <div class="text-muted small font-monospace">{{ asset.asset_code }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                {% if view_mode == 'financial' %}
+                                    <!-- FINANCIAL COLUMNS -->
+                                    <td>{{ asset.category.name|default:"-" }}</td>
+                                    <td class="text-end text-muted">
+                                        {% if asset.purchase_price %}Rp {{ asset.purchase_price|floatformat:0|intcomma }}{% else %}-{% endif %}
+                                    </td>
+                                    <td class="text-end fw-bold text-success">
+                                        Rp {{ asset.current_book_value|floatformat:0|intcomma }}
+                                    </td>
+                                    <td class="text-end text-danger">
+                                        Rp {{ asset.get_total_maintenance_cost|floatformat:0|intcomma }}
+                                    </td>
+
+                                {% elif view_mode == 'lifecycle' %}
+                                    <!-- LIFECYCLE COLUMNS -->
+                                    <td>{{ asset.purchase_date|date:"d M Y"|default:"-" }}</td>
+                                    <td>{{ asset.age_usage }}</td>
+                                    <td>
+                                        {% if asset.warranty_end %}
+                                            {% if asset.warranty_end < today %}
+                                                <span class="text-danger small"><i class="fas fa-exclamation-circle"></i> Expired</span>
+                                            {% else %}
+                                                <span class="text-success small">{{ asset.warranty_end|date:"M Y" }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted small">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if asset.is_eol_candidate %}
+                                            <span class="badge bg-warning text-dark border border-dark">EOL Candidate</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark border">Normal Lifecycle</span>
+                                        {% endif %}
+                                    </td>
+
+                                {% else %}
+                                    <!-- OPERATIONAL COLUMNS (Default) -->
+                                    <td class="d-none d-lg-table-cell">
+                                        <span class="d-block text-dark fw-bold" style="font-size: 0.9rem;">{{ asset.brand|default:"-" }}</span>
+                                        <small class="text-muted d-block">{{ asset.model|default:"" }}</small>
+                                    </td>
+
+                                    <td class="d-none d-lg-table-cell">
+                                        <div class="d-flex flex-column">
+                                            <span class="text-dark fw-bold" style="font-size: 0.9rem;">{{ asset.location.name|default:"-" }}</span>
+                                            <small class="text-muted">{{ asset.department.name|default:"-" }}</small>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        {% if asset.assigned_to %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="d-none d-md-block">
+                                                <span class="fw-bold small text-dark">{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</span>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted small fst-italic">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="d-none d-xl-table-cell">
+                                        {% if asset.purchase_price %}
+                                        <div class="fw-bold text-dark font-monospace">Rp {{ asset.purchase_price|floatformat:0|intcomma }}</div>
+                                        {% else %}
+                                        <div class="text-muted">-</div>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+
+                                <!-- Status Column (Shared except Lifecycle has its own detail) -->
+                                {% if view_mode != 'lifecycle' %}
+                                <td>
+                                    {% if asset.status == 'IN_USE' %}<span class="badge badge-soft-success">In Use</span>
+                                    {% elif asset.status == 'AVAILABLE' %}<span class="badge badge-soft-info">Available</span>
+                                    {% elif asset.status == 'MAINTENANCE' %}<span class="badge badge-soft-warning">Maintenance</span>
+                                    {% elif asset.status == 'BROKEN' %}<span class="badge badge-soft-danger">Broken</span>
+                                    {% elif asset.status == 'DISPOSED' %}<span class="badge badge-soft-secondary">Disposed</span>
+                                    {% else %}<span class="badge bg-secondary">{{ asset.get_status_display }}</span>{% endif %}
+                                </td>
+                                {% endif %}
+
+                                <!-- Action -->
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                                        <!-- Print Label -->
+                                        <a href="{% url 'asset_print_label' asset.pk %}" target="_blank" class="btn btn-icon btn-sm btn-light text-dark" title="Print Label"><i class="fas fa-print"></i></a>
+                                        {% endif %}
+                                        
+                                        <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-icon btn-sm btn-light text-primary" title="View"><i class="fas fa-eye"></i></a>
+                                        
+                                        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                                        <a href="{% url 'asset_update' asset.pk %}" class="btn btn-icon btn-sm btn-light text-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                                        {% endif %}
+                                        
+                                        {% if request.user.is_superuser %}
+                                        <a href="{% url 'asset_delete' asset.pk %}" class="btn btn-icon btn-sm btn-light text-danger" title="Delete"><i class="fas fa-trash"></i></a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+                                    <p>No assets found.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    {% include 'includes/pagination.html' %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.asset-checkbox');
+        const bulkBtn = document.getElementById('bulk-print-btn');
+
+        function updateButton() {
+            const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+            bulkBtn.disabled = !anyChecked;
+            if (anyChecked) {
+                bulkBtn.classList.remove('btn-secondary');
+                bulkBtn.classList.add('btn-primary');
+            } else {
+                bulkBtn.classList.remove('btn-primary');
+                bulkBtn.classList.add('btn-secondary');
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                updateButton();
+            });
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateButton);
+        });
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}IP Address Management - ITMS{% endblock %}
+{% block header_title %}IP Address Management{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">Network Subnets</h3>
+            <p class="text-muted small">Manage IP allocations and VLANs.</p>
+        </div>
+        <div class="d-flex text-center gap-4">
+            <div>
+                <h4 class="fw-bold text-success mb-0">{{ free_ips }}</h4>
+                <small class="text-muted">Free IPs</small>
+            </div>
+            <div>
+                <h4 class="fw-bold text-primary mb-0">{{ active_ips }}</h4>
+                <small class="text-muted">Active</small>
+            </div>
+            <div>
+                <h4 class="fw-bold text-dark mb-0">{{ total_ips }}</h4>
+                <small class="text-muted">Total</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for subnet in subnets %}
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-bold mb-1">{{ subnet.name }} - {{ subnet.cidr }}</h5>
+                    <span class="badge bg-light text-dark border">VLAN {{ subnet.vlan_id }}</span>
+                    <span class="text-muted small ms-2">{{ subnet.gateway }} (Gateway)</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <!-- Usage Bar (Inline) -->
+                    <div class="d-flex align-items-center me-3" style="min-width: 200px;">
+                        <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                            <div class="progress-bar {% if subnet.usage_percent > 90 %}bg-danger{% elif subnet.usage_percent > 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" style="width: {{ subnet.usage_percent }}%"></div>
+                        </div>
+                        <span class="small text-muted fw-bold" style="min-width: 40px; text-align: right;">{{ subnet.usage_percent }}%</span>
+                    </div>
+
+                    <!-- Print Button -->
+                    <a href="{% url 'subnet_print' subnet.id %}" target="_blank" class="btn btn-sm btn-light border ms-2" title="Print Report">
+                        <i class="fas fa-print"></i>
+                    </a>
+                    
+                    <!-- Collapse Button -->
+                    <button class="btn btn-sm btn-light border ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ subnet.id }}">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="collapse show" id="collapse-{{ subnet.id }}">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">IP Address</th>
+                                    <th>Status</th>
+                                    <th>Used By</th>
+                                    <th>MAC Address</th>
+                                    <th>User</th>
+                                    <th class="text-end pe-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ip in subnet.ips.all %}
+                                <tr>
+                                    <td class="ps-4 font-monospace">{{ ip.address }}</td>
+                                    <td>
+                                        {% if ip.status == 'Free' %}
+                                            <span class="badge bg-success-subtle text-success">Free</span>
+                                        {% elif ip.status == 'Active' %}
+                                            <span class="badge bg-primary-subtle text-primary">Active</span>
+                                        {% elif ip.status == 'Reserved' %}
+                                            <span class="badge bg-info-subtle text-info">Reserved</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-subtle text-secondary">{{ ip.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if ip.asset %}
+                                            <a href="{% url 'asset_detail' ip.asset.id %}" class="text-decoration-none text-dark">
+                                                <i class="fas fa-laptop text-muted me-1"></i> {{ ip.asset.name }}
+                                            </a>
+                                        {% elif ip.node %}
+                                            <a href="#" class="text-decoration-none text-dark">
+                                                <i class="fas fa-server text-muted me-1"></i> {{ ip.node.name }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="font-monospace small">{{ ip.mac_address|default:"-" }}</td>
+                                    <td class="small text-muted">
+                                        {% if ip.asset and ip.asset.assigned_to %}
+                                            <i class="fas fa-user-circle me-1"></i> {{ ip.asset.assigned_to.get_full_name|default:ip.asset.assigned_to.username }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'assign_ip' ip.pk %}" class="btn btn-sm btn-light border" title="Edit IP">
+                                            <i class="fas fa-pen small"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <p class="text-muted">No subnets configured.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

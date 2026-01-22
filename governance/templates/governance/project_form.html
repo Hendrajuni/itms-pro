@@ -1,0 +1,64 @@
+{% extends 'layouts/base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}{{ page_title }} - ITMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 fw-bold text-primary">{{ page_title }}</h6>
+                <a href="{% url 'project_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        {{ form.name|as_crispy_field }}
+                    </div>
+                    
+                    <div class="mb-3">
+                         {{ form.description|as_crispy_field }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.manager|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.status|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.start_date|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.end_date|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Progress Bar ({{ form.progress.value }}%)</label>
+                        {{ form.progress|as_crispy_field }}
+                        <div class="progress mt-2" style="height: 5px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ form.progress.value }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-end mt-4">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ article.title }} - Help Center{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- LEFT COLUMN: Article Content -->
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-transparent px-0">
+                <li class="breadcrumb-item"><a href="{% url 'knowledge_home' %}">Help Center</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'knowledge_home' %}?q={{ article.category.name }}">{{ article.category.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ article.title|truncatechars:20 }}</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow mb-4">
+            <div class="card-body p-5">
+                <h1 class="h2 font-weight-bold text-gray-900 mb-3">{{ article.title }}</h1>
+                
+                <div class="d-flex align-items-center text-muted small mb-4 pb-3 border-bottom">
+                    <span class="me-3"><i class="fas fa-user me-1"></i>{{ article.author.first_name|default:article.author.username }}</span>
+                    <span class="me-3"><i class="fas fa-calendar me-1"></i>{{ article.updated_at|date:"d M Y" }}</span>
+                    <span><i class="fas fa-eye me-1"></i>{{ article.view_count }} views</span>
+                    
+                    {% if user.is_staff or user.groups.all.0.name == 'Manager' %}
+                    <span class="ms-auto">
+                        <a href="{% url 'article_update' article.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Article Body -->
+                <div class="article-content text-dark mb-5" style="font-size: 1.05rem; line-height: 1.7;">
+                    {{ article.content|linebreaks }}
+                </div>
+                
+                {% if article.attachment %}
+                <div class="card bg-light border-left-info py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Attachment</div>
+                                <a href="{{ article.attachment.url }}" target="_blank" class="h6 mb-0 font-weight-bold text-gray-800">
+                                    <i class="fas fa-paperclip me-2"></i>Download Attached File
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Sidebar -->
+    <div class="col-lg-4">
+        <!-- Related Articles -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">More in {{ article.category.name }}</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for related in related_articles %}
+                <a href="{% url 'article_detail' related.pk %}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-file-alt me-2 text-gray-400"></i>{{ related.title }}
+                </a>
+                {% empty %}
+                <div class="text-center py-3 text-muted small">No other articles in this category.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Need Help? -->
+        <div class="card shadow bg-gradient-primary text-white text-center p-4">
+            <div class="card-body">
+                <i class="fas fa-life-ring fa-3x mb-3 text-white-50"></i>
+                <h5 class="card-title fw-bold">Still stuck?</h5>
+                <p class="card-text mb-4">If you didn't find the answer you were looking for, our IT team is here to help.</p>
+                <a href="{% url 'ticket_create' %}" class="btn btn-light text-primary fw-bold shadow-sm">
+                    Open Support Ticket
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

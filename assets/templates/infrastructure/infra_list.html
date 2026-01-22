@@ -1,0 +1,238 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Infrastructure - ITMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Server & Infrastructure</h1>
+    
+</div>
+
+<!-- 1. Summary Cards (Filters) -->
+<div class="row mb-4">
+    <!-- Tower -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <a href="?type=TOWER" class="text-decoration-none">
+            <div class="card border-left-info shadow h-100 py-2 {% if current_type == 'TOWER' %}border border-primary border-3{% endif %}">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Tower Nodes</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ tower_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-broadcast-tower fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Server Rack -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <a href="?type=SERVER_RACK" class="text-decoration-none">
+            <div class="card border-left-primary shadow h-100 py-2 {% if current_type == 'SERVER_RACK' %}border border-primary border-3{% endif %}">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Server Racks</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ rack_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-server fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Wallmount -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <a href="?type=WALLMOUNT" class="text-decoration-none">
+            <div class="card border-left-success shadow h-100 py-2 {% if current_type == 'WALLMOUNT' %}border border-primary border-3{% endif %}">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Wallmount Racks</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ wallmount_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hdd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Panel -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <a href="?type=PANEL" class="text-decoration-none">
+            <div class="card border-left-warning shadow h-100 py-2 {% if current_type == 'PANEL' %}border border-primary border-3{% endif %}">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Box Panels</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ panel_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-bolt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- 2. Toolbar -->
+<div class="card shadow mb-4">
+    <div class="card-body py-3 d-flex justify-content-between align-items-center">
+        <form method="get" class="form-inline mw-100 navbar-search">
+            {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
+            <div class="input-group">
+                <input type="text" name="q" class="form-control bg-light border-0 small" 
+                       placeholder="Search infrastructure..." aria-label="Search" value="{{ search_query }}">
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="button">
+                        <i class="fas fa-search fa-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        <div class="d-flex gap-2">
+            {% if current_type or search_query %}
+            <a href="{% url 'infra_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times me-1"></i> Reset
+            </a>
+            {% endif %}
+            <a href="{% url 'infra_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Add New
+            </a>
+        </div>
+    </div>
+</div>
+
+{% load asset_tags %}
+
+<!-- 3. Infrastructure Table -->
+<div class="card shadow mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">
+                            <a href="?{% param_replace sort='name' order='asc' %}" class="text-dark text-decoration-none">
+                                Name {% if current_sort == 'name' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='type' order='asc' %}" class="text-dark text-decoration-none">
+                                Type {% if current_sort == 'type' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='location' order='asc' %}" class="text-dark text-decoration-none">
+                                Location {% if current_sort == 'location' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>Capacity</th>
+                        <th>
+                            <a href="?{% param_replace sort='condition' order='asc' %}" class="text-dark text-decoration-none">
+                                Condition {% if current_sort == 'condition' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='last_maint' order='asc' %}" class="text-dark text-decoration-none">
+                                Last Maint {% if current_sort == 'last_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?{% param_replace sort='next_maint' order='asc' %}" class="text-dark text-decoration-none">
+                                Next Maint {% if current_sort == 'next_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in infra_assets %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="d-flex align-items-center">
+                                {% if item.photo %}
+                                    <img src="{{ item.photo.url }}" class="rounded me-2" width="32" height="32" style="object-fit: cover; cursor: pointer;" title="View Image">
+                                {% else %}
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                        <i class="fas fa-cube text-muted small"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <a href="{% url 'infra_detail' item.pk %}" class="text-dark fw-bold text-decoration-none">{{ item.name }}</a>
+                                    <div class="small text-muted">{{ item.infra_id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ item.get_type_display }}</span></td>
+                        <td>{{ item.location.name|default:"-" }}</td>
+                        <td>{{ item.capacity|default:"-" }}</td>
+                        <td>
+                            {% if item.condition == 'GOOD' or item.condition == 'EXCELLENT' %}
+                                <span class="badge bg-success">{{ item.get_condition_display }}</span>
+                            {% elif item.condition == 'CRITICAL' or item.condition == 'POOR' %}
+                                <span class="badge bg-danger">{{ item.get_condition_display }}</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">{{ item.get_condition_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.last_maintenance_date|date:"d M Y"|default:"-" }}</td>
+                        <td>
+                            {% if item.next_maintenance_date %}
+                                {% if item.next_maintenance_date < today %}
+                                    <span class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>{{ item.next_maintenance_date|date:"d M Y" }}</span>
+                                {% else %}
+                                    <span class="text-success">{{ item.next_maintenance_date|date:"d M Y" }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                            <div class="btn-group">
+                                <a href="{% url 'infra_detail' item.pk %}" class="btn btn-sm btn-outline-secondary" title="View Detail">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'infra_update' item.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'infra_delete' item.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
+                            <p>No infrastructure items found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% include 'includes/pagination.html' %}
+{% endblock %}

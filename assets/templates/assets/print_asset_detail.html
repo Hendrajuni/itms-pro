@@ -1,0 +1,235 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Asset Report - {{ asset.asset_code }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; }
+        .header-logo { max-height: 60px; }
+        .report-header { border-bottom: 2px solid #0d6efd; padding-bottom: 15px; margin-bottom: 20px; }
+        .section-title { 
+            background-color: #f8f9fa; 
+            border-left: 4px solid #0d6efd; 
+            padding: 8px 12px; 
+            font-weight: bold; 
+            font-size: 14px; 
+            margin: 20px 0 10px 0; 
+            text-transform: uppercase;
+        }
+        .table-custom th { background-color: #f1f3f5; font-weight: 600; text-transform: uppercase; font-size: 11px; }
+        .table-custom td { vertical-align: middle; }
+        .info-label { font-weight: 600; color: #666; width: 35%; }
+        .info-value { font-weight: 700; color: #000; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; background: white; }
+            .card { border: none !important; shadow: none !important; }
+            a { text-decoration: none; color: #000; }
+        }
+    </style>
+</head>
+<body class="bg-light p-4">
+
+    <div class="container bg-white p-5 shadow-sm rounded">
+        <!-- Actions (No Print) -->
+        <div class="d-flex justify-content-end mb-4 no-print">
+            <button onclick="window.print()" class="btn btn-primary me-2">
+                <i class="fas fa-print"></i> Print Report
+            </button>
+            <button onclick="window.close()" class="btn btn-secondary">
+                Close
+            </button>
+        </div>
+
+        <!-- Header -->
+        <div class="row report-header align-items-center">
+            <div class="col-8">
+                <h2 class="mb-0 fw-bold text-primary">Asset Detail Report</h2>
+                <p class="text-muted mb-0">Generated on {% now "d M Y H:i" %}</p>
+            </div>
+            <div class="col-4 text-end">
+                <h3 class="fw-bold mb-0">{{ asset.asset_code }}</h3>
+                <span class="badge bg-dark">{{ asset.get_status_display }}</span>
+            </div>
+        </div>
+
+        <!-- Basic & Financial Info -->
+        <div class="row">
+            <div class="col-6 pe-4">
+                <div class="section-title">Asset Information</div>
+                <table class="table table-sm table-borderless mb-0">
+                    <tr><td class="info-label">Name</td><td class="info-value">{{ asset.name }}</td></tr>
+                    <tr><td class="info-label">Brand / Model</td><td class="info-value">{{ asset.brand }} / {{ asset.model }}</td></tr>
+                    <tr><td class="info-label">Serial Number</td><td class="info-value">{{ asset.serial_number|default:"-" }}</td></tr>
+                    <tr><td class="info-label">Category</td><td class="info-value">{{ asset.category.name|default:"-" }}</td></tr>
+                    <tr><td class="info-label">Location</td><td class="info-value">{{ asset.location.name|default:"-" }}</td></tr>
+                    <tr><td class="info-label">Department</td><td class="info-value">{{ asset.department.name|default:"-" }}</td></tr>
+                </table>
+            </div>
+            <div class="col-6 ps-4">
+               <div class="section-title">Financial & Lifecycle</div>
+                <table class="table table-sm table-borderless mb-0">
+                    <tr><td class="info-label">Purchase Date</td><td class="info-value">{{ asset.purchase_date|date:"d M Y"|default:"-" }}</td></tr>
+                    <tr><td class="info-label">Purchase Price</td><td class="info-value">Rp {{ asset.purchase_price|floatformat:0|intcomma }}</td></tr>
+                     <tr><td class="info-label">Current Book Value</td><td class="info-value">Rp {{ asset.current_book_value|floatformat:0|intcomma }}</td></tr>
+                    <tr><td class="info-label">Residual Value</td><td class="info-value">Rp {{ asset.residual_value|floatformat:0|intcomma }}</td></tr>
+                    <tr><td class="info-label">Useful Life</td><td class="info-value">{{ asset.useful_life_years }} Years</td></tr>
+                    <tr><td class="info-label">Age / Usage</td><td class="info-value">{{ asset.age_usage }}</td></tr>
+                    <tr><td class="info-label">Vendor</td><td class="info-value">{{ asset.vendor.name|default:"-" }}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Specifications -->
+        {% if spec %}
+        <div class="section-title">Technical Specifications</div>
+        <table class="table table-sm table-bordered table-custom">
+            <tr>
+                <th width="25%">Processor (CPU)</th>
+                <th width="25%">Memory (RAM)</th>
+                <th width="25%">Motherboard</th>
+                <th width="25%">Operating System</th>
+            </tr>
+            <tr>
+                <td>{{ spec.cpu|default:"-" }}</td>
+                <td>{{ spec.ram|default:"-" }}</td>
+                <td>{{ spec.motherboard|default:"-" }}</td>
+                <td>{{ spec.os|default:"-" }}</td>
+            </tr>
+        </table>
+        {% endif %}
+
+        <!-- Network Interfaces -->
+        <div class="section-title">Network Interfaces</div>
+        {% if interfaces %}
+        <table class="table table-sm table-striped table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Interface Name</th>
+                    <th>IP Address</th>
+                    <th>MAC Address</th>
+                    <th>VLAN ID</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for iface in interfaces %}
+                <tr>
+                    <td class="fw-bold">{{ iface.name }}</td>
+                    <td class="font-monospace">{{ iface.ip_address|default:"-" }}</td>
+                    <td class="font-monospace">{{ iface.mac_address|default:"-" }}</td>
+                    <td>{{ iface.vlan_id|default:"-" }}</td>
+                    <td>{{ iface.is_active|yesno:"Active,Disabled" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted fst-italic ms-3">No network interfaces configured.</p>
+        {% endif %}
+
+        <!-- Software Installations -->
+        <div class="section-title">Software Installations</div>
+        {% if asset.software_installed.all %}
+        <table class="table table-sm table-striped table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Software Name</th>
+                    <th>Version</th>
+                    <th>License Type</th>
+                    <th>Installed Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for install in asset.software_installed.all %}
+                <tr>
+                    <td class="fw-bold">{{ install.software.name }}</td>
+                    <td>{{ install.software.version }}</td>
+                    <td>{{ install.software.get_license_type_display }}</td>
+                    <td>{{ install.installed_date|date:"d M Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted fst-italic ms-3">No software installations recorded.</p>
+        {% endif %}
+
+        <!-- Maintenance History -->
+        <div class="section-title">Maintenance History</div>
+        {% if maintenance_logs %}
+        <table class="table table-sm table-striped table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th class="text-end">Cost</th>
+                    <th>Technician</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in maintenance_logs %}
+                <tr>
+                    <td>{{ log.scheduled_date|date:"d M Y" }}</td>
+                    <td>{{ log.get_maintenance_type_display }}</td>
+                    <td>{{ log.title }}</td>
+                    <td class="text-end">Rp {{ log.cost|floatformat:0|intcomma }}</td>
+                    <td>{{ log.technician.get_full_name|default:log.technician.username }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted fst-italic ms-3">No maintenance records found.</p>
+        {% endif %}
+
+        <!-- Assignment History -->
+        <div class="section-title">Assignment History</div>
+        {% if history %}
+        <table class="table table-sm table-striped table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Loan Date</th>
+                    <th>Employee</th>
+                    <th>Return Date</th>
+                    <th>Condition Out</th>
+                    <th>Condition In</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in history %}
+                <tr>
+                    <td>{{ loan.loan_date|date:"d M Y H:i" }}</td>
+                    <td>{{ loan.employee.get_full_name|default:loan.employee.username }}</td>
+                    <td>{{ loan.return_date|date:"d M Y H:i"|default:"Current" }}</td>
+                    <td>{{ loan.condition_out|default:"-" }}</td>
+                    <td>{{ loan.condition_in|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted fst-italic ms-3">No assignment history found.</p>
+        {% endif %}
+        
+        <!-- Notes -->
+        {% if asset.infrastructure.notes %}
+        <div class="section-title">Notes</div>
+        <div class="p-3 border rounded bg-light">
+            {{ asset.infrastructure.notes|linebreaks }}
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="mt-5 pt-3 border-top text-center text-muted small">
+            <p>Printed by {{ user.get_full_name|default:user.username }} on {% now "d F Y" %}</p>
+            <p>IT Management System &copy; {% now "Y" %}</p>
+        </div>
+    </div>
+
+</body>
+</html>

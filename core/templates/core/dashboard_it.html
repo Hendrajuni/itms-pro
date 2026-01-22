@@ -1,0 +1,85 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}IT Dashboard - ITMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="mb-4 mt-3">
+        <h3 class="fw-bold text-dark">
+            {{ greeting }}, {{ request.user.first_name|default:request.user.username }}!
+        </h3>
+        <p class="text-muted mb-0">
+            <i class="fas fa-quote-left me-2 text-primary"></i>{{ daily_quote }}
+        </p>
+    </div>
+    <div class="row g-3 my-2">
+        <!-- Open Tickets -->
+        <div class="col-md-4">
+            <div class="p-3 bg-white shadow-sm d-flex justify-content-around align-items-center rounded">
+                <div>
+                    <h3 class="fs-2 {% if tickets_open > 5 %}text-danger{% endif %}">{{ tickets_open }}</h3>
+                    <p class="fs-5">Open Tickets</p>
+                </div>
+                <i class="fas fa-ticket-alt fs-1 primary-text border rounded-full secondary-bg p-3"></i>
+            </div>
+        </div>
+
+        <!-- Servers Down -->
+        <div class="col-md-4">
+            <div
+                class="p-3 shadow-sm d-flex justify-content-around align-items-center rounded {% if servers_down > 0 %}bg-danger text-white{% else %}bg-white{% endif %}">
+                <div>
+                    <h3 class="fs-2">{{ servers_down }}</h3>
+                    <p class="fs-5">Servers Offline</p>
+                </div>
+                <i
+                    class="fas fa-server fs-1 {% if servers_down > 0 %}text-white{% else %}primary-text{% endif %} border rounded-full secondary-bg p-3"></i>
+            </div>
+        </div>
+
+        <!-- Daily Log -->
+        <div class="col-md-4">
+            <div class="p-3 bg-white shadow-sm d-flex justify-content-around align-items-center rounded">
+                <div>
+                    <h3 class="fs-2">{% if my_daily_log_done %}Done{% else %}Pending{% endif %}</h3>
+                    <p class="fs-5">Daily Job</p>
+                </div>
+                <i class="fas fa-check-circle fs-1 primary-text border rounded-full secondary-bg p-3"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Priority Tickets -->
+    <div class="row my-5">
+        <h3 class="fs-4 mb-3">Recent High Priority Tickets</h3>
+        <div class="col">
+            <div class="table-responsive">
+                <table class="table bg-white rounded shadow-sm  table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" width="50">#</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets_high_list %}
+                        <tr>
+                            <th scope="row">{{ ticket.id }}</th>
+                            <td>{{ ticket.title }}</td>
+                            <td><span class="badge bg-danger">{{ ticket.status }}</span></td>
+                            <td>{{ ticket.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No high priority tickets found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

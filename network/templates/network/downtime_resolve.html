@@ -1,0 +1,40 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Resolve Incident - ITMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 border-top border-5 border-success">
+            <div class="card-header bg-white py-3">
+                <h4 class="fw-bold text-success mb-0">
+                    <i class="fas fa-check-circle me-2"></i>Resolve Incident
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <h5 class="mb-3">{{ downtimeevent.title }}</h5>
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Resolution Details</label>
+                        {{ form.resolution }}
+                        <div class="form-text">Explain how the issue was fixed.</div>
+                    </div>
+
+                    <div class="mb-4">
+                         <label class="form-label">End Time</label>
+                         {{ form.end_time }}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'downtime_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-success px-4 fw-bold">Confirm Resolution</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

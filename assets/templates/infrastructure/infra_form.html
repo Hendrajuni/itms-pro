@@ -1,0 +1,91 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit Infrastructure{% else %}Add Infrastructure{% endif %} - ITMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    {% if form.instance.pk %}Edit Infrastructure{% else %}Add Infrastructure{% endif %}
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ form.name.id_for_label }}">Name</label>
+                                {{ form.name }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                {{ form.type }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Location</label>
+                                {{ form.location }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                             <div class="mb-3">
+                                <label class="form-label">Capacity / Specification</label>
+                                {{ form.capacity }}
+                            </div>
+                        </div>
+                    </div>
+
+                     <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Condition</label>
+                                {{ form.condition }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Last Maintenance</label>
+                                {{ form.last_maintenance_date }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Next Maintenance</label>
+                                {{ form.next_maintenance_date }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Photo</label>
+                        {{ form.photo }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        {{ form.notes }}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                         <a href="{% url 'infra_list' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                             <i class="fas fa-save me-1"></i> Save Infrastructure
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

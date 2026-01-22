@@ -1,0 +1,76 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Scan QR Code - ITMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-body text-center p-4">
+                <i class="fas fa-qrcode fa-3x text-primary mb-3"></i>
+                <h4 class="fw-bold mb-1">Scan Asset QR</h4>
+                <p class="text-muted small mb-4">Point your camera at an ITMS Asset Label</p>
+                
+                <div id="reader" class="rounded overflow-hidden mb-3 border bg-black" style="min-height: 300px;"></div>
+                
+                <div id="scan-result" class="alert alert-success d-none">
+                    <i class="fas fa-check-circle me-2"></i> Found: <span id="result-text" class="fw-bold">...</span>
+                </div>
+                
+                <a href="{% url 'asset_list' %}" class="btn btn-light w-100 rounded-pill mt-2">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Assets
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prevent multiple initializations
+        if (document.getElementById('reader')) {
+            function onScanSuccess(decodedText, decodedResult) {
+                // Handle the scanned code
+                console.log(`Scan result: ${decodedText}`, decodedResult);
+                
+                // Check if URL belongs to this domain/app
+                // Simple check for /assets/ pattern
+                if (decodedText.includes('/assets/')) {
+                    // Success feedback
+                    document.getElementById('scan-result').classList.remove('d-none');
+                    document.getElementById('result-text').innerText = "Redirecting...";
+                    
+                    // Stop scanning
+                    html5QrcodeScanner.clear().then(_ => {
+                         // Redirect
+                         window.location.href = decodedText;
+                    }).catch(error => {
+                        console.error("Failed to clear scanner", error);
+                        window.location.href = decodedText; // Redirect anyway
+                    });
+                    
+                } else {
+                    alert("Invalid ITMS QR Code! Scanned: " + decodedText);
+                }
+            }
+            
+            function onScanFailure(error) {
+                // handle scan failure, usually better to ignore and keep scanning.
+                // console.warn(`Code scan error = ${error}`);
+            }
+            
+            let config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+            
+            var html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", config, /* verbose= */ false);
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        }
+    });
+</script>
+{% endblock %}

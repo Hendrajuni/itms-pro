@@ -1,0 +1,56 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Create Ticket - ITMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h4 class="mb-0">Create New Ticket</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_topic" class="form-label">Topic / Category</label>
+                        {{ form.topic }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_title" class="form-label">Subject</label>
+                        {{ form.title }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_asset" class="form-label">Related Asset (Optional)</label>
+                        {{ form.asset }}
+                        <div class="form-text">Choose the asset related to this issue.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_priority" class="form-label">Priority</label>
+                        {{ form.priority }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_attachment" class="form-label">Attachment (Optional)</label>
+                        {{ form.attachment }}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'ticket_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Submit Ticket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

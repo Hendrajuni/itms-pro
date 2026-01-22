@@ -1,0 +1,565 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize rbac_tags %}
+
+{% block title %}Asset Detail - {{ asset.asset_code }} | ITMS{% endblock %}
+
+{% block content %}
+<!-- Page Header with Actions -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">Asset Details</h1>
+        <p class="text-muted mb-0 small">View and manage asset information</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'asset_list' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i> Back
+        </a>
+        
+        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+        <a href="{% url 'asset_detail_print' asset.pk %}" target="_blank" class="btn btn-outline-dark me-2">
+            <i class="fas fa-print me-1"></i> Print Report
+        </a>
+        <a href="{% url 'asset_update' asset.pk %}" class="btn btn-outline-primary">
+            <i class="fas fa-edit me-1"></i> Edit Asset
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column: Asset Photo & Primary Info -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold text-dark">Asset Information</h5>
+            </div>
+            <div class="card-body">
+                <!-- Photo & QR -->
+                <div class="text-center mb-4">
+                    <div class="mb-3 position-relative d-inline-block">
+                        {% if asset.photo %}
+                        <img src="{{ asset.photo.url }}" alt="{{ asset.name }}"
+                            class="img-fluid rounded border border-light shadow-sm"
+                            style="max-height: 250px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-light rounded border d-flex align-items-center justify-content-center mx-auto"
+                            style="width: 200px; height: 200px;">
+                            <i class="fas fa-cube text-muted fa-4x opacity-25"></i>
+                        </div>
+                        {% endif %}
+
+                        <!-- QR Overlay -->
+                        {% if asset.qr_code_image %}
+                        <div class="position-absolute bottom-0 end-0 bg-white p-1 rounded border shadow-sm"
+                            style="transform: translate(20%, 20%);">
+                            <img src="{{ asset.qr_code_image.url }}" alt="QR" width="64" height="64">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <h4 class="fw-bold text-dark mb-1">{{ asset.name }}</h4>
+                    <p class="text-muted mb-0 font-monospace">{{ asset.asset_code }}</p>
+                    <div class="mt-2">
+                        {% if asset.status == 'IN_USE' %}
+                        <span class="badge badge-soft-success fs-6 px-3 py-2 rounded-pill">In Use</span>
+                        {% elif asset.status == 'AVAILABLE' %}
+                        <span class="badge badge-soft-info fs-6 px-3 py-2 rounded-pill">Available</span>
+                        {% elif asset.status == 'MAINTENANCE' %}
+                        <span class="badge badge-soft-warning fs-6 px-3 py-2 rounded-pill">Maintenance</span>
+                        {% elif asset.status == 'BROKEN' %}
+                        <span class="badge badge-soft-danger fs-6 px-3 py-2 rounded-pill">Broken</span>
+                        {% elif asset.status == 'DISPOSED' %}
+                        <span class="badge badge-soft-secondary fs-6 px-3 py-2 rounded-pill">Disposed</span>
+                        {% else %}
+                        <span class="badge bg-secondary fs-6 px-3 py-2 rounded-pill">
+                            {{ asset.get_status_display }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Primary Details List -->
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Assigned To</span>
+                        {% if asset.assigned_to %}
+                        {% with ax=asset.assigned_to %}
+                        <span class="fw-bold text-primary">
+                            {{ ax.get_full_name|default:ax.username }}
+                        </span>
+                        {% endwith %}
+                        {% else %}
+                        <span class="text-muted fst-italic">Unassigned</span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Department</span>
+                        <span class="fw-bold text-dark">{{ asset.department.name|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Location</span>
+                        <span class="fw-bold text-dark">{{ asset.location.name|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Category</span>
+                        <span class="fw-bold text-dark">{{ asset.category.name|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Purchase Price</span>
+                        {% if asset.purchase_price %}
+                        {% with price=asset.purchase_price %}
+                        <span class="fw-bold text-dark font-monospace">
+                            Rp {{ price|floatformat:0|intcomma }}
+                        </span>
+                        {% endwith %}
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Current Value</span>
+                        <span class="fw-bold text-success font-monospace">
+                            Rp {{ asset.current_book_value|floatformat:0|intcomma }}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Residual Value</span>
+                        <span class="fw-bold text-dark font-monospace">
+                            Rp {{ asset.residual_value|floatformat:0|intcomma }}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Useful Life</span>
+                        <span class="fw-bold text-dark">{{ asset.useful_life_years }} Years</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Age / Usage</span>
+                        <span class="fw-bold text-dark">{{ asset.age_usage }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <span class="text-muted">Warranty Expiry</span>
+                        {% if asset.warranty_end %}
+                        {% now "Y-m-d" as todays_date %}
+                        {% if asset.warranty_end|date:"Y-m-d" < todays_date %} <div>
+                            <span class="text-danger fw-bold small me-1">Expired</span>
+                            <span class="text-muted small">({{ asset.warranty_end }})</span>
+            </div>
+            {% else %}
+            <span class="fw-bold text-success">{{ asset.warranty_end }}</span>
+            {% endif %}
+            {% else %}
+            <span class="text-muted">-</span>
+            {% endif %}
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-0">
+                <span class="text-muted">Vendor</span>
+                <span class="fw-bold text-dark">{{ asset.vendor.name|default:"-" }}</span>
+            </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Right Column: Tabs (Specs, History, Maintenance, Notes) -->
+<div class="col-xl-8 col-lg-7">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active fw-bold" data-bs-toggle="tab" href="#specs" role="tab">Specifications</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-bold" data-bs-toggle="tab" href="#maintenance" role="tab">Maintenance</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-bold" data-bs-toggle="tab" href="#history" role="tab">Assignment History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-bold" data-bs-toggle="tab" href="#notes" role="tab">Notes</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body p-4">
+            <div class="tab-content">
+
+                <!-- Specifications Tab -->
+                <div class="tab-pane fade show active" id="specs" role="tabpanel">
+                    <h6 class="text-muted text-uppercase mb-3 small fw-bold ls-1">Hardware Information</h6>
+                    {% if spec %}
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded h-100">
+                                <small class="text-muted d-block mb-1">Brand / Model</small>
+                                {% with b=asset.brand m=asset.model %}
+                                <span class="fw-bold text-dark">
+                                    {{ b|default:"-" }} / {{ m|default:"-" }}
+                                </span>
+                                {% endwith %}
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded h-100">
+                                <small class="text-muted d-block mb-1">Serial Number</small>
+                                <span class="fw-bold text-dark font-monospace">
+                                    <!-- prettier-ignore -->
+                                    {% with sn=asset.serial_number %}{{ sn|default:"-" }}{% endwith %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded h-100">
+                                <small class="text-muted d-block mb-1">Processor (CPU)</small>
+                                <span class="fw-bold text-dark">{{ spec.cpu|default:"-" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded h-100">
+                                <small class="text-muted d-block mb-1">Memory (RAM)</small>
+                                <span class="fw-bold text-dark">{{ spec.ram|default:"-" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded h-100">
+                                <small class="text-muted d-block mb-1">Motherboard</small>
+                                <span class="fw-bold text-dark">{{ spec.motherboard|default:"-" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded h-100">
+                                <small class="text-muted d-block mb-1">Operating System</small>
+                                <span class="fw-bold text-dark">{{ spec.os|default:"-" }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted text-uppercase mb-3 small fw-bold ls-1 mt-4">Network Interfaces</h6>
+                    {% if interfaces %}
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Interface</th>
+                                    <th>IP Address</th>
+                                    <th>MAC Address</th>
+                                    <th>VLAN</th>
+                                    <th>State</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for iface in interfaces %}
+                                <tr>
+                                    <td class="fw-bold text-dark">{{ iface.name }}</td>
+                                    <td class="font-monospace">{{ iface.ip_address|default:"-" }}</td>
+                                    <td class="font-monospace">{{ iface.mac_address|default:"-" }}</td>
+                                    <td>{{ iface.vlan_id|default:"-" }}</td>
+                                    <td>
+                                        {% if iface.is_active %}
+                                        <span class="badge badge-soft-success">Active</span>
+                                        {% else %}
+                                        <span class="badge badge-soft-secondary">Disabled</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <!-- Legacy/Simple View -->
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="p-3 border rounded h-100 d-flex align-items-center">
+                                <i class="fas fa-network-wired text-muted me-3 fs-4"></i>
+                                <div>
+                                    <small class="text-muted d-block mb-1">Primary IP</small>
+                                    <span class="fw-bold text-dark font-monospace">
+                                        <!-- prettier-ignore -->
+                                        {% with ip=spec.ip_address %}{{ ip|default:"-" }}{% endwith %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 border rounded h-100 d-flex align-items-center">
+                                <i class="fas fa-fingerprint text-muted me-3 fs-4"></i>
+                                <div>
+                                    <small class="text-muted d-block mb-1">Primary MAC</small>
+                                    <span class="fw-bold text-dark font-monospace">
+                                        <!-- prettier-ignore -->
+                                        {% with mac=spec.mac_address %}{{ mac|default:"-" }}{% endwith %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Software Installations -->
+                    <h6 class="text-muted text-uppercase mb-3 small fw-bold ls-1 mt-4">Software Installations</h6>
+                    {% if asset.software_installed.all %}
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Software Name</th>
+                                    <th>Version</th>
+                                    <th>License Type</th>
+                                    <th>Installed Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for install in asset.software_installed.all %}
+                                <tr>
+                                    <td class="fw-bold text-dark">{{ install.software.name }}</td>
+                                    <td>{{ install.software.version }}</td>
+                                    <td>
+                                        <span class="badge badge-soft-info">{{ install.software.get_license_type_display }}</span>
+                                    </td>
+                                    <td>{{ install.installed_date|date:"d M Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small fst-italic border p-3 rounded bg-light mb-4">No software installations recorded.</p>
+                    {% endif %}
+
+                    {% if spec.storage_devices %}
+                    <h6 class="text-muted text-uppercase mb-3 small fw-bold ls-1 mt-4">Storage Devices</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for store in spec.storage_devices %}
+                                <tr>
+                                    <td>{{ store.type|default:"-" }}</td>
+                                    <td>{{ store.size|default:"-" }}</td>
+                                    <td>{{ store.model|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-microchip text-muted mb-3 fs-1 opacity-25"></i>
+                        <p class="text-muted">No technical specifications recorded.</p>
+                        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                        <a href="{% url 'asset_update' asset.pk %}" class="btn btn-sm btn-outline-primary">Add
+                            Specifications</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Maintenance Tab -->
+                <div class="tab-pane fade" id="maintenance" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <h6 class="text-muted text-uppercase mb-0 small fw-bold ls-1">Maintenance Log</h6>
+                            {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                            <a href="{% url 'asset_maintenance_add' asset.pk %}" class="btn btn-sm btn-outline-primary py-0">
+                                <i class="fas fa-plus fa-sm"></i> Add
+                            </a>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            {% with total=total_maintenance_cost %}
+                            <span class="badge bg-light text-dark border">
+                                <!-- prettier-ignore -->
+                                Total Cost: Rp {{ total|floatformat:0|intcomma }}
+                            </span>
+                            {% endwith %}
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Technician</th>
+                                    <th>Description</th>
+                                    <th class="text-end">Cost</th>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}<th class="text-end" style="width: 100px;">Actions</th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in maintenance_logs %}
+                                <tr>
+                                    <td>{{ log.scheduled_date|date:"d M Y" }}</td>
+                                    <td>
+                                        <span class="badge badge-soft-info">
+                                            <!-- prettier-ignore -->
+                                            {{ log.get_maintenance_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if log.status == 'Completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% elif log.status == 'In Progress' %}
+                                        <span class="badge bg-info text-dark">In Progress</span>
+                                        {% elif log.status == 'Cancelled' %}
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">{{ log.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% with tech=log.technician %}
+                                        {{ tech.get_full_name|default:tech.username|default:"External" }}
+                                        {% endwith %}
+                                    </td>
+                                    <td>{{ log.title|default:log.notes|truncatechars:50 }}</td>
+                                    <td class="text-end fw-bold font-monospace">
+                                        {% with cost=log.cost %}
+                                        Rp {{ cost|floatformat:0|intcomma }}
+                                        {% endwith %}
+                                    </td>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                                    <td class="text-end">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <a href="{% url 'asset_maintenance_update' log.pk %}" class="btn btn-sm btn-light text-primary" title="Edit">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </a>
+                                            {% if is_admin %}
+                                            <a href="{% url 'asset_maintenance_delete' log.pk %}" class="btn btn-sm btn-light text-danger" title="Delete">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fas fa-tools mb-2 fs-3 opacity-25"></i>
+                                        <p>No maintenance records found.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div class="tab-pane fade" id="history" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-muted text-uppercase mb-0 small fw-bold ls-1">Assignment History</h6>
+                        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                         <a href="{% url 'asset_loan_add' asset.pk %}" class="btn btn-sm btn-outline-primary py-0">
+                            <i class="fas fa-plus fa-sm"></i> Assign
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="timeline">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Loan Date</th>
+                                        <th>Employee</th>
+                                        <th>Return Date</th>
+                                        <th>Condition</th>
+                                        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}<th class="text-end" style="width: 100px;">Actions</th>{% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for loan in history %}
+                                    <tr>
+                                        <td>{{ loan.loan_date|date:"d M Y H:i" }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-xs bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                                                    style="width: 24px; height: 24px; font-size: 10px;">
+                                                    {{ loan.employee.username|first|upper }}
+                                                </div>
+                                                {% with emp=loan.employee %}
+                                                <span class="ms-2">
+                                                    {{ emp.get_full_name|default:emp.username }}
+                                                </span>
+                                                {% endwith %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if loan.return_date %}
+                                            {{ loan.return_date|date:"d M Y H:i" }}
+                                            {% else %}
+                                            <span class="badge bg-success">Current</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ loan.condition_out }}</td>
+                                        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                                        <td class="text-end">
+                                            <div class="d-flex justify-content-end gap-2">
+                                                <a href="{% url 'asset_loan_update' loan.pk %}" class="btn btn-sm btn-light text-primary" title="Edit">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </a>
+                                                {% if is_admin %}
+                                                <a href="{% url 'asset_loan_delete' loan.pk %}" class="btn btn-sm btn-light text-danger" title="Delete">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">
+                                            <p>No assignment history.</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes Tab -->
+                <div class="tab-pane fade" id="notes" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-muted text-uppercase mb-0 small fw-bold ls-1">Additional Notes</h6>
+                        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                        <a href="{% url 'asset_note_update' asset.pk %}" class="btn btn-sm btn-outline-primary py-0">
+                            <i class="fas fa-edit fa-sm"></i> Edit
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="bg-light p-4 rounded border text-muted mb-3">
+                        {% if asset.notes %}
+                            {{ asset.notes|linebreaks }}
+                        {% else %}
+                            <p class="mb-0 fst-italic">No specific notes for this asset.</p>
+                        {% endif %}
+                    </div>
+
+                    {% if asset.infrastructure.notes %}
+                    <h6 class="text-muted text-uppercase mb-2 small fw-bold ls-1">Infrastructure Notes</h6>
+                     <div class="bg-light p-3 rounded border text-muted small">
+                        {{ asset.infrastructure.notes|linebreaks }}
+                    </div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

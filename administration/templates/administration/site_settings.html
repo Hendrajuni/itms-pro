@@ -1,0 +1,84 @@
+{% extends 'layouts/base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}Site Settings - ITMS Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 fw-bold text-primary">Site Configuration</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12 text-center mb-3">
+                            <h5 class="fw-bold mb-3">Current Branding</h5>
+                            <div class="d-flex justify-content-center gap-4 align-items-end">
+                                <div class="text-center">
+                                    <label class="form-label d-block fw-bold text-muted small">Logo</label>
+                                    {% if object.logo %}
+                                    <div class="p-2 border rounded bg-white">
+                                        <img src="{{ object.logo.url }}" alt="Logo" style="height: 60px;">
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">Default</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-center">
+                                    <label class="form-label d-block fw-bold text-muted small">Favicon</label>
+                                    {% if object.favicon %}
+                                    <div class="p-2 border rounded bg-white">
+                                        <img src="{{ object.favicon.url }}" alt="Favicon" style="height: 32px;">
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted small">None</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-center">
+                                    <label class="form-label d-block fw-bold text-muted small">Login Background</label>
+                                    {% if object.login_background %}
+                                    <div class="p-1 border rounded">
+                                        <img src="{{ object.login_background.url }}" alt="BG" style="height: 80px; width: 120px; object-fit: cover;">
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted small">Default</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.site_name|as_crispy_field }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ form.logo|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.favicon|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.login_background|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="mt-3 border-top pt-3">
+                         {{ form.maintenance_mode|as_crispy_field }}
+                         <div class="form-text text-warning"><i class="fas fa-exclamation-triangle"></i> Enabling maintenance mode will block access for non-admin users.</div>
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

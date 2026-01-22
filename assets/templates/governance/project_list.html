@@ -1,0 +1,139 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize rbac_tags %}
+
+{% block title %}IT Projects{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1 class="h3 mb-0 text-gray-800">IT Projects</h1>
+        <a href="{% url 'admin:governance_project_add' %}" class="btn btn-primary shadow-sm" target="_blank">
+            <i class="fas fa-plus fa-sm text-white-50 me-2"></i>New Project
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Planning</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ planning_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">In Progress</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ progress_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-layer-group fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ completed_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project List -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Active Projects</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4" style="width: 30%;">Project Name</th>
+                        <th>Manager</th>
+                        <th>Timeline</th>
+                        <th style="width: 20%;">Progress</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td class="ps-4">
+                            <a href="{% url 'project_detail' project.pk %}" class="fw-bold text-decoration-none text-dark">{{ project.name }}</a>
+                            <div class="small text-muted">{{ project.description|truncatechars:60 }}</div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                    {{ project.manager.first_name.0|default:"-" }}
+                                </div>
+                                <span>{{ project.manager.first_name|default:"Unassigned" }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small">
+                                <div><span class="text-muted">Start:</span> {{ project.start_date|date:"d M Y" }}</div>
+                                <div><span class="text-muted">End:</span> {{ project.end_date|date:"d M Y" }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                    <div class="progress-bar {% if project.status == 'Completed' %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ project.progress }}%"></div>
+                                </div>
+                                <span class="small fw-bold">{{ project.progress }}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-info{% else %}bg-secondary{% endif %}">
+                                {{ project.status }}
+                            </span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group">
+                                <a href="{% url 'project_detail' project.pk %}" class="btn btn-sm btn-outline-primary shadow-sm">View</a>
+                                {% if user.is_superuser or user|has_group:"Manager" or user|has_group:"Admin" %}
+                                <a href="{% url 'project_update' project.pk %}" class="btn btn-sm btn-outline-secondary shadow-sm">Edit</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fas fa-folder-open fa-3x mb-3 text-gray-300"></i>
+                            <p>No projects found. <a href="{% url 'admin:governance_project_add' %}" target="_blank">Create one now</a>.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

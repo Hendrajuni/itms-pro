@@ -1,0 +1,77 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Security Audit Log{% endblock %}
+{% block header_title %}Security Audit Log{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 fw-bold text-primary"><i class="fas fa-shield-alt me-2"></i>Recent Changes</h6>
+        <span class="badge bg-light text-dark border">Last 100 Records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Time</th>
+                        <th>Actor</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Model</th>
+                        <th>Change ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr>
+                        <td class="ps-4 text-nowrap">
+                            <div class="fw-bold text-dark">{{ log.history_date|date:"M d, Y" }}</div>
+                            <div class="text-xs text-muted">{{ log.history_date|date:"H:i:s" }}</div>
+                        </td>
+                        <td>
+                            {% if log.history_user %}
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                        {{ log.history_user.username|make_list|first|upper }}
+                                    </div>
+                                    <span class="text-sm fw-medium">{{ log.history_user.username }}</span>
+                                </div>
+                            {% else %}
+                                <span class="text-muted fst-italic">System</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.history_type == '+' %}
+                                <span class="badge bg-success-soft text-success"><i class="fas fa-plus me-1"></i>Created</span>
+                            {% elif log.history_type == '~' %}
+                                <span class="badge bg-warning-soft text-warning"><i class="fas fa-edit me-1"></i>Changed</span>
+                            {% elif log.history_type == '-' %}
+                                <span class="badge bg-danger-soft text-danger"><i class="fas fa-trash me-1"></i>Deleted</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="fw-medium text-dark">{{ log.target }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ log.model_name }}</span>
+                        </td>
+                        <td>
+                            <span class="text-xs text-muted font-monospace">#{{ log.history_id }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fas fa-search fa-2x mb-3"></i>
+                            <p>No audit records found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

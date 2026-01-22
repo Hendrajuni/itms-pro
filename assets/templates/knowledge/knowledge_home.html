@@ -1,0 +1,159 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Help Center - Knowledge Base{% endblock %}
+
+{% block content %}
+<!-- Hero Search Section -->
+<div class="card shadow-sm mb-5 border-0 bg-primary text-white" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);">
+    <div class="card-body py-5 text-center">
+        <h1 class="font-weight-bold mb-3">How can we help you today?</h1>
+        <p class="lead mb-4 text-white-50">Search our knowledge base for answers, guides, and troubleshooting.</p>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <form action="{% url 'knowledge_home' %}" method="GET">
+                    <div class="input-group input-group-lg shadow">
+                        <input type="text" name="q" class="form-control border-0" placeholder="Search articles (e.g., 'VPN connection', 'Printer setup')..." value="{{ query|default:'' }}" aria-label="Search">
+                        <button class="btn btn-light text-primary fw-bold" type="submit">
+                            <i class="fas fa-search me-2"></i>Search
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    
+    {% if query %}
+        <!-- SEARCH RESULTS -->
+        <h3 class="mb-4 text-gray-800">Search Results for "{{ query }}"</h3>
+        
+        <div class="row">
+            {% for article in search_results %}
+            <div class="col-12 mb-3">
+                <div class="card shadow-sm border-left-primary h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="h5 font-weight-bold text-primary text-uppercase mb-1">
+                                    <a href="{% url 'article_detail' article.pk %}" class="text-decoration-none">{{ article.title }}</a>
+                                </div>
+                                <div class="text-muted small mb-2">
+                                    <span class="me-3"><i class="fas fa-folder me-1"></i>{{ article.category.name }}</span>
+                                    <span><i class="fas fa-eye me-1"></i>{{ article.view_count }} views</span>
+                                </div>
+                                <p class="mb-0 text-gray-800">{{ article.content|striptags|truncatechars:200 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-search fa-3x text-gray-300 mb-3"></i>
+                <p class="lead text-gray-500">No articles found matching your query.</p>
+                <a href="{% url 'knowledge_home' %}" class="btn btn-primary">Browse Categories</a>
+            </div>
+            {% endfor %}
+        </div>
+
+    {% else %}
+        
+        <!-- DASHBOARD VIEW -->
+        
+        <!-- Categories -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0 text-gray-800 fw-bold">Browse by Category</h4>
+            {% if user.is_staff or user.groups.all.0.name == 'Manager' %}
+            <a href="{% url 'article_create' %}" class="btn btn-sm btn-success shadow-sm">
+                <i class="fas fa-plus fa-sm text-white-50 me-2"></i>New Article
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="row mb-5">
+            {% for cat in categories %}
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow-sm h-100 py-2 hover-card transition-all">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="h5 font-weight-bold text-gray-800 mb-1">{{ cat.name }}</div>
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">{{ cat.article_count }} Articles</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-folder-open fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                        <a href="{% url 'knowledge_home' %}?q={{ cat.name }}" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+             <div class="col-12 py-3 text-center text-muted">No categories found.</div>
+            {% endfor %}
+        </div>
+
+        <div class="row">
+            <!-- Popular Articles -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-fire me-2"></i>Trending Articles</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            {% for article in popular_articles %}
+                            <a href="{% url 'article_detail' article.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold text-dark">{{ article.title }}</div>
+                                    <div class="small text-muted">{{ article.category.name }}</div>
+                                </div>
+                                <span class="badge bg-light text-dark rounded-pill border"><i class="fas fa-eye me-1 text-primary"></i>{{ article.view_count }}</span>
+                            </a>
+                            {% empty %}
+                            <div class="text-center py-3 text-muted">No articles yet.</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Articles -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-clock me-2"></i>Recently Updated</h6>
+                    </div>
+                    <div class="card-body">
+                         <div class="list-group list-group-flush">
+                            {% for article in recent_articles %}
+                            <a href="{% url 'article_detail' article.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 fw-bold text-dark">{{ article.title }}</h6>
+                                    <small class="text-muted">{{ article.updated_at|date:"d M" }}</small>
+                                </div>
+                                <p class="mb-1 small text-muted">{{ article.content|striptags|truncatechars:60 }}</p>
+                            </a>
+                            {% empty %}
+                            <div class="text-center py-3 text-muted">No articles yet.</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .hover-card:hover {
+        transform: translateY(-5px);
+        transition: transform 0.2s ease-in-out;
+        border-left: 0.25rem solid #4e73df !important;
+    }
+</style>
+{% endblock %}

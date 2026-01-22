@@ -1,0 +1,83 @@
+{% extends 'layouts/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{% if form.instance.pk %}Edit Project{% else %}Create New Project{% endif %}</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-12">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                        </div>
+                        {{ form.description|as_crispy_field }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">{{ form.manager|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.status|as_crispy_field }}</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">{{ form.start_date|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.end_date|as_crispy_field }}</div>
+                        </div>
+
+                         <div class="row">
+                            <div class="col-md-12">{{ form.progress|as_crispy_field }}</div>
+                        </div>
+
+                        <hr class="my-4">
+                        <h6 class="fw-bold text-primary mb-3">Project Tasks</h6>
+                        
+                        {{ tasks.management_form }}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width: 30%;">Task Name</th>
+                                        <th style="width: 20%;">Assigned To</th>
+                                        <th style="width: 15%;">Status</th>
+                                        <th style="width: 15%;">Due Date</th>
+                                        <th>Delete?</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for task_form in tasks %}
+                                    <tr>
+                                        {% for hidden in task_form.hidden_fields %}
+                                            {{ hidden }}
+                                        {% endfor %}
+                                        <td>{{ task_form.name }}</td>
+                                        <td>{{ task_form.assigned_to }}</td>
+                                        <td>{{ task_form.status }}</td>
+                                        <td>{{ task_form.due_date }}</td>
+                                        <td class="text-center">{{ task_form.DELETE }}</td>
+                                    </tr>
+                                    {% if task_form.errors %}
+                                    <tr>
+                                        <td colspan="5" class="text-danger small">{{ task_form.errors }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">Save Project</button>
+                            <a href="{% url 'project_list' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

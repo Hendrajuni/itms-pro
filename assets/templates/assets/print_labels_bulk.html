@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bulk QR Labels - {{ print_date|date:"Y-m-d" }}</title>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @media print {
+            @page { size: A4; margin: 5mm; }
+            body { -webkit-print-color-adjust: exact; font-family: sans-serif; }
+            .no-print { display: none; }
+        }
+        body { margin: 0; padding: 0; background: #eee; }
+        .page-container {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 10mm auto;
+            background: white;
+            padding: 5mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .label-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .asset-label {
+            border: 2px solid #333;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            height: 140px; /* Fixed height for consistency */
+            page-break-inside: avoid;
+            overflow: hidden;
+            background: white;
+        }
+        .qr-code {
+            width: 90px;
+            height: 90px;
+            margin-right: 15px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+        .label-details {
+            font-size: 11px;
+            line-height: 1.4;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .label-tag { 
+            font-size: 14px; 
+            font-weight: bold; 
+            display: block; 
+            margin-bottom: 2px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 2px;
+        }
+        .label-name { 
+            font-weight: 600; 
+            font-size: 12px;
+            display: block;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .label-meta { color: #555; }
+        .label-meta i { width: 15px; text-align: center; }
+        
+        .toolbar {
+            text-align: center;
+            padding: 20px;
+            background: #333;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: #4e73df;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .btn:hover { background: #2e59d9; }
+        .btn-secondary { background: #858796; }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar no-print">
+        <h3 style="margin-top: 0;">Bulk QR Label Printing</h3>
+        <p>{{ assets.count }} Labels Generated</p>
+        <button onclick="window.print()" class="btn"><i class="fas fa-print"></i> Print Labels</button>
+        <button onclick="window.close()" class="btn btn-secondary"><i class="fas fa-times"></i> Close</button>
+    </div>
+
+    <div class="page-container">
+        <div class="label-grid">
+            {% for asset in assets %}
+            <div class="asset-label">
+                {% if asset.qr_code_image %}
+                    <img src="{{ asset.qr_code_image.url }}" class="qr-code" alt="QR">
+                {% else %}
+                    <div class="qr-code" style="background:#eee; display:flex; align-items:center; justify-content:center;">No QR</div>
+                {% endif %}
+                
+                <div class="label-details">
+                    <span class="label-tag">{{ asset.asset_code }}</span>
+                    <span class="label-name" title="{{ asset.name }}">{{ asset.name|truncatechars:25 }}</span>
+                    
+                    <div class="label-meta">
+                        <div><i class="fas fa-map-marker-alt"></i> {{ asset.location.name|default:"-"|truncatechars:18 }}</div>
+                        <div>
+                            <i class="fas fa-user"></i> 
+                            {% if asset.assigned_to %}
+                                {{ asset.assigned_to.get_full_name|default:asset.assigned_to.username|truncatechars:18 }}
+                            {% else %}
+                                Unassigned
+                            {% endif %}
+                        </div>
+                        <div><i class="fas fa-calendar-alt"></i> {{ asset.purchase_date|date:"d M Y" }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</body>
+</html>

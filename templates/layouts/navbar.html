@@ -1,0 +1,236 @@
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <!-- Sidebar Toggle (Hamburger) -->
+        <button class="btn btn-icon-only me-3" id="sidebarToggle">
+            <i class="fas fa-bars fs-5"></i>
+        </button>
+
+        <!-- Page/Header Title -->
+        <h5 class="m-0 fw-bold">{% block header_title %}Overview{% endblock %}</h5>
+
+        <!-- Maintenance Mode Indicator -->
+        {% if site_settings.maintenance_mode %}
+        <div class="ms-3 badged-warning-animation px-3 py-1 bg-warning bg-opacity-10 border border-warning rounded-pill d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle text-warning me-2 animate-pulse"></i>
+            <span class="text-warning fw-bold small">Maintenance Mode Active</span>
+        </div>
+        <style>
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+            }
+            .animate-pulse {
+                animation: pulse 2s infinite;
+            }
+        </style>
+        {% endif %}
+
+        <!-- Right Side -->
+        <div class="d-flex align-items-center ms-auto">
+
+            <!-- Search Bar (Admins/IT Only) -->
+            {% load rbac_tags %}
+            {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+            <div class="position-relative me-4 d-none d-md-block" style="width: 300px;">
+                <input type="text" id="global-search" class="form-control bg-light border-0 ps-5 rounded-pill" placeholder="Search anything (Ctrl+K)...">
+                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted small"></i>
+                
+                <!-- Search Results Dropdown -->
+                <div id="search-results" class="position-absolute w-100 bg-white shadow-lg rounded mt-2 border overflow-hidden d-none" 
+                     style="z-index: 1050; max-height: 400px; overflow-y: auto;">
+                </div>
+            </div>
+            {% endif %}
+
+            <script>
+            <script>
+                {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                document.addEventListener('DOMContentLoaded', function() {
+                    const searchInput = document.getElementById('global-search');
+                    const resultsContainer = document.getElementById('search-results');
+                    let timeout = null;
+
+                    // Shortcut Ctrl+K
+                    document.addEventListener('keydown', function(e) {
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                            e.preventDefault();
+                            searchInput.focus();
+                        }
+                        if (e.key === 'Escape') {
+                            resultsContainer.classList.add('d-none');
+                            searchInput.blur();
+                        }
+                    });
+
+                    // Search Logic
+                    searchInput.addEventListener('keyup', function() {
+                        clearTimeout(timeout);
+                        const query = this.value;
+                        
+                        if (query.length < 2) {
+                            resultsContainer.classList.add('d-none');
+                            resultsContainer.innerHTML = '';
+                            return;
+                        }
+
+                        timeout = setTimeout(() => {
+                            fetch(`/global-search/?q=${encodeURIComponent(query)}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    resultsContainer.innerHTML = '';
+                                    if (data.results.length > 0) {
+                                        resultsContainer.classList.remove('d-none');
+                                        
+                                        // Group by Type (Optional, currently just list)
+                                        data.results.forEach(item => {
+                                            const el = document.createElement('a');
+                                            el.href = item.url;
+                                            el.className = 'd-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light';
+                                            el.innerHTML = `
+                                                <div class="bg-light rounded p-2 me-3 text-primary">
+                                                    <i class="${item.icon}"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark">${item.text}</div>
+                                                    <div class="small text-muted text-uppercase">${item.type}</div>
+                                                </div>
+                                            `;
+                                            resultsContainer.appendChild(el);
+                                        });
+                                    } else {
+                                        resultsContainer.classList.remove('d-none');
+                                        resultsContainer.innerHTML = '<div class="p-3 text-center text-muted">No results found</div>';
+                                    }
+                                });
+                        }, 300);
+                    });
+                    
+                    // Close on click outside
+                    document.addEventListener('click', function(e) {
+                        if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+                            resultsContainer.classList.add('d-none');
+                        }
+                    });
+                });
+                {% endif %}
+            </script>
+            
+            <style>
+                .hover-bg-light:hover { background-color: #f8f9fa; }
+            </style>
+
+            <!-- Theme Toggle -->
+            <button class="btn btn-icon-only me-2" id="themeToggle" title="Toggle Theme">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+
+            <!-- Notifications -->
+            <div class="dropdown me-3">
+                <a class="btn btn-icon-only position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-bell"></i>
+                    {% if unread_count > 0 %}
+                    <span id="notification-badge"
+                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                        {{ unread_count }}
+                        <span class="visually-hidden">unread messages</span>
+                    </span>
+                    {% endif %}
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="background-color: var(--bg-card); width: 320px; max-height: 400px; overflow-y: auto;">
+                    <li>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                            <h6 class="dropdown-header p-0 m-0">Notifications</h6>
+                            <a href="#" class="text-xs text-primary text-decoration-none" onclick="markAllRead(event)">Mark all read</a>
+                        </div>
+                    </li>
+                    {% for n in my_notifications %}
+                    <li>
+                        <a class="dropdown-item py-2 border-bottom" href="#" onclick="markReadAndRedirect(event, {{ n.pk }}, '{{ n.link|default:'#' }}')">
+                            <div class="d-flex align-items-start">
+                                <div class="me-2 mt-1">
+                                    {% if n.notification_type == 'Ticket' %}
+                                        <i class="fas fa-ticket-alt text-primary"></i>
+                                    {% elif n.notification_type == 'Task' %}
+                                        <i class="fas fa-tasks text-info"></i>
+                                    {% elif n.notification_type == 'Maintenance' %}
+                                        <i class="fas fa-wrench text-warning"></i>
+                                    {% elif n.notification_type == 'NOC Monitor' %}
+                                        <i class="fas fa-network-wired text-danger"></i>
+                                    {% else %}
+                                        <i class="fas fa-info-circle text-secondary"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1" style="white-space: normal;">
+                                    <div class="small fw-bold {% if not n.is_read %}text-dark{% else %}text-muted{% endif %}">{{ n.title }}</div>
+                                    <div class="text-xs text-muted">{{ n.message }}</div>
+                                    <div class="text-xs text-muted mt-1">{{ n.created_at|timesince }} ago</div>
+                                </div>
+                                {% if not n.is_read %}
+                                <span class="badge bg-primary rounded-circle p-1 ms-2" style="width: 8px; height: 8px;"></span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    </li>
+                    {% empty %}
+                    <li><div class="dropdown-item text-muted text-center py-3">No new notifications</div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <script>
+                function markReadAndRedirect(event, id, link) {
+                    event.preventDefault();
+                    fetch(`/notifications/mark-read/${id}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(() => {
+                        window.location.href = link;
+                    });
+                }
+
+                function markAllRead(event) {
+                    event.preventDefault();
+                    fetch(`/notifications/mark-all-read/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            </script>
+
+            <!-- User Profile -->
+            <div class="dropdown">
+                <a class="d-flex align-items-center text-decoration-none dropdown-toggle text-muted" href="#"
+                    role="button" data-bs-toggle="dropdown">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style="width: 32px; height: 32px;">
+                        {{ user.username|make_list|first|upper }}
+                    </div>
+                    <span class="d-none d-lg-block fw-medium">{{ user.username }}</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="background-color: var(--bg-card);">
+                    <li><a class="dropdown-item" href="{% url 'user_profile' %}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <form action="{% url 'logout' %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item text-danger"><i
+                                    class="fas fa-sign-out-alt me-2"></i>Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Label - {{ asset.asset_code }}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+        }
+
+        .label-container {
+            width: 320px;
+            /* Approx 8.5cm */
+            height: 150px;
+            /* Approx 4cm */
+            border: 1px solid #000;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        @media print {
+            body {
+                margin: 0;
+            }
+
+            .label-container {
+                border: none;
+            }
+
+            @page {
+                margin: 0;
+                size: auto;
+            }
+        }
+
+        .header {
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 2px;
+        }
+
+        .content {
+            display: flex;
+            align-items: center;
+        }
+
+        .qr-code {
+            width: 80px;
+            height: 80px;
+            margin-right: 15px;
+        }
+
+        .qr-code img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .details {
+            flex: 1;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .details strong {
+            display: inline-block;
+            width: 60px;
+        }
+
+        .footer {
+            font-size: 10px;
+            text-align: center;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+    <div class="label-container">
+        <div class="header">PROPERTY OF PT.PMG</div>
+        <div class="content">
+            <div class="qr-code">
+                {% if asset.qr_code_image %}
+                <img src="{{ asset.qr_code_image.url }}" alt="QR">
+                {% else %}
+                <div style="width:100%;height:100%;background:#eee;"></div>
+                {% endif %}
+            </div>
+            <div class="details">
+                <div><strong>ID:</strong> {{ asset.asset_code }}</div>
+                <div><strong>Name:</strong> {{ asset.name|truncatechars:20 }}</div>
+                <div><strong>Loc:</strong> {{ asset.location.name|default:"-" }}</div>
+                <div><strong>User:</strong> {{ asset.assigned_to.username|default:"Unassigned" }}</div>
+            </div>
+        </div>
+        <div class="footer">If found, please return to IT Department.</div>
+    </div>
+</body>
+
+</html>
