@@ -34,8 +34,22 @@ class UserListView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
         
         if dept_id:
             users = users.filter(department_id=dept_id)
+            try:
+                context['selected_dept'] = Department.objects.get(id=dept_id)
+            except Department.DoesNotExist: pass
+            
         if loc_id:
-            users = users.filter(location_id=loc_id)
+            try:
+                selected_loc = Location.objects.get(id=loc_id)
+                descendants = selected_loc.get_descendants(include_self=True)
+                users = users.filter(location__in=descendants)
+                context['selected_loc'] = selected_loc
+            except Location.DoesNotExist: 
+                pass
+            
+        # Context for Dropdowns
+        context['location_roots'] = Location.objects.filter(parent__isnull=True).prefetch_related('children')
+
             
         # Execute Query (convert to list for caching/filtering in Python)
         
@@ -141,6 +155,130 @@ from operator import attrgetter
 from assets.models import Asset
 from network.models import NetworkNode, IPAddress
 from tickets.models import Ticket
+
+import csv
+from django.http import HttpResponse    
+from assets.models import Location # Ensure Location is imported
+
+class UserExportView(LoginRequiredMixin, SuperuserRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        # Base Query
+        users = User.objects.select_related('department', 'location').prefetch_related('groups').order_by('username')
+        
+        # Filter Logic (Same as ListView)
+        dept_id = request.GET.get('dept')
+        loc_id = request.GET.get('loc')
+        status_filter = request.GET.get('status')
+        
+        if dept_id:
+            users = users.filter(department_id=dept_id)
+            
+        if loc_id:
+            try:
+                selected_loc = Location.objects.get(id=loc_id)
+                descendants = selected_loc.get_descendants(include_self=True)
+                users = users.filter(location__in=descendants)
+            except Location.DoesNotExist: pass
+            
+        # Prepare CSV Response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="users_export.csv"'
+        
+        writer = csv.writer(response)
+        # Header
+        writer.writerow(['Username', 'Full Name', 'Email', 'Role', 'Department', 'Location', 'Status', 'Last Login', 'Groups'])
+        
+        from django.core.cache import cache
+        
+        for user in users:
+            # Check Status Filter
+            last_seen = cache.get(f'user_last_seen_{user.id}')
+            is_online = True if last_seen else False
+            
+            if status_filter == 'online' and not is_online:
+                continue
+            if status_filter == 'offline' and is_online:
+                continue
+                
+            # Role
+            role = "User"
+            if user.is_superuser: role = "Superuser"
+            elif user.is_staff: role = "Staff"
+            
+            # Groups
+            groups = ", ".join([g.name for g in user.groups.all()])
+            
+            writer.writerow([
+                user.username,
+                user.get_full_name(),
+                user.email,
+                role,
+                user.department.name if user.department else "-",
+                user.location.name if user.location else "-",
+                "Online" if is_online else "Offline",
+                user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else "Never",
+                groups
+            ])
+            
+        return response
+
+class UserPrintView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    template_name = 'administration/user_print.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.utils import timezone
+        from assets.models import Department
+        from django.core.cache import cache
+        
+        # Base Query
+        users = User.objects.select_related('department', 'location').prefetch_related('groups').order_by('username')
+        
+        # Filter Logic
+        dept_id = self.request.GET.get('dept')
+        loc_id = self.request.GET.get('loc')
+        status_filter = self.request.GET.get('status')
+        
+        # Filter Context Display
+        filter_display = []
+        
+        if dept_id:
+            users = users.filter(department_id=dept_id)
+            try:
+                d = Department.objects.get(id=dept_id)
+                filter_display.append(f"Department: {d.name}")
+            except: pass
+            
+        if loc_id:
+            try:
+                selected_loc = Location.objects.get(id=loc_id)
+                descendants = selected_loc.get_descendants(include_self=True)
+                users = users.filter(location__in=descendants)
+                filter_display.append(f"Location: {selected_loc.name}")
+            except Location.DoesNotExist: pass
+            
+        # Convert to list to handle properties
+        user_list = []
+        for user in users:
+            last_seen = cache.get(f'user_last_seen_{user.id}')
+            user.is_online = True if last_seen else False
+            
+            if status_filter == 'online' and not user.is_online:
+                continue
+            if status_filter == 'offline' and user.is_online:
+                continue
+            
+            user_list.append(user)
+
+        if status_filter:
+            filter_display.append(f"Status: {status_filter.title()}")
+
+        context['users'] = user_list
+        context['filter_display'] = " | ".join(filter_display) if filter_display else "All Data"
+        context['print_date'] = timezone.now()
+        context['site_setting'] = SiteSetting.get_solo()
+        
+        return context
 
 class AuditLogListView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'administration/audit_log.html'

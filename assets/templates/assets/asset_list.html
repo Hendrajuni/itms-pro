@@ -35,53 +35,97 @@
             </div>
 
             <!-- Filter Form -->
-            <form method="get" class="d-flex position-relative me-2 align-items-center">
+            <form method="get" id="filterForm" class="d-flex position-relative me-2 align-items-center">
                 <input type="hidden" name="mode" value="{{ view_mode }}">
+                <input type="hidden" name="groupby" value="{{ groupby|default:'' }}">
+                <input type="hidden" name="loc" id="filter_loc" value="{{ request.GET.loc }}">
+                <input type="hidden" name="dept" id="filter_dept" value="{{ request.GET.dept }}">
                 
-                <!-- Preserve category filter -->
                 {% if current_category %}
                 <input type="hidden" name="category" value="{{ current_category }}">
                 {% endif %}
                 
-                <!-- Location Filter -->
-                <select name="loc" class="form-select form-select-sm me-2" onchange="this.form.submit()" style="max-width: 130px; border-color: #e3e6f0;">
-                    <option value="">All Locations</option>
-                    {% for l in locations %}
-                    <option value="{{ l.id }}" {% if request.GET.loc == l.id|stringformat:"s" %}selected{% endif %}>{{ l.name }}</option>
-                    {% endfor %}
-                </select>
+                <!-- Location Dropdown -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 180px;">
+                        <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                        <span class="text-truncate fw-bold text-dark" style="max-width: 140px;">
+                            {{ selected_location.name|default:"All Locations" }}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 400px; overflow-y: auto; z-index: 1050;">
+                        <li><a class="dropdown-item fw-bold {% if not request.GET.loc %}active{% endif %}" href="#" onclick="setFilter('loc', ''); return false;">All Locations</a></li>
+                        
+                        {% if use_optgroup %}
+                            {% for root in location_roots %}
+                                <li><h6 class="dropdown-header text-uppercase fw-bold text-dark mt-2 bg-light mx-2 py-2 rounded small px-3 mb-1 check-ls"><i class="fas fa-building me-1 opacity-50"></i> {{ root.name }}</h6></li>
+                                <li><a class="dropdown-item ps-4 {% if request.GET.loc == root.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('loc', '{{ root.id }}'); return false;">{{ root.name }} (Main)</a></li>
+                                {% for child in root.children.all %}
+                                    <li><a class="dropdown-item ps-4 {% if request.GET.loc == child.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('loc', '{{ child.id }}'); return false;">{{ child.name }}</a></li>
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            <li><hr class="dropdown-divider"></li>
+                            {% for l in locations_flat %}
+                            <li><a class="dropdown-item {% if request.GET.loc == l.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('loc', '{{ l.id }}'); return false;">{{ l.name }}</a></li>
+                            {% endfor %}
+                        {% endif %}
+                    </ul>
+                </div>
 
-                <!-- Department Filter -->
-                <select name="dept" class="form-select form-select-sm me-2" onchange="this.form.submit()" style="max-width: 130px; border-color: #e3e6f0;">
-                    <option value="">All Depts</option>
-                    {% for d in departments %}
-                    <option value="{{ d.id }}" {% if request.GET.dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
-                    {% endfor %}
-                </select>
-            {% else %}
-            <!-- Dummy form for Staff to handle Search -->
-            <form method="get" class="d-flex position-relative me-2 align-items-center">
-            {% endif %}
+                <!-- Department Dropdown -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 150px;">
+                        <i class="fas fa-sitemap text-info me-2"></i>
+                        <span class="text-truncate fw-bold text-dark" style="max-width: 110px;">
+                            {{ selected_department.name|default:"All Depts" }}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 300px; overflow-y: auto;">
+                        <li><a class="dropdown-item fw-bold {% if not request.GET.dept %}active{% endif %}" href="#" onclick="setFilter('dept', ''); return false;">All Departments</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% for d in departments %}
+                            <li><a class="dropdown-item {% if request.GET.dept == d.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('dept', '{{ d.id }}'); return false;">{{ d.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
 
-                <!-- Reset Button -->
                 <!-- Reset Button -->
                 {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
                     {% if request.GET.loc or request.GET.dept or request.GET.q or request.GET.category %}
-                    <a href="{% url 'asset_list' %}?mode={{ view_mode }}" class="btn btn-sm btn-light text-danger me-2 border" title="Clear Filters">
+                    <a href="{% url 'asset_list' %}?mode={{ view_mode }}" class="btn btn-sm btn-light text-danger me-2 border shadow-sm" title="Clear Filters">
                         <i class="fas fa-times"></i>
                     </a>
                     {% endif %}
 
-                    <!-- Search -->
+                    <!-- Search (Preserved) -->
                     <div class="position-relative">
-                        <input type="text" name="q" class="form-control form-control-sm pe-5" placeholder="Search..."
-                            value="{{ request.GET.q|default:'' }}" style="width: 200px;">
+                        <input type="text" name="q" class="form-control shadow-sm border-0 pe-5" placeholder="Search..."
+                            value="{{ request.GET.q|default:'' }}" style="width: 200px; background-color: #f8f9fa;">
                         <button type="submit" class="btn btn-link btn-sm position-absolute end-0 top-0 text-muted text-decoration-none" style="height: 100%; top: 0;">
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
                 {% endif %}
             </form>
+            <script>
+                function setFilter(name, val) {
+                    document.getElementById('filter_' + name).value = val;
+                    document.getElementById('filterForm').submit();
+                }
+            </script>
+            {% else %}
+                 <!-- Search for Staff -->
+                 <form method="get" class="d-flex position-relative me-2 align-items-center">
+                    <div class="position-relative">
+                        <input type="text" name="q" class="form-control shadow-sm border-0 pe-5" placeholder="Search..."
+                            value="{{ request.GET.q|default:'' }}" style="width: 200px; background-color: #f8f9fa;">
+                        <button type="submit" class="btn btn-link btn-sm position-absolute end-0 top-0 text-muted text-decoration-none" style="height: 100%; top: 0;">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
 
             {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
             <!-- Export Excel -->
@@ -102,6 +146,30 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Summary Stats -->
+    {% if summary_total_count %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-white border-0 shadow-sm border-start border-4 border-primary">
+                <div class="card-body py-2 d-flex align-items-center justify-content-between">
+                    <div>
+                         <small class="text-uppercase text-muted fw-bold ls-1">Financial Summary (Current View)</small>
+                         <div class="d-flex align-items-baseline gap-3">
+                             <h4 class="mb-0 fw-bold text-dark">Rp {{ summary_total_value|floatformat:0|intcomma }}</h4>
+                             <span class="text-muted small"><i class="fas fa-cube me-1"></i>{{ summary_total_count }} Assets</span>
+                         </div>
+                    </div>
+                    <!-- Group By Toggle -->
+                     <div class="form-check form-switch cursor-pointer">
+                        <input class="form-check-input" type="checkbox" id="groupbySwitch" onchange="window.location.href=this.checked ? '?{% param_replace groupby='location' %}' : '?{% param_replace groupby='' %}'" {% if groupby == 'location' %}checked{% endif %}>
+                        <label class="form-check-label fw-bold small text-primary user-select-none" for="groupbySwitch"><i class="fas fa-map-marker-alt me-1"></i> Group Locations</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="row gx-3">
     {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
@@ -183,6 +251,7 @@
                                     <th>Status Detail</th>
                                 {% else %}
                                     <th class="d-none d-lg-table-cell">Specs</th>
+                                    <th class="d-none d-lg-table-cell">Branch</th>
                                     <th class="d-none d-lg-table-cell">Location</th>
                                     <th>User</th>
                                     <th class="d-none d-xl-table-cell">Financial</th>
@@ -199,6 +268,18 @@
                         </thead>
                         <tbody>
                             {% for asset in assets %}
+                            {% if groupby == 'location' %}
+                                {% ifchanged asset.location %}
+                                <tr class="bg-light fw-bold text-uppercase text-secondary" style="--bs-bg-opacity: .5;">
+                                    <td colspan="12" class="ps-4 py-2 border-bottom small ls-1">
+                                        <i class="fas fa-map-signs me-2 text-success"></i> {{ asset.location.name|default:"Unassigned Location" }}
+                                        {% if asset.location.parent %}
+                                        <span class="text-muted small ms-2 text-capitalize"><i class="fas fa-angle-right mx-1"></i> {{ asset.location.parent.name }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endifchanged %}
+                            {% endif %}
                             <tr>
                                 <!-- Checkbox -->
                                 <td class="ps-4">
@@ -264,6 +345,14 @@
                                     <td class="d-none d-lg-table-cell">
                                         <span class="d-block text-dark fw-bold" style="font-size: 0.9rem;">{{ asset.brand|default:"-" }}</span>
                                         <small class="text-muted d-block">{{ asset.model|default:"" }}</small>
+                                    </td>
+
+                                    <td class="d-none d-lg-table-cell">
+                                        {% if asset.location.root_node %}
+                                            <span class="badge bg-light text-dark border">{{ asset.location.root_node.name }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
                                     </td>
 
                                     <td class="d-none d-lg-table-cell">

@@ -80,6 +80,52 @@
     </div>
 </div>
 
+<!-- Branch Health (New Widget) -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+             <div class="card-header bg-white border-bottom py-3">
+                <h6 class="m-0 fw-bold text-dark"><i class="fas fa-map-marked-alt me-2 text-primary"></i>Branch Health Overview</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 text-center table-hover">
+                    <thead class="bg-light text-uppercase small text-muted">
+                        <tr>
+                             <th class="text-start ps-4">Branch Name</th>
+                             <th>Health Score</th>
+                             <th>Status</th>
+                             <th>Active Tickets</th>
+                             <th>Critical</th>
+                             <th>Assets Managed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for branch in branch_health %}
+                        <tr>
+                            <td class="text-start ps-4 fw-bold text-dark">{{ branch.name }}</td>
+                            <td>
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <span class="me-2 fw-bold small text-{{ branch.color }}">{{ branch.health_score }}%</span>
+                                    <div class="progress rounded-pill" style="width: 80px; height: 6px;">
+                                        <div class="progress-bar bg-{{ branch.color }}" role="progressbar" style="width: {{ branch.health_score }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-{{ branch.color }} bg-opacity-10 text-{{ branch.color }} border border-{{ branch.color }}">{{ branch.status }}</span></td>
+                            <td>{{ branch.open_tickets }}</td>
+                            <td class="{% if branch.critical_tickets > 0 %}text-danger fw-bold{% else %}text-muted{% endif %}">{{ branch.critical_tickets }}</td>
+                            <td>{{ branch.total_assets }}</td>
+                        </tr>
+                        {% empty %}
+                         <tr><td colspan="6" class="text-muted">No branch data available.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Charts Row 1 -->
 <div class="row g-4 mb-4">
     <div class="col-lg-5">

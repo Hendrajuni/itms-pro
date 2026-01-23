@@ -21,34 +21,15 @@ class TicketListView(LoginRequiredMixin, ListView):
         queryset = super().get_queryset()
         user = self.request.user
         
+        # Filter Logic from params
+        loc_id = self.request.GET.get('loc')
+        
+        # 1. Base Queryset (Permission Based)
         # 1. Superuser / Manager / Admin -> See All
         if user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists():
-            # Sorting Logic (preserved)
-            sort_by = self.request.GET.get('sort', '-created_at')
-            direction = self.request.GET.get('order', 'desc')
-            
-            # Mapping frontend sort keys to model fields
-            sort_mapping = {
-                'id': 'id',
-                'topic': 'topic__name',
-                'title': 'title',
-                'requester': 'created_by__first_name',
-                'priority': 'priority',
-                'status': 'status',
-                'created': 'created_at'
-            }
-            
-            db_field = sort_mapping.get(sort_by, '-created_at')
-            
-            if direction == 'desc' and not db_field.startswith('-'):
-                db_field = f'-{db_field}'
-            elif direction == 'asc' and db_field.startswith('-'):
-                db_field = db_field[1:]
-                
-            return queryset.order_by(db_field)
-
+             pass # See all
         # 2. IT Support -> Scoped Visibility
-        if user.groups.filter(name='IT Support').exists():
+        elif user.groups.filter(name='IT Support').exists():
             if hasattr(user, 'location') and user.location:
                 # Hierarchical Filter
                 descendants = user.location.get_descendants(include_self=True)
@@ -61,14 +42,23 @@ class TicketListView(LoginRequiredMixin, ListView):
                     Q(created_by=user)
                 ).distinct()
             else:
-                # Fallback if no location assigned
-                queryset = queryset.filter(Q(assigned_to=user) | Q(created_by=user))
-        
+                 # Fallback if no location assigned
+                 queryset = queryset.filter(Q(assigned_to=user) | Q(created_by=user))
         # 3. Standard User -> Own Tickets Only
         else:
             queryset = queryset.filter(created_by=user)
-            
-        # Sorting Logic (Re-apply for filtered qs)
+
+        # Apply Location Filter (if requested)
+        if loc_id:
+            try:
+                from assets.models import Location
+                selected_loc = Location.objects.get(id=loc_id)
+                descendants = selected_loc.get_descendants(include_self=True)
+                queryset = queryset.filter(created_by__location__in=descendants)
+            except Location.DoesNotExist:
+                pass
+
+        # Sorting Logic (preserved)
         sort_by = self.request.GET.get('sort', '-created_at')
         direction = self.request.GET.get('order', 'desc')
         
@@ -79,7 +69,8 @@ class TicketListView(LoginRequiredMixin, ListView):
             'requester': 'created_by__first_name',
             'priority': 'priority',
             'status': 'status',
-            'created': 'created_at'
+            'created': 'created_at',
+            'location': 'created_by__location__name' # Added location sort
         }
         
         db_field = sort_mapping.get(sort_by, '-created_at')
@@ -93,6 +84,31 @@ class TicketListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Dropdown Context
+        from assets.models import Location
+        location_roots = Location.objects.filter(parent__isnull=True).prefetch_related('children')
+        
+        # Scoped Dropdown for IT Support (Restrict to their Region)
+        user = self.request.user
+        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+            if user.groups.filter(name='IT Support').exists() and hasattr(user, 'location') and user.location:
+                # Find the root of the user's location (e.g. "Riau" for "Kebun Dumai")
+                root = user.location.root_node
+                location_roots = location_roots.filter(id=root.id)
+
+        context['location_roots'] = location_roots
+        
+        # Show Filters only for Admin/Manager/IT Support
+        is_privileged = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'IT Support']).exists()
+        context['show_filters'] = is_privileged
+        
+        loc_id = self.request.GET.get('loc')
+        if loc_id:
+             try:
+                 context['selected_loc'] = Location.objects.get(id=loc_id)
+             except Location.DoesNotExist: pass
+
         context['current_sort'] = self.request.GET.get('sort', 'created')
         context['current_order'] = self.request.GET.get('order', 'desc')
         return context

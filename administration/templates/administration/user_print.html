@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Report - {{ site_setting.site_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-print-color-adjust: exact; }
+        .header-logo { max-height: 60px; object-fit: contain; }
+        .table th { background-color: #f8f9fa !important; border-bottom: 2px solid #dee2e6; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table td { font-size: 0.9rem; vertical-align: middle; }
+        .badge-print { border: 1px solid #000; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; margin: 0; background: white; }
+            .container { max-width: 100% !important; width: 100%; padding: 0; margin: 0; }
+        }
+    </style>
+</head>
+<body class="bg-white p-4">
+
+    <!-- Toolbar -->
+    <div class="container mb-4 no-print d-flex justify-content-between align-items-center bg-light p-3 rounded border">
+        <div>
+            <a href="javascript:window.close()" class="btn btn-outline-secondary btn-sm me-2">Close</a>
+        </div>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="fas fa-print"></i> Print Report</button>
+        </div>
+    </div>
+
+    <!-- Report Header -->
+    <div class="container mb-5">
+        <div class="row align-items-center border-bottom pb-4 mb-4">
+            <div class="col-8">
+                <div class="d-flex align-items-center">
+                    {% if site_setting.logo %}
+                    <img src="{{ site_setting.logo.url }}" alt="Logo" class="header-logo me-4">
+                    {% endif %}
+                    <div>
+                        <h2 class="fw-bold mb-0 text-uppercase">{{ site_setting.site_name }}</h2>
+                        <h5 class="text-muted fw-light">User Access Management Report</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4 text-end">
+                <p class="mb-1 text-muted small">Generated On</p>
+                <h6 class="fw-bold">{{ print_date|date:"d F Y, H:i" }}</h6>
+                <div class="mt-2">
+                    <span class="badge bg-light text-dark border">{{ users|length }} Users</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-light border d-flex align-items-center px-4 py-2">
+                    <strong class="me-2 text-primary">Filters Applied:</strong> 
+                    <span class="font-monospace text-dark">{{ filter_display }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 20%;">User</th>
+                    <th style="width: 15%;">Role</th>
+                    <th style="width: 20%;">Department</th>
+                    <th style="width: 20%;">Location</th>
+                    <th style="width: 10%;">Status</th>
+                    <th style="width: 10%;">Last Login</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div class="fw-bold">{{ user.get_full_name|default:user.username }}</div>
+                        <div class="small text-muted">{{ user.email }}</div>
+                    </td>
+                    <td>
+                        {% if user.is_superuser %}
+                            <span class="badge bg-danger text-white">Superuser</span>
+                        {% elif user.is_staff %}
+                            <span class="badge bg-primary text-white">Staff</span>
+                        {% else %}
+                            <span class="badge bg-secondary text-white">User</span>
+                        {% endif %}
+                        
+                        <!-- Groups -->
+                        {% for g in user.groups.all %}
+                            <div class="small text-muted mt-1 fst-italic">{{ g.name }}</div>
+                        {% endfor %}
+                    </td>
+                    <td>{{ user.department.name|default:"-" }}</td>
+                    <td>{{ user.location.name|default:"-" }}</td>
+                    <td>
+                        {% if user.is_online %}
+                            <span class="text-success fw-bold">Online</span>
+                        {% else %}
+                            <span class="text-muted">Offline</span>
+                        {% endif %}
+                    </td>
+                    <td class="small">{{ user.last_login|timesince }} ago</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted fst-italic">No data matching criteria.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="container mt-5 pt-4 border-top text-center text-muted small">
+        <p>Report generated by <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>. Confidential Document.</p>
+        <p>&copy; {% now "Y" %} {{ site_setting.site_name }}. All rights reserved.</p>
+    </div>
+
+</body>
+</html>

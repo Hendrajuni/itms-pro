@@ -35,14 +35,34 @@ class AssetListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        queryset = super().get_queryset().select_related('category', 'assigned_to', 'department', 'location')
+        queryset = super().get_queryset().select_related('category', 'assigned_to', 'department', 'location', 'location__parent')
         
-        # Filter: Location
+        # Scoped Access: IT Support sees only their hierarchy
+        user = self.request.user
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_it_support = user.groups.filter(name='IT Support').exists()
+
+        if is_it_support and not is_manager:
+            if hasattr(user, 'location') and user.location:
+                descendants = user.location.get_descendants(include_self=True)
+                descendant_ids = [loc.id for loc in descendants]
+                queryset = queryset.filter(location_id__in=descendant_ids)
+            else:
+                queryset = queryset.none()  # Unassigned IT sees nothing
+        
+        # Filter: Location (Recursive: Include children)
         loc = self.request.GET.get('loc')
         if loc:
-            queryset = queryset.filter(location_id=loc)
+            try:
+                selected_loc = Location.objects.get(id=loc)
+                descendants = selected_loc.get_descendants(include_self=True)
+                descendant_ids = [l.id for l in descendants]
+                queryset = queryset.filter(location_id__in=descendant_ids)
+            except (ValueError, Location.DoesNotExist):
+                pass
             
         # Filter: Department
+
         dept = self.request.GET.get('dept')
         if dept:
             queryset = queryset.filter(department_id=dept)
@@ -68,7 +88,14 @@ class AssetListView(LoginRequiredMixin, ListView):
 
         # Sorting Logic
         sort_by = self.request.GET.get('sort', '-created_at')
+        groupby = self.request.GET.get('groupby')
         direction = self.request.GET.get('order', 'desc')
+        
+        # Override sort if grouping is active
+        if groupby == 'location':
+            # Group by Location Name
+            queryset = queryset.order_by('location__name', 'name')
+            return queryset
         
         # Mapping frontend sort keys to model fields
         sort_mapping = {
@@ -92,18 +119,60 @@ class AssetListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Check if user is in 'IT Support' group for UI logic
-        context['is_it_support'] = self.request.user.groups.filter(name='IT Support').exists()
+        user = self.request.user
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_it_support = user.groups.filter(name='IT Support').exists()
+
+        context['is_it_support'] = is_it_support
         
-        # Filters Data
-        context['locations'] = Location.objects.all()
+        # Determine Scope for Filters & Counts
+        descendants = []
+        descendant_ids = []
+        is_scoped = False
+        
+        if is_it_support and not is_manager:
+             is_scoped = True
+             if hasattr(user, 'location') and user.location:
+                 descendants = user.location.get_descendants(include_self=True)
+                 descendant_ids = [loc.id for loc in descendants]
+                 context['locations_flat'] = descendants
+                 context['use_optgroup'] = False
+             else:
+                 context['locations_flat'] = []
+                 context['use_optgroup'] = False
+        else:
+             # Admin: Group by Root (Province)
+             context['location_roots'] = Location.objects.filter(parent__isnull=True).prefetch_related('children')
+             context['use_optgroup'] = True
+
         context['departments'] = Department.objects.all()
         
+        # Summary Stats (Admin/Manager/IT)
+        if is_manager or is_it_support:
+            # Calculate sum of current filtered queryset (self.object_list)
+            # Efficient aggregation
+            summary = self.object_list.aggregate(
+                total_value=Sum('purchase_price'),
+                total_count=Count('id')
+            )
+            context['summary_total_value'] = summary['total_value'] or 0
+            context['summary_total_count'] = summary['total_count'] or 0
+            
+        context['groupby'] = self.request.GET.get('groupby')
+        
         # Category Counts for Sidebar
-        # Only show categories that have at least one asset
-        context['category_counts'] = Category.objects.annotate(
-            asset_count=Count('assets')
-        ).filter(asset_count__gt=0).order_by('name')
+        # Only show categories that have at least one asset (accessible to user)
+        if is_scoped:
+            if descendant_ids:
+                context['category_counts'] = Category.objects.annotate(
+                    asset_count=Count('assets', filter=Q(assets__location_id__in=descendant_ids))
+                ).filter(asset_count__gt=0).order_by('name')
+            else:
+                context['category_counts'] = []
+        else:
+            context['category_counts'] = Category.objects.annotate(
+                asset_count=Count('assets')
+            ).filter(asset_count__gt=0).order_by('name')
         
         # View Mode Logic
         view_mode = self.request.GET.get('mode', 'operational')
@@ -111,6 +180,19 @@ class AssetListView(LoginRequiredMixin, ListView):
         context['current_sort'] = self.request.GET.get('sort', 'created')
         context['current_order'] = self.request.GET.get('order', 'desc')
         context['current_category'] = self.request.GET.get('category')
+        
+        # Helper for Dropdown Labels
+        context['current_loc'] = self.request.GET.get('loc')
+        if context['current_loc']:
+            try:
+                context['selected_location'] = Location.objects.get(id=context['current_loc'])
+            except Location.DoesNotExist: pass
+
+        context['current_dept'] = self.request.GET.get('dept')
+        if context['current_dept']:
+            try:
+                context['selected_department'] = Department.objects.get(id=context['current_dept'])
+            except Department.DoesNotExist: pass
         
         if context['current_category']:
             try:

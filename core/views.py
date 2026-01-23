@@ -133,9 +133,145 @@ def get_dashboard_stats(user):
             'color': 'danger'
         })
 
-    # Sort and Slice
+    # --- Phase 53: Smart Work Queue ---
+    work_queue = []
+    
+    # Define Scope
+    is_admin = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+    is_it = user.groups.filter(name='IT Support').exists()
+    
+    from django.db.models import Q
+    
+    descendants = []
+    if is_it and not is_admin:
+        if hasattr(user, 'location') and user.location:
+             descendants = user.location.get_descendants(include_self=True)
+        else:
+             descendants = []
+             
+    # 1. Fetch Tickets
+    if is_admin:
+        tickets_q = Ticket.objects.filter(
+            Q(assigned_to=user) | Q(assigned_to__isnull=True)
+        ).exclude(status='Closed')
+    else:
+        if descendants:
+            descendant_ids = [loc.id for loc in descendants]
+            loc_filter = Q(asset__location_id__in=descendant_ids) | Q(created_by__location_id__in=descendant_ids)
+            
+            tickets_q = Ticket.objects.filter(
+                Q(assigned_to=user) | (Q(assigned_to__isnull=True) & loc_filter)
+            ).exclude(status='Closed')
+        else:
+            tickets_q = Ticket.objects.filter(assigned_to=user).exclude(status='Closed')
+
+    for t in tickets_q.select_related('created_by', 'asset', 'asset__location'):
+        scope_label = 'My Task' if t.assigned_to == user else 'Unassigned'
+        loc_name = "Unknown"
+        if t.asset and t.asset.location:
+            loc_name = t.asset.location.name
+        elif t.created_by and hasattr(t.created_by, 'location') and t.created_by.location:
+             loc_name = t.created_by.location.name
+             
+        work_queue.append({
+            'type': 'Ticket',
+            'id': t.ticket_code or t.id,
+            'title': t.title,
+            'priority': t.priority,
+            'url': f"/tickets/{t.id}/",
+            'deadline': t.due_date,
+            'scope_label': scope_label,
+            'location': loc_name,
+            'created_at': t.created_at,
+            'icon': 'fas fa-ticket-alt',
+            'color': 'danger' if t.priority in ['High', 'Critical'] else 'primary'
+        })
+
+    # 2. Fetch Maintenance
+    from maintenance.models import AssetMaintenance
+    
+    if is_admin:
+         maint_q = AssetMaintenance.objects.filter(
+             Q(technician=user) | Q(technician__isnull=True)
+         ).exclude(status__in=['Completed', 'Cancelled'])
+    else:
+         if descendants:
+             descendant_ids = [loc.id for loc in descendants]
+             maint_q = AssetMaintenance.objects.filter(
+                 Q(technician=user) | (Q(technician__isnull=True) & Q(asset__location_id__in=descendant_ids))
+             ).exclude(status__in=['Completed', 'Cancelled'])
+         else:
+             maint_q = AssetMaintenance.objects.filter(technician=user).exclude(status__in=['Completed', 'Cancelled'])
+             
+    for m in maint_q.select_related('asset', 'asset__location'):
+        scope_label = 'My Task' if m.technician == user else 'Unassigned'
+        work_queue.append({
+            'type': 'Maintenance',
+            'id': f"M-{m.id}",
+            'title': m.title,
+            'priority': 'Medium',
+            'url': f"/maintenance/", 
+            'deadline': m.scheduled_date,
+            'scope_label': scope_label,
+            'location': m.asset.location.name if m.asset and m.asset.location else "-",
+            'created_at': m.scheduled_date, 
+            'icon': 'fas fa-tools',
+            'color': 'warning'
+        })
+        
+    def get_sort_weight(item):
+        weight = 0
+        if item['scope_label'] == 'My Task': weight += 100
+        if item['type'] == 'Ticket' and item.get('priority') == 'Critical': weight += 50
+        if item['type'] == 'Ticket' and item.get('priority') == 'High': weight += 40
+        return weight
+
+    # Sort: Weight Desc
+    work_queue.sort(key=lambda x: get_sort_weight(x), reverse=True)
+    
+    stats['work_queue'] = work_queue
+
+    # [RESTORED] Sort and Slice Activity Feed
     activities.sort(key=lambda x: x['time'], reverse=True)
     stats['activity_feed'] = activities[:10]
+
+    # [NEW] Branch Health (Root Locations)
+    if is_admin: 
+        from assets.models import Location
+        root_locs = Location.objects.filter(parent__isnull=True)
+        branch_health = []
+        
+        for loc in root_locs:
+            subtree = loc.get_descendants(include_self=True)
+            subtree_ids = [l.id for l in subtree]
+            
+            assets_count = Asset.objects.filter(location_id__in=subtree_ids).count()
+            tickets_open = Ticket.objects.filter(asset__location_id__in=subtree_ids).exclude(status='Closed').count()
+            tickets_critical = Ticket.objects.filter(asset__location_id__in=subtree_ids, priority='Critical').exclude(status='Closed').count()
+            
+            # Simple Health Score
+            score = 100 - (tickets_critical * 20) - (tickets_open * 2)
+            score = max(0, score)
+            
+            status = 'Healthy'
+            color = 'success'
+            if score < 60:
+                status = 'Critical'
+                color = 'danger'
+            elif score < 85:
+                status = 'Warning'
+                color = 'warning'
+                
+            branch_health.append({
+                'name': loc.name,
+                'total_assets': assets_count,
+                'open_tickets': tickets_open,
+                'critical_tickets': tickets_critical,
+                'health_score': score,
+                'status': status,
+                'color': color
+            })
+        stats['branch_health'] = branch_health
 
     return stats
 

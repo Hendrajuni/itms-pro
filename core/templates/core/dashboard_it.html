@@ -49,35 +49,77 @@
         </div>
     </div>
 
-    <!-- High Priority Tickets -->
-    <div class="row my-5">
-        <h3 class="fs-4 mb-3">Recent High Priority Tickets</h3>
-        <div class="col">
-            <div class="table-responsive">
-                <table class="table bg-white rounded shadow-sm  table-hover">
-                    <thead>
-                        <tr>
-                            <th scope="col" width="50">#</th>
-                            <th scope="col">Title</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Created At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ticket in tickets_high_list %}
-                        <tr>
-                            <th scope="row">{{ ticket.id }}</th>
-                            <td>{{ ticket.title }}</td>
-                            <td><span class="badge bg-danger">{{ ticket.status }}</span></td>
-                            <td>{{ ticket.created_at|date:"Y-m-d H:i" }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted">No high priority tickets found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <!-- Smart Work Queue (Table) -->
+    <div class="row my-4">
+        <h4 class="fw-bold mb-3 text-dark">📋 Work Queue</h4>
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th width="5" class="p-0"></th> <!-- Indicator -->
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Location</th>
+                                    <th>Scope</th>
+                                    <th>Priority</th>
+                                    <th>Due</th>
+                                    <th class="text-end pe-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in work_queue %}
+                                <tr>
+                                    <!-- Indicator Column -->
+                                    <td class="p-0 {% if task.scope_label == 'My Task' %}bg-primary{% else %}bg-secondary{% endif %}" style="width: 5px;" title="{{ task.scope_label }}"></td>
+                                    
+                                    <td class="fw-bold small text-muted ps-3">{{ task.id }}</td>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ task.title }}</div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">{{ task.type }}</small>
+                                    </td>
+                                    <td class="small">
+                                        {% if task.location != 'Unknown' and task.location != '-' %}
+                                            <span class="text-dark"><i class="fas fa-map-marker-alt text-muted me-1"></i>{{ task.location }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.scope_label == 'My Task' %}
+                                            <span class="badge badge-soft-primary text-uppercase" style="font-size: 0.7rem;">My Task</span>
+                                        {% else %}
+                                            <span class="badge badge-soft-secondary text-uppercase text-muted" style="font-size: 0.7rem;">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if task.priority == 'Critical' %}bg-danger{% elif task.priority == 'High' %}bg-warning text-dark{% else %}bg-light text-dark border{% endif %}">
+                                            {{ task.priority }}
+                                        </span>
+                                    </td>
+                                    <td class="small fw-bold {% if task.priority == 'Critical' %}text-danger{% else %}text-muted{% endif %}">
+                                        {% if task.deadline %}{{ task.deadline|date:"d M H:i" }}{% else %}{{ task.created_at|date:"d M" }}{% endif %}
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <a href="{{ task.url }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">View</a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-5 text-muted">
+                                        <div class="text-center">
+                                            <i class="fas fa-check-circle fa-2x mb-3 text-success"></i>
+                                            <p class="mb-0">Great job! Your work queue is empty.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

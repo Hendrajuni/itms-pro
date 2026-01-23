@@ -58,6 +58,18 @@ class Location(models.Model):
             
         return list(descendants)
 
+    @property
+    def root_node(self):
+        """Returns the top-level ancestor (Root) of this location."""
+        current = self
+        visited = {current.id}
+        while current.parent:
+            current = current.parent
+            if current.id in visited:
+                break # Cycle detected
+            visited.add(current.id)
+        return current
+
 class Vendor(models.Model):
     name = models.CharField(max_length=100)
     contact_person = models.CharField(max_length=100, blank=True, null=True)

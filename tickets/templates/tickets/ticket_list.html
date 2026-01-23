@@ -12,6 +12,46 @@
     </a>
 </div>
 
+{% if show_filters %}
+<form method="get" id="filterForm" class="d-flex mb-4 gap-2 align-items-center bg-white p-3 rounded shadow-sm border">
+    <div class="fw-bold text-muted small text-uppercase me-2"><i class="fas fa-filter me-2"></i>Filters</div>
+    
+    <!-- Location Filter -->
+    <div class="dropdown">
+        <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-light shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 180px;">
+            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+            <span class="text-truncate fw-bold text-dark" style="max-width: 140px;">
+                {{ selected_loc.name|default:"All Locations" }}
+            </span>
+        </button>
+        <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 400px; overflow-y: auto;">
+            <li><a class="dropdown-item fw-bold {% if not request.GET.loc %}active{% endif %}" href="#" onclick="setFilter('loc', ''); return false;">All Locations</a></li>
+            {% for root in location_roots %}
+                <li><h6 class="dropdown-header text-uppercase fw-bold text-dark mt-2 bg-light mx-2 py-1 rounded small px-2"><i class="fas fa-building me-1 opacity-50"></i> {{ root.name }}</h6></li>
+                <li><a class="dropdown-item ps-4 {% if request.GET.loc == root.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('loc', '{{ root.id }}'); return false;">{{ root.name }} (Main)</a></li>
+                {% for child in root.children.all %}
+                    <li><a class="dropdown-item ps-4 {% if request.GET.loc == child.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('loc', '{{ child.id }}'); return false;">{{ child.name }}</a></li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+        <input type="hidden" name="loc" id="filter_loc" value="{{ request.GET.loc }}">
+    </div>
+
+    {% if request.GET.loc %}
+    <a href="{% url 'ticket_list' %}" class="btn btn-sm btn-outline-danger shadow-sm ms-auto">
+        <i class="fas fa-times me-1"></i> Clear
+    </a>
+    {% endif %}
+</form>
+{% endif %}
+
+<script>
+    function setFilter(name, val) {
+        document.getElementById('filter_' + name).value = val;
+        document.getElementById('filterForm').submit();
+    }
+</script>
+
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -29,6 +69,9 @@
                         </th>
                         <th>
                            <a href="?{% param_replace sort='requester' order='asc' %}" class="text-dark text-decoration-none">Requester</a>
+                        </th>
+                        <th>
+                           <a href="?{% param_replace sort='location' order='asc' %}" class="text-dark text-decoration-none">Location</a>
                         </th>
                         <th>
                             <a href="?{% param_replace sort='priority' order='asc' %}" class="text-dark text-decoration-none">Priority</a>
@@ -82,6 +125,11 @@
                             </div>
                             {% endwith %}
                             {% endwith %}
+                        </td>
+
+                        <!-- Location -->
+                        <td>
+                            <small class="text-dark">{{ ticket.created_by.location.name|default:"-" }}</small>
                         </td>
 
                         <!-- priority -->

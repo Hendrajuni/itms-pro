@@ -3,6 +3,8 @@ from . import views
 
 urlpatterns = [
     path('users/', views.UserListView.as_view(), name='user_list'),
+    path('users/export/', views.UserExportView.as_view(), name='user_export'),
+    path('users/print/', views.UserPrintView.as_view(), name='user_print'),
     path('users/toggle/<int:pk>/', views.UserToggleStatusView.as_view(), name='user_toggle_status'),
     path('users/reset-password/<int:pk>/', views.AdminPasswordResetView.as_view(), name='admin_password_reset'),
     
