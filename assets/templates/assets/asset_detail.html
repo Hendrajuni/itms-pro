@@ -232,6 +232,42 @@
                         </div>
                     </div>
 
+                    {% if storages %}
+                    <h6 class="text-muted text-uppercase mb-3 small fw-bold ls-1 mt-4">Storage Devices</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Brand</th>
+                                    <th>Capacity</th>
+                                    <th>Serial Number</th>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                                    <th style="width: 50px;">Action</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for store in storages %}
+                                <tr>
+                                    <td>{{ store.get_device_type_display }}</td>
+                                    <td>{{ store.brand|default:"-" }}</td>
+                                    <td>{{ store.capacity|default:"-" }}</td>
+                                    <td class="font-monospace">{{ store.serial_number|default:"-" }}</td>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                                    <td class="text-center">
+                                        <a href="{% url 'asset_storage_delete' store.pk %}" class="text-danger" title="Delete">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </a>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
                     <h6 class="text-muted text-uppercase mb-3 small fw-bold ls-1 mt-4">Network Interfaces</h6>
                     {% if interfaces %}
                     <div class="table-responsive mb-4">
@@ -302,7 +338,7 @@
                             <thead class="bg-light">
                                 <tr>
                                     <th>Software Name</th>
-                                    <th>Version</th>
+                                    <th>License / Key</th>
                                     <th>License Type</th>
                                     <th>Installed Date</th>
                                 </tr>
@@ -311,11 +347,11 @@
                                 {% for install in asset.software_installed.all %}
                                 <tr>
                                     <td class="fw-bold text-dark">{{ install.software.name }}</td>
-                                    <td>{{ install.software.version }}</td>
+                                    <td>{{ install.software.license_key|default:"-" }}</td>
                                     <td>
                                         <span class="badge badge-soft-info">{{ install.software.get_license_type_display }}</span>
                                     </td>
-                                    <td>{{ install.installed_date|date:"d M Y" }}</td>
+                                    <td>{{ install.assigned_date|date:"d M Y" }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -325,29 +361,7 @@
                     <p class="text-muted small fst-italic border p-3 rounded bg-light mb-4">No software installations recorded.</p>
                     {% endif %}
 
-                    {% if spec.storage_devices %}
-                    <h6 class="text-muted text-uppercase mb-3 small fw-bold ls-1 mt-4">Storage Devices</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Size</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for store in spec.storage_devices %}
-                                <tr>
-                                    <td>{{ store.type|default:"-" }}</td>
-                                    <td>{{ store.size|default:"-" }}</td>
-                                    <td>{{ store.model|default:"-" }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% endif %}
+
 
                     {% else %}
                     <div class="text-center py-5">

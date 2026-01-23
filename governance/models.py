@@ -266,3 +266,36 @@ class MonthlyReport(models.Model):
 
     def __str__(self):
         return f"Report: {self.period_date.strftime('%B %Y')}"
+
+class DisposalRequest(models.Model):
+    # This model matches the existing 'governance_disposalrequest' table
+    asset = models.OneToOneField('assets.Asset', on_delete=models.CASCADE)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='disposal_requests')
+    request_date = models.DateTimeField(default=timezone.now)
+    reason = models.CharField(max_length=50) 
+    method = models.CharField(max_length=50, choices=[
+        ('Sale', 'Sale'),
+        ('Junk', 'Junk/Scrap'),
+        ('Donation', 'Donation'),
+        ('Other', 'Other')
+    ], default='Junk')
+    condition_description = models.TextField()
+    
+    status = models.CharField(max_length=50, default='Pending', choices=[
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Rejected', 'Rejected'),
+        ('Completed', 'Completed')
+    ])
+    
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_disposals')
+    approval_date = models.DateTimeField(blank=True, null=True)
+    disposal_proof = models.ImageField(upload_to='disposal_proofs/', blank=True, null=True)
+
+    class Meta:
+        db_table = 'governance_disposalrequest'
+        verbose_name = "Disposal Request"
+        verbose_name_plural = "Disposal Requests"
+
+    def __str__(self):
+        return f"Disposal: {self.asset.name}"

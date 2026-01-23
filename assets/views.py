@@ -4,6 +4,7 @@ from django.views.generic import ListView, CreateView, DetailView, UpdateView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.db.models import Q, Count, Sum
+from django.db import IntegrityError
 from django.db.models import Q, Count, Sum, F, ExpressionWrapper, fields, ProtectedError
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.utils import timezone
@@ -19,10 +20,10 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, Location, Department, Category
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, Location, Department, Category, AssetStorage
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
-from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm
+from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm
 from django.db.models import Sum, Q, Count, F
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -261,17 +262,28 @@ class AssetCreateView(LoginRequiredMixin, CreateView):
         data = super().get_context_data(**kwargs)
         if self.request.POST:
             data['network_interfaces'] = NetworkInterfaceFormSet(self.request.POST)
+            data['storage_formset'] = AssetStorageFormSet(self.request.POST)
+            data['software_formset'] = SoftwareAllocationFormSet(self.request.POST)
         else:
             data['network_interfaces'] = NetworkInterfaceFormSet()
+            data['storage_formset'] = AssetStorageFormSet()
+            data['software_formset'] = SoftwareAllocationFormSet()
         return data
 
     def form_valid(self, form):
         context = self.get_context_data()
         network_interfaces = context['network_interfaces']
+        storage_formset = context['storage_formset']
+        software_formset = context['software_formset']
         self.object = form.save()
-        if network_interfaces.is_valid():
+        
+        if network_interfaces.is_valid() and storage_formset.is_valid() and software_formset.is_valid():
             network_interfaces.instance = self.object
             network_interfaces.save()
+            storage_formset.instance = self.object
+            storage_formset.save()
+            software_formset.instance = self.object
+            software_formset.save()
         else:
              return self.render_to_response(self.get_context_data(form=form))
         return super().form_valid(form)
@@ -286,17 +298,28 @@ class AssetUpdateView(LoginRequiredMixin, UpdateView):
         data = super().get_context_data(**kwargs)
         if self.request.POST:
              data['network_interfaces'] = NetworkInterfaceFormSet(self.request.POST, instance=self.object)
+             data['storage_formset'] = AssetStorageFormSet(self.request.POST, instance=self.object)
+             data['software_formset'] = SoftwareAllocationFormSet(self.request.POST, instance=self.object)
         else:
              data['network_interfaces'] = NetworkInterfaceFormSet(instance=self.object)
+             data['storage_formset'] = AssetStorageFormSet(instance=self.object)
+             data['software_formset'] = SoftwareAllocationFormSet(instance=self.object)
         return data
 
     def form_valid(self, form):
         context = self.get_context_data()
         network_interfaces = context['network_interfaces']
+        storage_formset = context['storage_formset']
+        software_formset = context['software_formset']
         self.object = form.save()
-        if network_interfaces.is_valid():
+        
+        if network_interfaces.is_valid() and storage_formset.is_valid() and software_formset.is_valid():
              network_interfaces.instance = self.object
              network_interfaces.save()
+             storage_formset.instance = self.object
+             storage_formset.save()
+             software_formset.instance = self.object
+             software_formset.save()
         else:
              return self.render_to_response(self.get_context_data(form=form))
         return super().form_valid(form)
@@ -316,6 +339,12 @@ class AssetDeleteView(LoginRequiredMixin, DeleteView):
             msg += ", ".join([str(obj) for obj in protected_objects[:3]])
             if len(protected_objects) > 3:
                 msg += "..."
+            messages.error(request, msg)
+            return redirect('asset_detail', pk=self.get_object().pk)
+        except IntegrityError as e:
+            msg = "Cannot delete this asset because it is referenced by other records (Database Constraint)."
+            if 'assets_assetstorage' in str(e):
+                msg = "Cannot delete: This asset is linked to 'Asset Storage' records (likely a hidden or legacy dependency). Please check database directly or contact admin."
             messages.error(request, msg)
             return redirect('asset_detail', pk=self.get_object().pk)
 
@@ -345,8 +374,8 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
         # Pass network interfaces
         context['interfaces'] = self.object.network_interfaces.all()
         
-        # Network interfaces
-        context['interfaces'] = self.object.network_interfaces.all()
+        # Storages
+        context['storages'] = self.object.storages.all()
         
         # Permissions
         user = self.request.user
@@ -374,6 +403,7 @@ class AssetDetailPrintView(LoginRequiredMixin, DetailView):
         
         # Network interfaces
         context['interfaces'] = self.object.network_interfaces.all()
+        context['storages'] = self.object.storages.all()
         
         return context
 
@@ -540,6 +570,19 @@ class AssetLoanDeleteView(LoginRequiredMixin, DeleteView):
         context = super().get_context_data(**kwargs)
         context['asset'] = self.object.asset
         context['title'] = "Delete Assignment"
+        return context
+
+class AssetStorageDeleteView(LoginRequiredMixin, DeleteView):
+    model = AssetStorage
+    template_name = 'assets/asset_confirm_delete.html'
+
+    def get_success_url(self):
+        return reverse_lazy('asset_detail', kwargs={'pk': self.object.asset.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['asset'] = self.object.asset
+        context['title'] = "Delete Storage Device"
         return context
 
 class AssetAnalyticsView(LoginRequiredMixin, TemplateView):

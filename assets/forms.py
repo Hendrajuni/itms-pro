@@ -1,6 +1,46 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage
+
+class AssetStorageForm(forms.ModelForm):
+    class Meta:
+        model = AssetStorage
+        fields = ['device_type', 'brand', 'capacity', 'serial_number', 'purchase_date']
+        widgets = {
+             'device_type': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+             'brand': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
+             'capacity': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
+             'serial_number': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
+             'purchase_date': forms.DateInput(attrs={'class': 'form-control form-control-sm', 'type': 'date'}),
+        }
+
+AssetStorageFormSet = inlineformset_factory(
+    Asset, AssetStorage,
+    form=AssetStorageForm,
+    extra=1,
+    can_delete=True
+)
+
+class NetworkInterfaceForm(forms.ModelForm):
+    class Meta:
+        model = NetworkInterface
+        fields = ['name', 'subnet', 'ip_address', 'mac_address', 'vlan_id', 'is_active']
+        widgets = {
+             'name': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'e.g. eth0'}),
+             'subnet': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+             'ip_address': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': '192.168.1.10'}),
+             'mac_address': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': '00:1A:...'}),
+             'vlan_id': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'placeholder': '10'}),
+             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        }
+
+NetworkInterfaceFormSet = inlineformset_factory(
+    Asset, NetworkInterface,
+    form=NetworkInterfaceForm,
+    extra=1,
+    can_delete=True
+)
+
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
 
@@ -164,14 +204,19 @@ class SoftwareForm(forms.ModelForm):
 class SoftwareAllocationForm(forms.ModelForm):
     class Meta:
         model = SoftwareAllocation
-        fields = ['software', 'employee', 'asset', 'assigned_date', 'notes']
+        fields = ['software', 'assigned_date', 'notes']
         widgets = {
-            'software': forms.HiddenInput(),
-            'employee': forms.Select(attrs={'class': 'form-select'}),
-            'asset': forms.Select(attrs={'class': 'form-select'}),
-            'assigned_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'software': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'assigned_date': forms.DateInput(attrs={'class': 'form-control form-control-sm', 'type': 'date'}),
+            'notes': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Notes...'}),
         }
+
+SoftwareAllocationFormSet = inlineformset_factory(
+    Asset, SoftwareAllocation,
+    form=SoftwareAllocationForm,
+    extra=1,
+    can_delete=True
+)
 
 class CloudAssetForm(forms.ModelForm):
     class Meta:

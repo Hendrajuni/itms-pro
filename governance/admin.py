@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from import_export.admin import ImportExportModelAdmin
-from .models import FiscalYear, BudgetPost, Project, ProjectTask, DailyLog, DailyLogItem, RoutineTask, MonthlyReport
+from .models import FiscalYear, BudgetPost, Project, ProjectTask, DailyLog, DailyLogItem, RoutineTask, MonthlyReport, DisposalRequest
 
 # A. Budgeting
 class BudgetPostInline(admin.TabularInline):
@@ -162,3 +162,11 @@ class MonthlyReportAdmin(admin.ModelAdmin):
             count += 1
         self.message_user(request, f"{count} reports recalculated.", messages.SUCCESS)
     recalculate_data.short_description = "Recalculate Statistics"
+
+@admin.register(DisposalRequest)
+class DisposalRequestAdmin(admin.ModelAdmin):
+    list_display = ('asset', 'requested_by', 'request_date', 'status', 'approved_by')
+    list_filter = ('status', 'method')
+    search_fields = ('asset__asset_code', 'asset__name', 'reason')
+    readonly_fields = ('request_date', 'approval_date')
+

@@ -106,17 +106,123 @@
                 </div>
             </div>
 
+            <!-- Storage Devices (FormSet) -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-hdd text-secondary me-2"></i>Storage Devices
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm('{{ storage_formset.prefix }}')">
+                        <i class="fas fa-plus me-1"></i>Add Item
+                    </button>
+                </div>
+                <!-- Empty Form Template -->
+                <div id="empty-form-{{ storage_formset.prefix }}" style="display:none;">
+                    <table>
+                        <tbody>
+                            <tr>
+                                {% with storage_formset.empty_form as form %}
+                                    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                    <td>{{ form.device_type }}</td>
+                                    <td>{{ form.brand }}</td>
+                                    <td>{{ form.capacity }}</td>
+                                    <td>{{ form.serial_number }}</td>
+                                    <td class="text-center">
+                                        <div class="form-check d-flex justify-content-center text-danger">
+                                            {% if form.DELETE %}{{ form.DELETE }}{% endif %}
+                                            <i class="fas fa-trash-alt" class="cursor-pointer" onclick="removeRow(this)"></i>
+                                        </div>
+                                    </td>
+                                {% endwith %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    {{ storage_formset.management_form }}
+                    <table class="table table-hover mb-0 align-middle" id="table-{{ storage_formset.prefix }}">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 20%;">Type</th>
+                                <th style="width: 25%;">Brand</th>
+                                <th style="width: 20%;">Capacity</th>
+                                <th style="width: 25%;">Serial Number</th>
+                                <th style="width: 10%;">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for storage_form in storage_formset %}
+                                {% for hidden in storage_form.hidden_fields %}
+                                    {{ hidden }}
+                                {% endfor %}
+                            <tr>
+                                <td>{{ storage_form.device_type }}</td>
+                                <td>{{ storage_form.brand }}</td>
+                                <td>{{ storage_form.capacity }}</td>
+                                <td>{{ storage_form.serial_number }}</td>
+                                <td class="text-center">
+                                    {% if storage_form.instance.pk %}
+                                        <div class="form-check d-flex justify-content-center text-danger">
+                                            {{ storage_form.DELETE }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if storage_formset.non_form_errors %}
+                    <div class="alert alert-danger m-3">
+                        {{ storage_formset.non_form_errors }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light small text-muted">
+                    Save to persist changes. Empty rows will be ignored.
+                </div>
+            </div>
+
              <!-- Network Interfaces (FormSet) -->
              <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                      <h5 class="mb-0 fw-bold text-dark">
                         <i class="fas fa-network-wired text-primary me-2"></i>Network Interfaces
                     </h5>
-                    <span class="badge bg-light text-dark">Add multiple IPs/VLANs</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm('{{ network_interfaces.prefix }}')">
+                         <i class="fas fa-plus me-1"></i>Add Interface
+                    </button>
+                </div>
+                 <!-- Empty Form Template -->
+                 <div id="empty-form-{{ network_interfaces.prefix }}" style="display:none;">
+                    <table>
+                        <tbody>
+                            <tr>
+                                {% with network_interfaces.empty_form as form %}
+                                    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                    <td>{{ form.name }}</td>
+                                    <td>{{ form.subnet }}</td>
+                                    <td>{{ form.ip_address }}</td>
+                                    <td>{{ form.mac_address }}</td>
+                                    <td>{{ form.vlan_id }}</td>
+                                    <td class="text-center">
+                                        <div class="form-check d-flex justify-content-center">
+                                            {{ form.is_active }}
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check d-flex justify-content-center text-danger">
+                                            {% if form.DELETE %}{{ form.DELETE }}{% endif %}
+                                            <i class="fas fa-trash-alt" class="cursor-pointer" onclick="removeRow(this)"></i>
+                                        </div>
+                                    </td>
+                                {% endwith %}
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
                 <div class="card-body p-0 table-responsive">
                     {{ network_interfaces.management_form }}
-                     <table class="table table-hover mb-0 align-middle">
+                     <table class="table table-hover mb-0 align-middle" id="table-{{ network_interfaces.prefix }}">
                         <thead class="bg-light">
                             <tr>
                                 <th style="width: 15%;">Interface Name</th>
@@ -158,6 +264,80 @@
                      {% if network_interfaces.non_form_errors %}
                      <div class="alert alert-danger m-3">
                         {{ network_interfaces.non_form_errors }}
+                     </div>
+                     {% endif %}
+                </div>
+                 <div class="card-footer bg-light small text-muted">
+                    Save to persist changes. Empty rows will be ignored.
+                </div>
+             </div>
+
+
+            <!-- Software Installations (FormSet) -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                     <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-compact-disc text-danger me-2"></i>Software Installations
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm('{{ software_formset.prefix }}')">
+                         <i class="fas fa-plus me-1"></i>Add Software
+                    </button>
+                </div>
+                 <!-- Empty Form Template -->
+                 <div id="empty-form-{{ software_formset.prefix }}" style="display:none;">
+                    <table>
+                        <tbody>
+                            <tr>
+                                {% with software_formset.empty_form as form %}
+                                    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                    <td>{{ form.software }}</td>
+                                    <td>{{ form.assigned_date }}</td>
+                                    <td>{{ form.notes }}</td>
+                                    <td class="text-center">
+                                        <div class="form-check d-flex justify-content-center text-danger">
+                                            {% if form.DELETE %}{{ form.DELETE }}{% endif %}
+                                            <i class="fas fa-trash-alt" class="cursor-pointer" onclick="removeRow(this)"></i>
+                                        </div>
+                                    </td>
+                                {% endwith %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    {{ software_formset.management_form }}
+                     <table class="table table-hover mb-0 align-middle" id="table-{{ software_formset.prefix }}">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 30%;">Software Name</th>
+                                <th style="width: 20%;">Date Installed</th>
+                                <th style="width: 40%;">Notes</th>
+                                <th style="width: 10%;">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for form in software_formset %}
+                                {% for hidden in form.hidden_fields %}
+                                    {{ hidden }}
+                                {% endfor %}
+                            <tr>
+                                <td>{{ form.software }}</td>
+                                <td>{{ form.assigned_date }}</td>
+                                <td>{{ form.notes }}</td>
+                                <td class="text-center">
+                                    {% if form.instance.pk %}
+                                        <div class="form-check d-flex justify-content-center text-danger">
+                                            {{ form.DELETE }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                     </table>
+                     {% if software_formset.non_form_errors %}
+                     <div class="alert alert-danger m-3">
+                        {{ software_formset.non_form_errors }}
                      </div>
                      {% endif %}
                 </div>
@@ -225,4 +405,44 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function addForm(prefix) {
+        var formIdxInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+        if (!formIdxInput) { console.error('Total forms input not found for prefix: ' + prefix); return; }
+        var formIdx = parseInt(formIdxInput.value);
+        
+        // Get the empty form html, finding the TR inside the template container
+        var emptyFormContainer = document.getElementById('empty-form-' + prefix);
+        if (!emptyFormContainer) { console.error('Empty form container not found for prefix: ' + prefix); return; }
+        
+        var emptyRowHtml = emptyFormContainer.querySelector('tr').outerHTML;
+        
+        // Replace __prefix__ with index
+        var newRowHtml = emptyRowHtml.replace(/__prefix__/g, formIdx);
+        
+        // Append to table body
+        var table = document.getElementById('table-' + prefix);
+        var tbody = table.querySelector('tbody');
+        tbody.insertAdjacentHTML('beforeend', newRowHtml);
+        
+        // Update Total Forms count
+        formIdxInput.value = formIdx + 1;
+    }
+
+    function removeRow(btn) {
+        var row = btn.closest('tr');
+        var idInput = row.querySelector('input[type="hidden"][name$="-id"]');
+        var deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        
+        if (idInput && idInput.value && deleteInput) {
+            deleteInput.checked = true;
+            row.style.display = 'none';
+        } else {
+            row.remove();
+        }
+    }
+</script>
 {% endblock %}

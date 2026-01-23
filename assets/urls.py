@@ -7,6 +7,7 @@ urlpatterns = [
     path('<int:pk>/', views.AssetDetailView.as_view(), name='asset_detail'),
     path('<int:pk>/update/', views.AssetUpdateView.as_view(), name='asset_update'),
     path('<int:pk>/delete/', views.AssetDeleteView.as_view(), name='asset_delete'),
+    path('storage/<int:pk>/delete/', views.AssetStorageDeleteView.as_view(), name='asset_storage_delete'),
     path('scanner/', views.AssetScannerView.as_view(), name='asset_scanner'),
     path('<int:pk>/print-label/', views.AssetLabelView.as_view(), name='asset_print_label'),
     path('print-labels/', views.BulkAssetLabelView.as_view(), name='asset_print_labels_bulk'),

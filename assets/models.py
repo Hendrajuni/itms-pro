@@ -223,7 +223,7 @@ class AssetSpecification(models.Model):
     # Legacy fields (kept for backward compatibility during migration, eventually to be removed)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     mac_address = models.CharField(max_length=100, blank=True, null=True)
-    storage_devices = models.JSONField(default=list, blank=True) # e.g. [{'type': 'SSD', 'size': '512GB'}]
+    # storage_devices field removed. Use AssetStorage model instead.
 
     def __str__(self):
         return f"Spec for {self.asset.asset_code}"
@@ -283,6 +283,65 @@ class AssetIPAddress(models.Model):
         return f"{self.ip_address} ({self.get_type_display()})"
 
 
+
+
+class AssetStorage(models.Model):
+    STORAGE_TYPE_CHOICES = [
+        ('HDD', 'HDD'),
+        ('SSD', 'SSD'),
+        ('NVMe', 'NVMe'),
+        ('RAM', 'RAM'),
+        ('Other', 'Other'),
+    ]
+    
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='storages')
+    device_type = models.CharField(max_length=10, choices=STORAGE_TYPE_CHOICES, default='HDD')
+    brand = models.CharField(max_length=100, blank=True, null=True)
+    capacity = models.CharField(max_length=50, help_text="e.g. 512GB, 1TB")
+    serial_number = models.CharField(max_length=100, blank=True, null=True)
+    purchase_date = models.DateField(blank=True, null=True)
+
+    class Meta:
+        # We explicitly set the table name to match the existing one in DB
+        db_table = 'assets_assetstorage'
+        verbose_name = "Storage Device"
+        verbose_name_plural = "Storage Devices"
+
+    def __str__(self):
+        return f"{self.device_type} {self.capacity} - {self.brand}"
+
+class AuditItem(models.Model):
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='audit_items')
+    session_id = models.BigIntegerField(help_text="Legacy Audit Session ID") 
+    status = models.CharField(max_length=20)
+    scanned_at = models.DateTimeField(blank=True, null=True)
+    notes = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        db_table = 'assets_audititem'
+        unique_together = (('session_id', 'asset'),)
+        verbose_name = "Audit Record (Legacy)"
+        verbose_name_plural = "Audit Records (Legacy)"
+
+    def __str__(self):
+        return f"Audit {self.session_id} - {self.asset.asset_code}"
+
+class PartHistory(models.Model):
+    # Restored legacy model to fix IntegrityError on deletion
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='part_history')
+    part_name = models.CharField(max_length=100)
+    action_date = models.DateField()
+    description = models.TextField()
+    cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, blank=True, null=True)
+
+    class Meta:
+        db_table = 'assets_parthistory'
+        verbose_name = "Part History (Legacy)"
+        verbose_name_plural = "Part History (Legacy)"
+
+    def __str__(self):
+        return f"{self.part_name} - {self.asset.asset_code}"
 
 class Infrastructure(models.Model):
     TYPE_CHOICES = [

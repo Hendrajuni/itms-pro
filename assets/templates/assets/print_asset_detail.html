@@ -102,6 +102,33 @@
         </table>
         {% endif %}
 
+        <!-- Storage Devices -->
+        <div class="section-title">Storage Devices</div>
+        {% if storages %}
+        <table class="table table-sm table-striped table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Brand</th>
+                    <th>Capacity</th>
+                    <th>Serial Number</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for store in storages %}
+                <tr>
+                    <td>{{ store.get_device_type_display }}</td>
+                    <td>{{ store.brand|default:"-" }}</td>
+                    <td>{{ store.capacity|default:"-" }}</td>
+                    <td class="font-monospace">{{ store.serial_number|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted fst-italic ms-3">No storage devices recorded.</p>
+        {% endif %}
+
         <!-- Network Interfaces -->
         <div class="section-title">Network Interfaces</div>
         {% if interfaces %}
@@ -138,7 +165,7 @@
             <thead>
                 <tr>
                     <th>Software Name</th>
-                    <th>Version</th>
+                    <th>License / Key</th>
                     <th>License Type</th>
                     <th>Installed Date</th>
                 </tr>
@@ -147,9 +174,9 @@
                 {% for install in asset.software_installed.all %}
                 <tr>
                     <td class="fw-bold">{{ install.software.name }}</td>
-                    <td>{{ install.software.version }}</td>
+                    <td>{{ install.software.license_key|default:"-" }}</td>
                     <td>{{ install.software.get_license_type_display }}</td>
-                    <td>{{ install.installed_date|date:"d M Y" }}</td>
+                    <td>{{ install.assigned_date|date:"d M Y" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -157,6 +184,8 @@
         {% else %}
         <p class="text-muted fst-italic ms-3">No software installations recorded.</p>
         {% endif %}
+
+
 
         <!-- Maintenance History -->
         <div class="section-title">Maintenance History</div>
