@@ -1,0 +1,35 @@
+<li class="mb-2">
+    <div class="d-flex align-items-center">
+        <!-- Expand/Collapse Icon for children -->
+        {% if location.children.exists %}
+            <a class="me-2 text-decoration-none text-secondary" data-bs-toggle="collapse" href="#collapse-{{ location.id }}" role="button">
+                <i class="fas fa-caret-down"></i>
+            </a>
+        {% else %}
+            <span class="me-2 text-muted" style="width: 12px; display: inline-block;"></span> 
+        {% endif %}
+        
+        <!-- Location Link -->
+        <a href="javascript:void(0)" onclick="loadLocationDetails({{ location.id }})" id="loc-link-{{ location.id }}" class="text-decoration-none text-dark location-link">
+            {% if location.type == 'HO' %} <i class="fas fa-building text-danger me-1"></i>
+            {% elif location.type == 'PROVINCE' %} <i class="fas fa-map text-warning me-1"></i>
+            {% elif location.type == 'RO' %} <i class="fas fa-city text-info me-1"></i>
+            {% elif location.type == 'ESTATE' %} <i class="fas fa-tree text-success me-1"></i>
+            {% elif location.type == 'MILL' %} <i class="fas fa-industry text-secondary me-1"></i>
+            {% else %} <i class="fas fa-map-marker-alt text-muted me-1"></i>
+            {% endif %}
+            {{ location.name }}
+        </a>
+    </div>
+
+    <!-- Recursive Children -->
+    {% if location.children.exists %}
+        <div class="collapse show ms-3 border-start ps-2" id="collapse-{{ location.id }}">
+            <ul class="list-unstyled mt-1">
+                {% for child in location.children.all %}
+                     {% include 'assets/partials/location_node.html' with location=child %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</li>

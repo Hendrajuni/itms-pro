@@ -7,7 +7,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-xl-10">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" novalidate>
             {% csrf_token %}
             
             {% if form.non_field_errors %}
@@ -26,12 +26,12 @@
                 <div class="card-body p-4">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">Category</label>
+                            <label class="form-label small fw-bold text-muted">Category <span class="text-danger">*</span></label>
                             {{ form.category }}
                             {{ form.category.errors }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">Asset Name</label>
+                            <label class="form-label small fw-bold text-muted">Asset Name <span class="text-danger">*</span></label>
                             {{ form.name }}
                             {{ form.name.errors }}
                         </div>
@@ -111,6 +111,7 @@
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-dark">
                         <i class="fas fa-hdd text-secondary me-2"></i>Storage Devices
+                        <small class="text-muted fw-normal ms-2 small">(Optional)</small>
                     </h5>
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm('{{ storage_formset.prefix }}')">
                         <i class="fas fa-plus me-1"></i>Add Item
@@ -187,6 +188,7 @@
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                      <h5 class="mb-0 fw-bold text-dark">
                         <i class="fas fa-network-wired text-primary me-2"></i>Network Interfaces
+                        <small class="text-muted fw-normal ms-2 small">(Optional)</small>
                     </h5>
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm('{{ network_interfaces.prefix }}')">
                          <i class="fas fa-plus me-1"></i>Add Interface
@@ -278,6 +280,7 @@
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                      <h5 class="mb-0 fw-bold text-dark">
                         <i class="fas fa-compact-disc text-danger me-2"></i>Software Installations
+                        <small class="text-muted fw-normal ms-2 small">(Optional)</small>
                     </h5>
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm('{{ software_formset.prefix }}')">
                          <i class="fas fa-plus me-1"></i>Add Software

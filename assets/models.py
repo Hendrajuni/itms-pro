@@ -17,11 +17,46 @@ class Department(models.Model):
         return self.name
 
 class Location(models.Model):
+    TYPE_CHOICES = [
+        ('HO', 'Head Office'),
+        ('PROVINCE', 'Province'),
+        ('RO', 'Regional Office'),
+        ('ESTATE', 'Estate / Kebun'),
+        ('MILL', 'Mill / PKS'),
+        ('OTHER', 'Other'),
+    ]
+
     name = models.CharField(max_length=100)
     address = models.TextField(blank=True, null=True)
+    
+    # Hierarchy Fields
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children', help_text="Parent location (e.g. Province for an RO)")
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='OTHER')
 
     def __str__(self):
         return self.name
+
+    def get_descendants(self, include_self=True):
+        # Iterative approach to avoid RecursionError in case of cycles or deep trees
+        descendants = set()
+        if include_self:
+            descendants.add(self)
+            
+        stack = list(self.children.all())
+        processed_ids = {self.id} if include_self else set()
+        
+        while stack:
+            child = stack.pop()
+            if child.id in processed_ids:
+                continue
+            
+            processed_ids.add(child.id)
+            descendants.add(child)
+            
+            # Add children of this child to stack
+            stack.extend(child.children.all())
+            
+        return list(descendants)
 
 class Vendor(models.Model):
     name = models.CharField(max_length=100)

@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Ticket, TicketComment
 from .forms import TicketForm, TicketCommentForm
+from django.db.models import Q
 
 # Create your views here.
 
@@ -20,20 +21,62 @@ class TicketListView(LoginRequiredMixin, ListView):
         queryset = super().get_queryset()
         user = self.request.user
         
-        # Filter by user role
-        if not (user.is_superuser or user.groups.filter(name__in=['IT Support', 'Administrator']).exists()):
+        # 1. Superuser / Manager / Admin -> See All
+        if user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists():
+            # Sorting Logic (preserved)
+            sort_by = self.request.GET.get('sort', '-created_at')
+            direction = self.request.GET.get('order', 'desc')
+            
+            # Mapping frontend sort keys to model fields
+            sort_mapping = {
+                'id': 'id',
+                'topic': 'topic__name',
+                'title': 'title',
+                'requester': 'created_by__first_name',
+                'priority': 'priority',
+                'status': 'status',
+                'created': 'created_at'
+            }
+            
+            db_field = sort_mapping.get(sort_by, '-created_at')
+            
+            if direction == 'desc' and not db_field.startswith('-'):
+                db_field = f'-{db_field}'
+            elif direction == 'asc' and db_field.startswith('-'):
+                db_field = db_field[1:]
+                
+            return queryset.order_by(db_field)
+
+        # 2. IT Support -> Scoped Visibility
+        if user.groups.filter(name='IT Support').exists():
+            if hasattr(user, 'location') and user.location:
+                # Hierarchical Filter
+                descendants = user.location.get_descendants(include_self=True)
+                descendant_ids = [loc.id for loc in descendants]
+                
+                queryset = queryset.filter(
+                    Q(asset__location_id__in=descendant_ids) |
+                    Q(created_by__location_id__in=descendant_ids) |
+                    Q(assigned_to=user) |
+                    Q(created_by=user)
+                ).distinct()
+            else:
+                # Fallback if no location assigned
+                queryset = queryset.filter(Q(assigned_to=user) | Q(created_by=user))
+        
+        # 3. Standard User -> Own Tickets Only
+        else:
             queryset = queryset.filter(created_by=user)
             
-        # Sorting Logic
+        # Sorting Logic (Re-apply for filtered qs)
         sort_by = self.request.GET.get('sort', '-created_at')
         direction = self.request.GET.get('order', 'desc')
         
-        # Mapping frontend sort keys to model fields
         sort_mapping = {
             'id': 'id',
             'topic': 'topic__name',
             'title': 'title',
-            'requester': 'created_by__first_name', # Sort by first name for now
+            'requester': 'created_by__first_name',
             'priority': 'priority',
             'status': 'status',
             'created': 'created_at'
@@ -44,7 +87,7 @@ class TicketListView(LoginRequiredMixin, ListView):
         if direction == 'desc' and not db_field.startswith('-'):
             db_field = f'-{db_field}'
         elif direction == 'asc' and db_field.startswith('-'):
-            db_field = db_field[1:] # Remove minus
+            db_field = db_field[1:]
             
         return queryset.order_by(db_field)
 
@@ -99,7 +142,12 @@ class TicketDetailView(LoginRequiredMixin, DetailView):
             is_it = request.user.is_superuser or request.user.groups.filter(name='IT Support').exists()
             if is_it:
                 action = request.POST.get('status_action')
-                if action == 'resolve':
+                if action == 'self_assign':
+                    self.object.assigned_to = request.user
+                    if self.object.status == 'Open':
+                        self.object.status = 'Assigned'
+                    messages.success(request, f"You have taken ownership of this ticket.")
+                elif action == 'resolve':
                     self.object.status = 'Resolved'
                     self.object.resolved_at = timezone.now()
                     messages.success(request, "Ticket marked as Resolved.")

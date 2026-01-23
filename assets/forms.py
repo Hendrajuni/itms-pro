@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage, Location
 
 class AssetStorageForm(forms.ModelForm):
     class Meta:
@@ -17,7 +17,7 @@ class AssetStorageForm(forms.ModelForm):
 AssetStorageFormSet = inlineformset_factory(
     Asset, AssetStorage,
     form=AssetStorageForm,
-    extra=1,
+    extra=0,
     can_delete=True
 )
 
@@ -37,7 +37,7 @@ class NetworkInterfaceForm(forms.ModelForm):
 NetworkInterfaceFormSet = inlineformset_factory(
     Asset, NetworkInterface,
     form=NetworkInterfaceForm,
-    extra=1,
+    extra=0,
     can_delete=True
 )
 
@@ -214,7 +214,7 @@ class SoftwareAllocationForm(forms.ModelForm):
 SoftwareAllocationFormSet = inlineformset_factory(
     Asset, SoftwareAllocation,
     form=SoftwareAllocationForm,
-    extra=1,
+    extra=0,
     can_delete=True
 )
 
@@ -251,6 +251,17 @@ class InfrastructureForm(forms.ModelForm):
             'last_maintenance_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'next_maintenance_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+class LocationForm(forms.ModelForm):
+    class Meta:
+        model = Location
+        fields = ['name', 'type', 'parent', 'address']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'type': forms.Select(attrs={'class': 'form-select'}),
+            'parent': forms.Select(attrs={'class': 'form-select'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
 class ContractForm(forms.ModelForm):

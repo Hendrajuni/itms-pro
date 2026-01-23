@@ -34,10 +34,19 @@ class MaintenanceDashboardView(LoginRequiredMixin, ListView):
             infra_qs = infra_qs.filter(status=status_filter)
         
         if location_filter:
-            asset_qs = asset_qs.filter(asset__location_id=location_filter)
+            # Hierarchical Filter (Depth 2: Self, Child, Grandchild)
+            # e.g. "Jambi" includes "RO Jambi" (Child) and "Kebun X" (Grandchild)
+            q_asset = Q(asset__location_id=location_filter) | \
+                      Q(asset__location__parent_id=location_filter) | \
+                      Q(asset__location__parent__parent_id=location_filter)
+            asset_qs = asset_qs.filter(q_asset)
+
             # Assuming Infrastructure has a location field or similar relation
             if hasattr(InfraMaintenance, 'infrastructure'):
-                 infra_qs = infra_qs.filter(infrastructure__location_id=location_filter)
+                 q_infra = Q(infrastructure__location_id=location_filter) | \
+                           Q(infrastructure__location__parent_id=location_filter) | \
+                           Q(infrastructure__location__parent__parent_id=location_filter)
+                 infra_qs = infra_qs.filter(q_infra)
 
         # --- KPI Calculation (Pre-filter or Post-filter? User usually wants Contextual KPIs, but "Dashboard" usually means global. 
         # Let's keep KPIs global (unfiltered) or make them respect filter? 

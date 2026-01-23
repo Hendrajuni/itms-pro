@@ -1,0 +1,112 @@
+{% load humanize %}
+<div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+    <div>
+        <h3 class="mb-0">{{ location.name }}</h3>
+        <span class="badge bg-secondary">{{ location.get_type_display }}</span>
+        {% if location.parent %}
+            <small class="text-muted ms-2">Part of <strong>{{ location.parent.name }}</strong></small>
+        {% endif %}
+    </div>
+    <div class="btn-group">
+        {% if is_manager %}
+        <a href="{% url 'location_create' %}?parent={{ location.id }}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-plus"></i> Add Sub-Location
+        </a>
+        <a href="{% url 'location_update' location.id %}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <a href="{% url 'location_delete' location.id %}" class="btn btn-sm btn-outline-danger">
+            <i class="fas fa-trash"></i> Delete
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="p-4">
+    <!-- Address -->
+    {% if location.address %}
+        <div class="mb-4 text-muted">
+            <i class="fas fa-map-pin me-2"></i> {{ location.address }}
+        </div>
+    {% endif %}
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-primary">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Assets</h6>
+                    <h2 class="text-primary">{{ total_assets }}</h2>
+                    <small>Self & Descendants</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-success">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Value</h6>
+                    <h4 class="text-success">Rp {{ total_value|intcomma }}</h4>
+                    <small>IDR</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-warning">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Users</h6>
+                    <h2 class="text-warning">{{ total_users }}</h2>
+                    <small>Assigned Staff</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-info">
+                <div class="card-body">
+                    <h6 class="text-muted">Status</h6>
+                    <div class="d-flex justify-content-center gap-3 mt-2">
+                        <div class="text-success"><i class="fas fa-check-circle"></i> {{ good_assets }}</div>
+                        <div class="text-danger"><i class="fas fa-exclamation-triangle"></i> {{ broken_assets }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-users me-2"></i> Assigned Staff
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Job Title</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for staff in staff_list %}
+                    <tr>
+                        <td>
+                            {% if staff.photo %}
+                                <img src="{{ staff.photo.url }}" class="rounded-circle me-2" width="24" height="24">
+                            {% else %}
+                                <i class="fas fa-user-circle me-2 text-secondary"></i>
+                            {% endif %}
+                            {{ staff.username }}
+                        </td>
+                        <td>{{ staff.job_title|default:"-" }}</td>
+                        <td>{{ staff.email }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">No staff assigned to this location.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -14,7 +14,8 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'address')
+    list_display = ('name', 'type', 'parent', 'address')
+    list_filter = ('type', 'parent')
     search_fields = ('name',)
 
 @admin.register(Vendor)

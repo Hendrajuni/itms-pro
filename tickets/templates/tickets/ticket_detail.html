@@ -220,6 +220,17 @@
             <div class="card-body">
                 <h6 class="fw-bold mb-3 text-dark">IT Controls</h6>
                 <div class="d-grid gap-2">
+                    
+                    {% if not ticket.assigned_to or ticket.assigned_to != request.user %}
+                    <form method="post" class="d-grid mb-1">
+                        {% csrf_token %}
+                        <button type="submit" name="status_action" value="self_assign" class="btn btn-primary shadow-sm fw-bold">
+                            <i class="fas fa-hand-paper me-2"></i>Take Ticket
+                        </button>
+                    </form>
+                    <div class="text-center text-muted small mb-2">- OR -</div>
+                    {% endif %}
+
                     {% if ticket.status != 'Resolved' %}
                     <form method="post" class="d-grid">
                         {% csrf_token %}

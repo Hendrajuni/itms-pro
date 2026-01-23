@@ -23,7 +23,7 @@ from openpyxl.utils import get_column_letter
 from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, Location, Department, Category, AssetStorage
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
-from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm
+from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm
 from django.db.models import Sum, Q, Count, F
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -252,6 +252,8 @@ class BulkAssetLabelView(LoginRequiredMixin, View):
         }
         return render(request, 'assets/print_labels_bulk.html', context)
 
+from django.db import transaction
+
 class AssetCreateView(LoginRequiredMixin, CreateView):
     model = Asset
     form_class = AssetForm
@@ -275,18 +277,27 @@ class AssetCreateView(LoginRequiredMixin, CreateView):
         network_interfaces = context['network_interfaces']
         storage_formset = context['storage_formset']
         software_formset = context['software_formset']
-        self.object = form.save()
         
         if network_interfaces.is_valid() and storage_formset.is_valid() and software_formset.is_valid():
-            network_interfaces.instance = self.object
-            network_interfaces.save()
-            storage_formset.instance = self.object
-            storage_formset.save()
-            software_formset.instance = self.object
-            software_formset.save()
+            with transaction.atomic():
+                self.object = form.save()
+                
+                network_interfaces.instance = self.object
+                network_interfaces.save()
+                
+                storage_formset.instance = self.object
+                storage_formset.save()
+                
+                software_formset.instance = self.object
+                software_formset.save()
+                
+            messages.success(self.request, "Asset created successfully!")
+            return redirect(self.success_url)
         else:
-             return self.render_to_response(self.get_context_data(form=form))
-        return super().form_valid(form)
+            # If formsets are invalid, render response with context (which contains errors)
+            # form is valid here, but we treat it as invalid overall
+            messages.error(self.request, "Please check the form for errors.")
+            return self.render_to_response(self.get_context_data(form=form))
 
 class AssetUpdateView(LoginRequiredMixin, UpdateView):
     model = Asset
@@ -311,18 +322,21 @@ class AssetUpdateView(LoginRequiredMixin, UpdateView):
         network_interfaces = context['network_interfaces']
         storage_formset = context['storage_formset']
         software_formset = context['software_formset']
-        self.object = form.save()
         
         if network_interfaces.is_valid() and storage_formset.is_valid() and software_formset.is_valid():
-             network_interfaces.instance = self.object
-             network_interfaces.save()
-             storage_formset.instance = self.object
-             storage_formset.save()
-             software_formset.instance = self.object
-             software_formset.save()
+             with transaction.atomic():
+                 self.object = form.save()
+                 network_interfaces.instance = self.object
+                 network_interfaces.save()
+                 storage_formset.instance = self.object
+                 storage_formset.save()
+                 software_formset.instance = self.object
+                 software_formset.save()
+             messages.success(self.request, "Asset updated successfully!")
+             return redirect(self.success_url)
         else:
+             messages.error(self.request, "Please check the form for errors.")
              return self.render_to_response(self.get_context_data(form=form))
-        return super().form_valid(form)
 
 class AssetDeleteView(LoginRequiredMixin, DeleteView):
     model = Asset
@@ -1068,3 +1082,111 @@ class ContractDeleteView(LoginRequiredMixin, DeleteView):
     model = Contract
     template_name = 'assets/contract_confirm_delete.html'
     success_url = reverse_lazy('contract_list')
+
+# -----------------------------------------------------------------------------
+# Location / Branch Command Center Views
+# -----------------------------------------------------------------------------
+
+class LocationTreeView(LoginRequiredMixin, TemplateView):
+    template_name = 'assets/location_tree.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Fetch all locations ordered by hierarchy (Root first, then children)
+        # We fetch all and let the template or Python build the tree
+        locations = Location.objects.all().order_by('parent_id', 'name')
+        
+        # We can build a simple tree structure here if needed, or pass flat list
+        # Scoped Visibility Logic
+        user = self.request.user
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_it_support = user.groups.filter(name='IT Support').exists()
+
+        if is_it_support and not is_manager:
+            if hasattr(user, 'location') and user.location:
+                # Show ONLY the user's location branch
+                root_nodes = [user.location]
+            else:
+                # IT Support with no location? Show nothing.
+                root_nodes = []
+                messages.warning(self.request, "Please set your location in Profile to view Branch/Locations.")
+        else:
+            # Show Full Tree
+            root_nodes = locations.filter(parent__isnull=True)
+            
+        context['root_nodes'] = root_nodes
+        context['all_locations'] = locations 
+        context['is_manager'] = is_manager
+        return context
+
+class LocationDetailAjaxView(LoginRequiredMixin, DetailView):
+    model = Location
+    template_name = 'assets/partials/location_detail.html'
+    context_object_name = 'location'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        loc = self.object
+        
+        # 1. Total Assets in this location (and optionally children? Let's stick to direct first, or hierarchical if agreed)
+        # User agreed on Hierarchical concept. So let's count hierarchical.
+        # Get self and descendants
+        
+        # Helper to get all descendant IDs (simple recursive)
+        def get_descendant_ids(location):
+            ids = [location.id]
+            for child in location.children.all():
+                ids.extend(get_descendant_ids(child))
+            return ids
+            
+        relevant_ids = get_descendant_ids(loc)
+        
+        assets_q = Asset.objects.filter(location_id__in=relevant_ids)
+        
+        context['total_assets'] = assets_q.count()
+        context['total_value'] = assets_q.aggregate(Sum('purchase_price'))['purchase_price__sum'] or 0
+        context['good_assets'] = assets_q.filter(status='IN_USE').count()
+        context['broken_assets'] = assets_q.filter(status='BROKEN').count()
+        
+        # 2. Staff Assigned
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        staff_qs = User.objects.filter(location_id__in=relevant_ids)
+        context['staff_list'] = staff_qs
+        context['total_users'] = staff_qs.count()
+        
+        user = self.request.user
+        context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        
+        return context
+
+class LocationCreateView(LoginRequiredMixin, CreateView):
+    model = Location
+    form_class = LocationForm
+    template_name = 'assets/location_form.html'
+    success_url = reverse_lazy('location_tree')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        # Pre-fill parent if provided in GET (e.g. "Add Sub-Branch" button)
+        parent_id = self.request.GET.get('parent')
+        if parent_id:
+             initial['parent'] = parent_id
+        return initial
+
+class LocationUpdateView(LoginRequiredMixin, UpdateView):
+    model = Location
+    form_class = LocationForm
+    template_name = 'assets/location_form.html'
+    success_url = reverse_lazy('location_tree')
+
+class LocationDeleteView(LoginRequiredMixin, DeleteView):
+    model = Location
+    template_name = 'assets/confirm_delete.html'
+    success_url = reverse_lazy('location_tree')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = "Delete Location"
+        context['warning'] = "Warning: Deleting this location might affect Assets assigned to it. Please check before deleting."
+        return context

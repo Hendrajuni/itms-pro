@@ -47,6 +47,10 @@
             <div class="my-2"></div>
             <small class="text-uppercase fw-bold text-muted mb-1 ps-3" style="font-size: 0.7rem;">Inventory</small>
 
+            <a href="{% url 'location_tree' %}" class="list-group-item list-group-item-action py-2 {% if 'locations' in request.path %}active{% endif %}">
+                <i class="fas fa-map-marked-alt me-3" style="width: 20px;"></i>Branch / Locations
+            </a>
+
             <a href="{% url 'asset_list' %}" class="list-group-item list-group-item-action py-2 {% if 'assets' in request.path and not 'analytics' in request.path and not 'reports' in request.path %}active{% endif %}">
                 <i class="fas fa-box me-3" style="width: 20px;"></i>Hardware
             </a>
