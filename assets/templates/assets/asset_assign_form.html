@@ -1,0 +1,109 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-gray-800">{{ action_title }}</h5>
+                        {% if asset %}
+                        <small class="text-muted">for <span class="fw-bold">{{ asset.asset_code }}</span> - {{ asset.name }}</small>
+                        {% endif %}
+                    </div>
+                    {% if asset %}
+                    <a href="{% url 'asset_detail' asset.pk %}" class="btn-close" aria-label="Close"></a>
+                    {% else %}
+                    <a href="{% url 'maintenance_dashboard' %}" class="btn-close" aria-label="Close"></a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data" id="assignForm">
+                        {% csrf_token %}
+                        
+                        {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                {{ field.label }}
+                                {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                            <div class="form-text small text-muted">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+
+                        <!-- Digital Signature Section -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-gray-700">Receiver Signature <span class="text-danger">*</span></label>
+                            <div class="border rounded p-2 bg-light d-flex justify-content-center">
+                                <canvas id="signature-pad" class="bg-white border w-100" height="200"></canvas>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-signature">Clear Signature</button>
+                                <small class="text-muted">Sign above to confirm receipt</small>
+                            </div>
+                            <input type="hidden" name="signature_data" id="signature-data">
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4 d-md-flex justify-content-md-end">
+                            {% if asset %}
+                            <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-light me-md-2">Cancel</a>
+                            {% else %}
+                            <a href="{% url 'maintenance_dashboard' %}" class="btn btn-light me-md-2">Cancel</a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary px-4" id="saveBtn">Save Assignment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signature Pad JS -->
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var canvas = document.getElementById('signature-pad');
+        var signaturePad = new SignaturePad(canvas, {
+            backgroundColor: 'rgb(255, 255, 255)'
+        });
+
+        // Resize canvas correctly
+        function resizeCanvas() {
+            var ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext("2d").scale(ratio, ratio);
+            signaturePad.clear(); // otherwise clears the signature
+        }
+
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        document.getElementById('clear-signature').addEventListener('click', function () {
+            signaturePad.clear();
+        });
+
+        document.getElementById('assignForm').addEventListener('submit', function (e) {
+            if (signaturePad.isEmpty()) {
+                // Optional: Alert user if signature is mandatory
+                var confirmNoSign = confirm("Warning: No signature provided. Proceed anyway?");
+                if (!confirmNoSign) {
+                    e.preventDefault();
+                    return;
+                }
+            } else {
+                var data = signaturePad.toDataURL('image/png');
+                document.getElementById('signature-data').value = data;
+            }
+        });
+    });
+</script>
+{% endblock %}

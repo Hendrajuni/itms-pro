@@ -431,6 +431,10 @@ class AssetLoan(models.Model):
     condition_out = models.TextField(blank=True, null=True, help_text="Condition when loaned")
     condition_in = models.TextField(blank=True, null=True, help_text="Condition when returned")
     loan_id = models.CharField(max_length=50, unique=True, editable=False)
+    
+    # Digital Signature
+    signature_image = models.ImageField(upload_to='signatures/', blank=True, null=True)
+    is_digital_sign = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.loan_id:

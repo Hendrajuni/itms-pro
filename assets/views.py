@@ -4,13 +4,17 @@ from django.views.generic import ListView, CreateView, DetailView, UpdateView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.db.models import Q, Count, Sum
-from django.db.models import Q, Count, Sum, F, ExpressionWrapper, fields
+from django.db.models import Q, Count, Sum, F, ExpressionWrapper, fields, ProtectedError
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.utils import timezone
 from datetime import timedelta
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse, HttpResponse
+from django.core.files.base import ContentFile
+import base64
+from django.contrib import messages
+from django.shortcuts import render, get_object_or_404, redirect
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
@@ -302,6 +306,19 @@ class AssetDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'assets/asset_confirm_delete.html' 
     success_url = reverse_lazy('asset_list')
 
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except ProtectedError as e:
+            # Provide a friendly error message listing the dependent objects
+            protected_objects = list(e.protected_objects)
+            msg = f"Cannot delete this asset because it is referenced by {len(protected_objects)} records: "
+            msg += ", ".join([str(obj) for obj in protected_objects[:3]])
+            if len(protected_objects) > 3:
+                msg += "..."
+            messages.error(request, msg)
+            return redirect('asset_detail', pk=self.get_object().pk)
+
 class AssetDetailView(LoginRequiredMixin, DetailView):
     model = Asset
     template_name = 'assets/asset_detail.html'
@@ -412,14 +429,28 @@ class AssetMaintenanceDeleteView(LoginRequiredMixin, DeleteView):
 class AssetLoanCreateView(LoginRequiredMixin, CreateView):
     model = AssetLoan
     form_class = AssetLoanForm
-    template_name = 'assets/asset_action_form.html'
+    template_name = 'assets/asset_assign_form.html'
 
     def form_valid(self, form):
         asset = get_object_or_404(Asset, pk=self.kwargs['pk'])
         form.instance.asset = asset
+        
+        # Handle Signature
+        signature_data = self.request.POST.get('signature_data')
+        if signature_data:
+            format, imgstr = signature_data.split(';base64,') 
+            ext = format.split('/')[-1] 
+            data = ContentFile(base64.b64decode(imgstr), name=f'signature_{asset.id}_{timezone.now().strftime("%Y%m%d%H%M%S")}.{ext}')
+            form.instance.signature_image = data
+            form.instance.is_digital_sign = True
+            
         return super().form_valid(form)
 
     def get_success_url(self):
+        # Redirect to receipt after assignment? Or back to detail?
+        # User might want to print immediately. 
+        # For now, let's go to detail, but maybe we can show a message or redirect to receipt.
+        # Let's stick to detail page as per standard flow, user can click print there.
         return reverse_lazy('asset_detail', kwargs={'pk': self.kwargs['pk']})
 
     def get_context_data(self, **kwargs):
@@ -427,6 +458,11 @@ class AssetLoanCreateView(LoginRequiredMixin, CreateView):
         context['asset'] = get_object_or_404(Asset, pk=self.kwargs['pk'])
         context['action_title'] = "Assign Asset"
         return context
+
+class AssetLoanReceiptView(LoginRequiredMixin, DetailView):
+    model = AssetLoan
+    template_name = 'assets/asset_loan_receipt.html'
+    context_object_name = 'loan'
 
 class AssetNoteUpdateView(LoginRequiredMixin, UpdateView):
     model = Asset
@@ -471,10 +507,21 @@ class AssetMaintenanceDeleteView(LoginRequiredMixin, DeleteView):
 class AssetLoanUpdateView(LoginRequiredMixin, UpdateView):
     model = AssetLoan
     form_class = AssetLoanForm
-    template_name = 'assets/asset_action_form.html'
+    template_name = 'assets/asset_assign_form.html'
 
     def get_success_url(self):
         return reverse_lazy('asset_detail', kwargs={'pk': self.object.asset.pk})
+        
+    def form_valid(self, form):
+        # Handle Signature Update if provided
+        signature_data = self.request.POST.get('signature_data')
+        if signature_data:
+            format, imgstr = signature_data.split(';base64,') 
+            ext = format.split('/')[-1] 
+            data = ContentFile(base64.b64decode(imgstr), name=f'signature_{self.object.asset.id}_{timezone.now().strftime("%Y%m%d%H%M%S")}.{ext}')
+            form.instance.signature_image = data
+            form.instance.is_digital_sign = True
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

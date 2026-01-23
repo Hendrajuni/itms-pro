@@ -505,6 +505,9 @@
                                         {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
                                         <td class="text-end">
                                             <div class="d-flex justify-content-end gap-2">
+                                                <a href="{% url 'asset_loan_receipt' loan.pk %}" target="_blank" class="btn btn-sm btn-light text-secondary" title="Receipt">
+                                                    <i class="fas fa-file-invoice"></i>
+                                                </a>
                                                 <a href="{% url 'asset_loan_update' loan.pk %}" class="btn btn-sm btn-light text-primary" title="Edit">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </a>

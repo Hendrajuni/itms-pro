@@ -1,0 +1,165 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Berita Acara Serah Terima - {{ loan.asset.asset_code }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; color: #333; line-height: 1.6; }
+        .receipt-container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; }
+        .header { border-bottom: 3px solid #0d6efd; padding-bottom: 20px; margin-bottom: 30px; }
+        .logo { max-height: 80px; }
+        .title { font-size: 24px; font-weight: bold; color: #0d6efd; text-transform: uppercase; }
+        .subtitle { font-size: 14px; color: #666; }
+        .section-title { 
+            background-color: #f8f9fa; 
+            border-left: 5px solid #0d6efd; 
+            padding: 10px 15px; 
+            font-weight: bold; 
+            font-size: 16px; 
+            margin: 30px 0 15px 0; 
+            text-transform: uppercase;
+        }
+        .info-row { display: flex; margin-bottom: 10px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+        .info-label { width: 40%; font-weight: 600; color: #555; }
+        .info-value { width: 60%; font-weight: bold; }
+        .signature-box { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-top: 20px; min-height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .signature-img { max-height: 120px; max-width: 100%; }
+        .terms { font-size: 12px; color: #777; margin-top: 30px; text-align: justify; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white; }
+            .receipt-container { box-shadow: none; padding: 0; margin: 0; width: 100%; max-width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-light py-4">
+
+    <div class="container receipt-container shadow-sm">
+        <!-- Actions (No Print) -->
+        <div class="d-flex justify-content-end mb-4 no-print">
+            <button onclick="window.print()" class="btn btn-primary me-2">
+                <i class="fas fa-print"></i> Cetak Dokumen
+            </button>
+            <button onclick="window.close()" class="btn btn-secondary">
+                Tutup
+            </button>
+        </div>
+
+        <!-- Header -->
+        <div class="header d-flex justify-content-between align-items-center">
+            <div>
+                <div class="title">Berita Acara Serah Terima Aset</div>
+                <div class="subtitle">Dokumen Resmi IT Management System</div>
+                <div class="mt-2"><strong>Ref:</strong> LOAN-{{ loan.id }}-{{ loan.loan_date|date:"Ymd" }}</div>
+            </div>
+            <div class="text-end">
+                <h3 class="fw-bold mb-0 text-dark">{{ loan.asset.asset_code }}</h3>
+                <span class="badge bg-success">DITERIMA</span>
+                <div class="mt-1 small">{{ loan.loan_date|date:"d F Y" }}</div>
+            </div>
+        </div>
+
+        <!-- Employee Info -->
+        <div class="section-title">Informasi Penerima</div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-row">
+                    <span class="info-label">Nama Lengkap:</span>
+                    <span class="info-value">{{ loan.employee.get_full_name|default:loan.employee.username }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ID Karyawan:</span>
+                    <span class="info-value">{{ loan.employee.employee_id|default:"-" }}</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <span class="info-label">Departemen:</span>
+                    <span class="info-value">{{ loan.employee.department.name|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{ loan.employee.email }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Info -->
+        <div class="section-title">Detail Aset</div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-row">
+                    <span class="info-label">Nama Aset:</span>
+                    <span class="info-value">{{ loan.asset.name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kategori:</span>
+                    <span class="info-value">{{ loan.asset.category.name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Merk / Model:</span>
+                    <span class="info-value">{{ loan.asset.brand }} {{ loan.asset.model }}</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <span class="info-label">Nomor Seri:</span>
+                    <span class="info-value">{{ loan.asset.serial_number|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kondisi:</span>
+                    <span class="info-value">{{ loan.condition_out|default:"Baik" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms -->
+        <div class="terms">
+            <p><strong>Syarat dan Ketentuan:</strong></p>
+            <ol>
+                <li>Karyawan menyatakan telah menerima aset yang tercantum di atas dalam kondisi baik dan berfungsi normal.</li>
+                <li>Aset tersebut adalah properti perusahaan dan wajib dikembalikan atas permintaan perusahaan atau saat pemutusan hubungan kerja.</li>
+                <li>Karyawan setuju untuk merawat aset tersebut dan segera melaporkan segala kerusakan atau kehilangan kepada departemen IT.</li>
+                <li>Data perusahaan yang tersimpan dalam perangkat ini wajib dijaga kerahasiaannya sesuai dengan Kebijakan Keamanan Informasi perusahaan.</li>
+            </ol>
+        </div>
+
+        <!-- Signatures -->
+        <div class="row mt-5">
+            <div class="col-6">
+                <div class="fw-bold mb-2 text-center">Diserahkan Oleh (IT Dept):</div>
+                <div class="signature-box h-100">
+                    <div style="flex-grow: 1;"></div> <!-- Spacer -->
+                    <div class="border-top w-75 mx-auto pt-1">Tanda Tangan Otorisasi</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="fw-bold mb-2 text-center">Diterima Oleh:</div>
+                <div class="signature-box h-100 text-center">
+                    {% if loan.signature_image %}
+                        <img src="{{ loan.signature_image.url }}" alt="Digital Signature" class="signature-img mb-2">
+                        <div class="small text-success mb-2">
+                            <i class="fas fa-check-circle"></i> Ditandatangani Digital<br>
+                            {{ loan.loan_date|date:"d M Y H:i" }}
+                        </div>
+                    {% else %}
+                        <div class="text-muted opacity-50 my-4" style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
+                            (Tanda Tangan)
+                        </div>
+                    {% endif %}
+                    <div class="border-top w-75 mx-auto pt-1">{{ loan.employee.get_full_name|default:loan.employee.username }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-5 text-muted small">
+            Dibuat oleh IT Management System pada {% now "d F Y H:i" %}
+        </div>
+
+    </div>
+
+</body>
+</html>
