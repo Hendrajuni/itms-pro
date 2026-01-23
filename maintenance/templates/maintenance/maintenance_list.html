@@ -1,0 +1,405 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Maintenance Dashboard - ITMS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-0 text-dark fw-bold">Maintenance Dashboard</h4>
+        <p class="text-muted small">Overview of ongoing and scheduled maintenance tasks.</p>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <!-- Overdue -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 border-start border-danger border-4 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase text-muted small fw-bold mb-1">Overdue</h6>
+                        <h2 class="mb-0 fw-bold text-danger">{{ overdue_count }}</h2>
+                    </div>
+                    <div class="icon-shape bg-soft-danger text-danger rounded-circle p-3">
+                        <i class="fas fa-exclamation-triangle fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Scheduled Today -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 border-start border-primary border-4 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase text-muted small fw-bold mb-1">Scheduled Today</h6>
+                        <h2 class="mb-0 fw-bold text-primary">{{ today_count }}</h2>
+                    </div>
+                    <div class="icon-shape bg-soft-primary text-primary rounded-circle p-3">
+                        <i class="fas fa-calendar-day fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- In Progress -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 border-start border-warning border-4 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase text-muted small fw-bold mb-1">In Progress</h6>
+                        <h2 class="mb-0 fw-bold text-warning">{{ progress_count }}</h2>
+                    </div>
+                    <div class="icon-shape bg-soft-warning text-warning rounded-circle p-3">
+                        <i class="fas fa-spinner fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Completed (Month) -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 border-start border-success border-4 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase text-muted small fw-bold mb-1">Completed (Month)</h6>
+                        <h2 class="mb-0 fw-bold text-success">{{ completed_count }}</h2>
+                    </div>
+                    <div class="icon-shape bg-soft-success text-success rounded-circle p-3">
+                        <i class="fas fa-check-circle fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-auto">
+                <i class="fas fa-filter text-muted me-2"></i><strong>Filter:</strong>
+            </div>
+            <div class="col-md-3">
+                <select name="location" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Locations</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc.pk }}" {% if request.GET.location == loc.pk|stringformat:"s" %}selected{% endif %}>{{ loc.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if request.GET.status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto ms-auto">
+                <a href="{% url 'maintenance_dashboard' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabs & Tables -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom-0 pb-0">
+        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active fw-bold" id="assets-tab" data-bs-toggle="tab" href="#assets" role="tab">
+                    <i class="fas fa-laptop me-2"></i>Endpoint Assets
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link fw-bold" id="infra-tab" data-bs-toggle="tab" href="#infra" role="tab">
+                    <i class="fas fa-server me-2"></i>Infrastructure
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body p-0">
+        <div class="tab-content">
+            <!-- Asset Maintenance Pane -->
+            <div class="tab-pane fade show active" id="assets" role="tabpanel">
+                <!-- Toolbar -->
+                <div class="p-3 border-bottom d-flex justify-content-between">
+                    <div><!-- Spacer --></div>
+                    <div>
+                        <a href="{% url 'maintenance_export' %}?type=asset" class="btn btn-sm btn-outline-secondary me-2" target="_blank">
+                            <i class="fas fa-print me-1"></i>Print/Export
+                        </a>
+                        <a href="{% url 'asset_maintenance_create' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add Maintenance
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Status</th>
+                                <th>Item</th>
+                                <th>Assigned To</th>
+                                <th>Location</th>
+                                <th>Activity</th>
+                                <th>Cost</th>
+                                <th>Schedule</th>
+                                <th>Technician</th>
+                                <th class="text-end pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in asset_logs %}
+                            <tr>
+                                <td class="ps-4">
+                                    {% if log.status == 'Scheduled' %}
+                                    <span class="badge bg-soft-primary text-primary">Scheduled</span>
+                                    {% elif log.status == 'In Progress' %}
+                                    <span class="badge bg-soft-warning text-warning">In Progress</span>
+                                    {% elif log.status == 'Completed' %}
+                                    <span class="badge bg-soft-success text-success">Completed</span>
+                                    {% else %}
+                                    <span class="badge bg-soft-danger text-danger">{{ log.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'asset_detail' log.asset.pk %}" class="fw-bold text-decoration-none text-dark">
+                                        {{ log.asset.name }}
+                                    </a>
+                                    <div class="small text-muted">{{ log.asset.asset_tag }}</div>
+                                </td>
+                                <td>
+                                    {% if log.asset.assigned_to %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-xs bg-light text-dark rounded-circle me-2 d-flex align-items-center justify-content-center border">
+                                                {{ log.asset.assigned_to.username|first|upper }}
+                                            </div>
+                                            <span class="small">{{ log.asset.assigned_to.get_full_name|default:log.asset.assigned_to.username }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ log.asset.location|default:"-" }}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">{{ log.title }}</div>
+                                    <span class="badge rounded-pill bg-light text-dark border">{{ log.maintenance_type }}</span>
+                                </td>
+                                <td class="fw-bold text-dark">
+                                    Rp {{ log.cost|intcomma }}
+                                </td>
+                                <td>
+                                    <div class="{% if log.scheduled_date < today and log.status != 'Completed' %}text-danger fw-bold{% endif %}">
+                                        <i class="far fa-calendar-alt me-1"></i>{{ log.scheduled_date|date:"d M Y" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if log.technician %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-xs bg-soft-info text-info rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                                {{ log.technician.username|first|upper }}
+                                            </div>
+                                            <span class="small">{{ log.technician.get_full_name|default:log.technician.username }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        {% if log.status != 'Completed' %}
+                                        <a href="{% url 'asset_maintenance_update' log.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        <a href="{% url 'asset_maintenance_delete' log.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="fas fa-clipboard-check mb-3 fs-1 opacity-25"></i>
+                                    <p>No endpoint asset maintenance tasks found.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Asset Pagination -->
+                {% if asset_logs.has_other_pages %}
+                <div class="p-3 border-top">
+                    <nav aria-label="Asset Maintenance Pagination">
+                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                            {% if asset_logs.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?asset_page={{ asset_logs.previous_page_number }}&infra_page={{ request.GET.infra_page }}&status={{ request.GET.status }}&location={{ request.GET.location }}">Previous</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                            {% endif %}
+                            
+                            {% for i in asset_logs.paginator.page_range %}
+                                {% if asset_logs.number == i %}
+                                    <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                                {% else %}
+                                    <li class="page-item"><a class="page-link" href="?asset_page={{ i }}&infra_page={{ request.GET.infra_page }}&status={{ request.GET.status }}&location={{ request.GET.location }}">{{ i }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if asset_logs.has_next %}
+                                <li class="page-item"><a class="page-link" href="?asset_page={{ asset_logs.next_page_number }}&infra_page={{ request.GET.infra_page }}&status={{ request.GET.status }}&location={{ request.GET.location }}">Next</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Infrastructure Pane -->
+            <div class="tab-pane fade" id="infra" role="tabpanel">
+                <!-- Toolbar -->
+                <div class="p-3 border-bottom d-flex justify-content-between">
+                    <div><!-- Spacer --></div>
+                    <div>
+                        <a href="{% url 'maintenance_export' %}?type=infra" class="btn btn-sm btn-outline-secondary me-2" target="_blank">
+                            <i class="fas fa-print me-1"></i>Print/Export
+                        </a>
+                        <a href="{% url 'infra_maintenance_create' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add Maintenance
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Status</th>
+                                <th>Infrastructure</th>
+                                <th>Vendor</th>
+                                <th>Activity</th>
+                                <th>Cost</th>
+                                <th>Schedule</th>
+                                <th>Technician</th>
+                                <th class="text-end pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in infra_logs %}
+                            <tr>
+                                <td class="ps-4">
+                                     {% if log.status == 'Scheduled' %}
+                                    <span class="badge bg-soft-primary text-primary">Scheduled</span>
+                                    {% elif log.status == 'In Progress' %}
+                                    <span class="badge bg-soft-warning text-warning">In Progress</span>
+                                    {% elif log.status == 'Completed' %}
+                                    <span class="badge bg-soft-success text-success">Completed</span>
+                                    {% else %}
+                                    <span class="badge bg-soft-danger text-danger">{{ log.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ log.infrastructure.name }}</div>
+                                    <div class="small text-muted">{{ log.infrastructure.category }}</div>
+                                </td>
+                                <td>
+                                    {{ log.vendor|default:"-" }}
+                                </td>
+                                <td>
+                                    <div class="fw-bold">{{ log.title }}</div>
+                                    <span class="badge rounded-pill bg-light text-dark border">{{ log.maintenance_type }}</span>
+                                </td>
+                                <td class="fw-bold text-dark">
+                                    Rp {{ log.cost|intcomma }}
+                                </td>
+                                <td>
+                                    <div class="{% if log.scheduled_date < today and log.status != 'Completed' %}text-danger fw-bold{% endif %}">
+                                        <i class="far fa-calendar-alt me-1"></i>{{ log.scheduled_date|date:"d M Y" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if log.technician %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-xs bg-soft-info text-info rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                                {{ log.technician.username|first|upper }}
+                                            </div>
+                                            <span class="small">{{ log.technician.get_full_name|default:log.technician.username }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        {% if log.status != 'Completed' %}
+                                        <a href="{% url 'infra_maintenance_update' log.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        <a href="{% url 'infra_maintenance_delete' log.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="fas fa-server mb-3 fs-1 opacity-25"></i>
+                                    <p>No infrastructure maintenance tasks found.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Infra Pagination -->
+                {% if infra_logs.has_other_pages %}
+                <div class="p-3 border-top">
+                    <nav aria-label="Infra Maintenance Pagination">
+                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                            {% if infra_logs.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?infra_page={{ infra_logs.previous_page_number }}&asset_page={{ request.GET.asset_page }}&status={{ request.GET.status }}&location={{ request.GET.location }}">Previous</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                            {% endif %}
+                            
+                            {% for i in infra_logs.paginator.page_range %}
+                                {% if infra_logs.number == i %}
+                                    <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                                {% else %}
+                                    <li class="page-item"><a class="page-link" href="?infra_page={{ i }}&asset_page={{ request.GET.asset_page }}&status={{ request.GET.status }}&location={{ request.GET.location }}">{{ i }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if infra_logs.has_next %}
+                                <li class="page-item"><a class="page-link" href="?infra_page={{ infra_logs.next_page_number }}&asset_page={{ request.GET.asset_page }}&status={{ request.GET.status }}&location={{ request.GET.location }}">Next</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

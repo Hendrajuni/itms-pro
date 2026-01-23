@@ -157,3 +157,5 @@ AUTH_USER_MODEL = 'core.CustomUser'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'staff_dashboard'  # Default fallback
 LOGOUT_REDIRECT_URL = 'login'
+
+# Trigger reload for new template directory

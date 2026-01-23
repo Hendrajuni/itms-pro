@@ -432,7 +432,11 @@
                                     </td>
                                     <td>
                                         {% with tech=log.technician %}
-                                        {{ tech.get_full_name|default:tech.username|default:"External" }}
+                                            {% if tech %}
+                                                {{ tech.get_full_name|default:tech.username }}
+                                            {% else %}
+                                                External
+                                            {% endif %}
                                         {% endwith %}
                                     </td>
                                     <td>{{ log.title|default:log.notes|truncatechars:50 }}</td>
