@@ -1,0 +1,416 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Maintenance Command Center - ITMS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0 text-dark fw-bold">Command Center</h4>
+            <p class="text-muted small">Centralized Maintenance Operations</p>
+        </div>
+        <div>
+             {% if is_manager %}
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-map-marker-alt me-1"></i> {{ request.GET.location_name|default:"All Regions" }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="?">All Regions</a></li>
+                     {% for loc in locations %}
+                    <li><a class="dropdown-item" href="?location={{ loc.pk }}&location_name={{ loc.name }}">{{ loc.indent|safe }}{{ loc.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-plus me-1"></i> New Request
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                         <a class="dropdown-item" href="{% url 'asset_maintenance_create' %}">
+                            <i class="fas fa-laptop me-2 text-primary"></i>Asset Maintenance
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'infra_maintenance_create' %}">
+                            <i class="fas fa-server me-2 text-dark"></i>Infrastructure Maintenance
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI ROW -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 border-start border-danger border-4">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <span class="text-uppercase text-muted small fw-bold">Critical / Overdue</span>
+                        <h3 class="mb-0 fw-bold text-danger">{{ overdue_count }}</h3>
+                    </div>
+                    <div class="icon-shape bg-soft-danger text-danger rounded-circle p-2">
+                         <i class="fas fa-exclamation-circle fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 border-start border-warning border-4">
+             <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <span class="text-uppercase text-muted small fw-bold">In Progress</span>
+                        <h3 class="mb-0 fw-bold text-warning">{{ progress_count }}</h3>
+                    </div>
+                     <div class="icon-shape bg-soft-warning text-warning rounded-circle p-2">
+                         <i class="fas fa-tools fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 border-start border-primary border-4">
+             <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <span class="text-uppercase text-muted small fw-bold">Scheduled Today</span>
+                        <h3 class="mb-0 fw-bold text-primary">{{ today_count }}</h3>
+                    </div>
+                     <div class="icon-shape bg-soft-primary text-primary rounded-circle p-2">
+                         <i class="fas fa-calendar-day fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 border-start border-success border-4">
+             <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <span class="text-uppercase text-muted small fw-bold">Completed (Mo)</span>
+                        <h3 class="mb-0 fw-bold text-success">{{ completed_count }}</h3>
+                    </div>
+                     <div class="icon-shape bg-soft-success text-success rounded-circle p-2">
+                         <i class="fas fa-check-circle fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN WORKSPACE -->
+<div class="row">
+    <!-- LEFT: WORKSPACE -->
+    <div class="col-lg-9">
+        <div class="card shadow border-0" style="min-height: 600px;">
+            <div class="card-header bg-white border-bottom-0 pb-0 d-flex justify-content-between align-items-center">
+                <ul class="nav nav-tabs card-header-tabs" id="viewTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active fw-bold" id="kanban-tab" data-bs-toggle="tab" href="#kanban" role="tab">
+                            <i class="fas fa-columns me-2"></i>Kanban
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold" id="list-tab" data-bs-toggle="tab" href="#list" role="tab">
+                            <i class="fas fa-list me-2"></i>Smart List
+                        </a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link fw-bold" id="calendar-tab" data-bs-toggle="tab" href="#calendar" role="tab">
+                            <i class="fas fa-calendar-alt me-2"></i>Calendar
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Bulk Actions Toolbar (Visible only on List Tab via simple CSS/JS toggle ideally, but placement here is global) -->
+                <div id="bulkActions" class="d-none">
+                     <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary">Assign</button>
+                        <button class="btn btn-outline-success">Complete</button>
+                        <button class="btn btn-outline-danger">Delete</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body bg-light p-3">
+                <div class="tab-content" id="viewTabsContent">
+                    
+                    <!-- KANBAN VIEW (Optimized) -->
+                    <div class="tab-pane fade show active" id="kanban" role="tabpanel">
+                        <div class="row g-3 flex-nowrap overflow-auto pb-3" style="min-height: 500px;">
+                            <!-- COL 1: SCHEDULED -->
+                            <div class="col-md-3" style="min-width: 280px;">
+                                <div class="card border-0 h-100 bg-transparent">
+                                    <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
+                                        <span class="fw-bold text-secondary text-uppercase small">Scheduled</span>
+                                        <span class="badge bg-light text-dark">{{ kanban_scheduled|length }}</span>
+                                    </div>
+                                    <div class="card-body p-0 pt-2 h-100 overflow-auto">
+                                        {% for item in kanban_scheduled %}
+                                            {% include 'maintenance/partials/kanban_card.html' with item=item %}
+                                        {% empty %}
+                                            <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- COL 2: IN PROGRESS -->
+                            <div class="col-md-3" style="min-width: 280px;">
+                                <div class="card border-0 h-100 bg-transparent">
+                                    <div class="card-header bg-white border-bottom border-warning border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
+                                        <span class="fw-bold text-warning text-uppercase small">In Progress</span>
+                                        <span class="badge bg-warning text-white">{{ kanban_progress|length }}</span>
+                                    </div>
+                                    <div class="card-body p-0 pt-2 h-100 overflow-auto">
+                                        {% for item in kanban_progress %}
+                                            {% include 'maintenance/partials/kanban_card.html' with item=item %}
+                                        {% empty %}
+                                            <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- COL 3: WAITING / HOLD -->
+                            <div class="col-md-3" style="min-width: 280px;">
+                                <div class="card border-0 h-100 bg-transparent">
+                                    <div class="card-header bg-white border-bottom border-danger border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
+                                        <span class="fw-bold text-danger text-uppercase small">Overdue / Hold</span>
+                                        <span class="badge bg-danger text-white">{{ kanban_hold|length }}</span>
+                                    </div>
+                                    <div class="card-body p-0 pt-2 h-100 overflow-auto">
+                                        {% for item in kanban_hold %}
+                                            {% include 'maintenance/partials/kanban_card.html' with item=item %}
+                                        {% empty %}
+                                            <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- COL 4: COMPLETED -->
+                            <div class="col-md-3" style="min-width: 280px;">
+                                <div class="card border-0 h-100 bg-transparent">
+                                    <div class="card-header bg-white border-bottom border-success border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
+                                        <span class="fw-bold text-success text-uppercase small">Completed</span>
+                                        <span class="badge bg-success text-white">{{ kanban_completed|length }}</span>
+                                    </div>
+                                    <div class="card-body p-0 pt-2 h-100 overflow-auto">
+                                        {% for item in kanban_completed %}
+                                             {% include 'maintenance/partials/kanban_card.html' with item=item completed=True %}
+                                        {% empty %}
+                                            <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SMART LIST VIEW -->
+                    <div class="tab-pane fade" id="list" role="tabpanel">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-0 table-responsive bg-white">
+                                <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.9rem;">
+                                    <thead class="bg-light sticky-top">
+                                        <tr>
+                                            <th style="width: 40px;" class="ps-3">
+                                                <input type="checkbox" class="form-check-input" id="selectAll">
+                                            </th>
+                                            <th>Subject / Task</th>
+                                            <th>Type</th>
+                                            <th>Location</th>
+                                            <th>Assigned</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th class="text-end pe-3">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in all_tasks %}
+                                        <tr>
+                                            <td class="ps-3">
+                                                <input type="checkbox" class="form-check-input task-checkbox">
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-dark text-truncate" style="max-width: 250px;">{{ item.title }}</div>
+                                                <small class="text-muted">
+                                                    {% if item.asset %}
+                                                        <i class="fas fa-laptop me-1"></i>{{ item.asset.name }}
+                                                    {% else %}
+                                                        <i class="fas fa-server me-1"></i>{{ item.infrastructure.name }}
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                 {% if item.maintenance_type == 'Preventive' %}
+                                                    <span class="badge rounded-pill bg-light text-success border">Preventive</span>
+                                                {% else %}
+                                                    <span class="badge rounded-pill bg-light text-warning border">Corrective</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ item.location_name|default:"-" }}</td>
+                                            <td>
+                                                {% if item.technician %}
+                                                    {{ item.technician.username }}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="{% if item.status_color == 'danger' %}text-danger fw-bold{% endif %}">
+                                                    {{ item.scheduled_date|date:"d M" }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                 <span class="badge bg-soft-{{ item.status_color }} text-{{ item.status_color }}">{{ item.status }}</span>
+                                            </td>
+                                            <td class="text-end pe-3">
+                                                <div class="btn-group">
+                                                <a href="{% if item.asset %}{% url 'asset_maintenance_update' item.pk %}{% else %}{% url 'infra_maintenance_update' item.pk %}{% endif %}" class="btn btn-xs btn-outline-secondary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                 </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CALENDAR VIEW -->
+                     <div class="tab-pane fade" id="calendar" role="tabpanel">
+                         <div class="bg-white p-3 shadow-sm rounded">
+                            <h5 class="fw-bold mb-3 text-center border-bottom pb-2">Schedule Overview</h5>
+                            
+                            <!-- Simple Month View CSS Grid -->
+                            <div class="row row-cols-7 g-0 text-center fw-bold bg-light py-2 border rounded-top">
+                                <div class="col">Mon</div>
+                                <div class="col">Tue</div>
+                                <div class="col">Wed</div>
+                                <div class="col">Thu</div>
+                                <div class="col">Fri</div>
+                                <div class="col">Sat</div>
+                                <div class="col">Sun</div>
+                            </div>
+                            
+                            <!-- Calendar Days (Simulated for robustness: Logic typically handles empty start days, we will loop generically. 
+                                 A real production calendar usually uses FullCalendar.js. 
+                                 Here we render a simplified vertical list or a very basic grid if we passed the days logic.
+                                 Since we only passed a dict of dates, let's render a "List grouped by Date" or a simple grid if we had days.
+                                 Let's do a "Month Agenda" style which is safer without complex template logic. 
+                             -->
+                             <div class="mt-2">
+                                 {% for date, tasks in calendar_data.items %}
+                                    <div class="d-flex border-bottom py-2">
+                                        <div class="me-3 text-center" style="min-width: 60px;">
+                                            <div class="fw-bold h5 mb-0">{{ date|date:"d" }}</div>
+                                            <div class="small text-muted text-uppercase">{{ date|date:"M" }}</div>
+                                            <div class="small badge bg-light text-dark mt-1">{{ date|date:"D" }}</div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            {% for t in tasks %}
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <span class="badge bg-soft-{{ t.status_color }} text-{{ t.status_color }} me-2" style="width: 25px; height: 25px; display: flex; align-items: center; justify-content: center;">
+                                                        {% if t.maintenance_type == 'Preventive' %}P{% else %}C{% endif %}
+                                                    </span>
+                                                    <div>
+                                                        <strong>{{ t.title }}</strong>
+                                                        <span class="text-muted small mx-1">-</span>
+                                                        <small class="text-muted">{% if t.asset %}{{ t.asset.name }}{% else %}{{ t.infrastructure.name }}{% endif %}</small>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                 {% empty %}
+                                    <div class="text-center py-5 text-muted">
+                                        No schedules found for this view range.
+                                    </div>
+                                 {% endfor %}
+                             </div>
+                         </div>
+                     </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: WIDGETS -->
+    <div class="col-lg-3">
+        <!-- Technician Load -->
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-header bg-white fw-bold">Technician Load</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for tech in technician_load %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-xs bg-light rounded-circle me-2 d-flex justify-content-center align-items-center small">
+                                {{ tech.username|first|upper }}
+                            </div>
+                            <span class="small">{{ tech.username }}</span>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ tech.active_count }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Branch Health (Most Overdue) -->
+        <div class="card shadow-sm border-0">
+             <div class="card-header bg-white fw-bold">Priority Locations</div>
+             <div class="card-body p-0">
+                 <ul class="list-group list-group-flush">
+                     {% for loc in priority_locations %}
+                     <li class="list-group-item d-flex justify-content-between align-items-center">
+                         <span class="small fw-bold">{{ loc.name }}</span>
+                         <span class="badge bg-danger rounded-pill">{{ loc.issue_count }} Issues</span>
+                     </li>
+                     {% endfor %}
+                 </ul>
+             </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Simple script for Select All
+    document.getElementById('selectAll').addEventListener('change', function() {
+        var checkboxes = document.querySelectorAll('.task-checkbox');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+        toggleBulkActions();
+    });
+
+    var checkboxes = document.querySelectorAll('.task-checkbox');
+    for (var checkbox of checkboxes) {
+        checkbox.addEventListener('change', toggleBulkActions);
+    }
+
+    function toggleBulkActions() {
+        var anyChecked = document.querySelector('.task-checkbox:checked');
+        var toolbar = document.getElementById('bulkActions');
+        if (anyChecked) {
+            toolbar.classList.remove('d-none');
+        } else {
+            toolbar.classList.add('d-none');
+        }
+    }
+</script>
+{% endblock %}

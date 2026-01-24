@@ -506,7 +506,7 @@ class AssetDetailPrintView(LoginRequiredMixin, DetailView):
 class AssetMaintenanceCreateView(LoginRequiredMixin, CreateView):
     model = AssetMaintenance
     form_class = AssetMaintenanceForm
-    template_name = 'assets/asset_action_form.html'
+    template_name = 'maintenance/maintenance_form.html'
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -538,7 +538,7 @@ class AssetMaintenanceCreateView(LoginRequiredMixin, CreateView):
 class AssetMaintenanceUpdateView(LoginRequiredMixin, UpdateView):
     model = AssetMaintenance
     form_class = AssetMaintenanceForm
-    template_name = 'assets/asset_action_form.html'
+    template_name = 'maintenance/maintenance_form.html'
     success_url = reverse_lazy('maintenance_dashboard')
 
     def get_context_data(self, **kwargs):
@@ -610,6 +610,11 @@ class AssetMaintenanceUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('asset_detail', kwargs={'pk': self.object.asset.pk})
+
+    def form_valid(self, form):
+        if form.instance.status == 'Completed' and not form.instance.completed_date:
+            form.instance.completed_date = timezone.now().date()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1062,6 +1067,11 @@ class InfraMaintenanceUpdateView(LoginRequiredMixin, UpdateView):
     form_class = InfraMaintenanceForm
     template_name = 'maintenance/maintenance_form.html'
     success_url = reverse_lazy('maintenance_dashboard')
+
+    def form_valid(self, form):
+        if form.instance.status == 'Completed' and not form.instance.completed_date:
+            form.instance.completed_date = timezone.now().date()
+        return super().form_valid(form)
 
 class InfraMaintenanceDeleteView(LoginRequiredMixin, DeleteView):
     model = InfraMaintenance

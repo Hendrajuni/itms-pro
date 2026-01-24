@@ -50,8 +50,8 @@ urlpatterns = [
     path('infrastructure/<int:pk>/update/', views.InfrastructureUpdateView.as_view(), name='infra_update'),
     path('infrastructure/<int:pk>/delete/', views.InfrastructureDeleteView.as_view(), name='infra_delete'),
 
-    # Unified Maintenance
-    path('maintenance/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
+    # Unified Maintenance - Moved to maintenance app
+    # path('maintenance/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
     path('maintenance/export/', views.MaintenanceExportView.as_view(), name='maintenance_export'),
     
     path('maintenance/asset/add/', views.AssetMaintenanceCreateView.as_view(), name='asset_maintenance_create'),

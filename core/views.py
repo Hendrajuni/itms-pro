@@ -31,6 +31,7 @@ def get_dashboard_stats(user):
     """
     Context helper to fetch dashboard statistics based on role.
     """
+    from datetime import datetime, timedelta
     stats = {}
     
     # 1. Staff Stats
@@ -39,13 +40,31 @@ def get_dashboard_stats(user):
     stats['my_assets_count'] = Asset.objects.filter(assigned_to=user).count()
 
     # 2. IT Support Stats
+    # 2. IT Support Stats
     if user.groups.filter(name='IT Support').exists() or user.is_superuser:
-        stats['tickets_open'] = Ticket.objects.exclude(status='Closed').count()
-        stats['tickets_high'] = Ticket.objects.filter(priority='High').exclude(status='Closed').count()
-        # Add list for table
-        stats['tickets_high_list'] = Ticket.objects.filter(priority='High').exclude(status='Closed').order_by('-created_at')[:5]
+        # Card 1: My Open Tickets
+        stats['tickets_open'] = Ticket.objects.filter(assigned_to=user).exclude(status='Closed').count()
+        # stats['tickets_open'] kept name same for template compatibility, but logic is specialized now
         
-        stats['servers_down'] = NetworkNode.objects.filter(status='Offline').count()
+        # Card 2: Pending Maintenance (My Asset/Infra Maint)
+        from maintenance.models import AssetMaintenance, InfraMaintenance
+        my_asset_maint = AssetMaintenance.objects.filter(technician=user, status__in=['Scheduled', 'In Progress']).count()
+        my_infra_maint = InfraMaintenance.objects.filter(technician=user, status__in=['Scheduled', 'In Progress']).count()
+        stats['pending_maintenance'] = my_asset_maint + my_infra_maint
+        
+        # Card 3: Resolved This Month (By Me)
+        now = timezone.now()
+        stats['tickets_resolved_month'] = Ticket.objects.filter(
+            assigned_to=user,
+            status__in=['Resolved', 'Closed'],
+            updated_at__month=now.month,
+            updated_at__year=now.year
+        ).count()
+        
+        # High Priority list (Generic or Scoped? Sticking to generic for awareness, or scoped?)
+        # User only asked for Cards. Let's scope High List too for consistency if requested later, but for now leave generic or scope it?
+        # "tampilkan saja ticket ... untuk dirinya sendiri". Safe to scope list too.
+        stats['tickets_high_list'] = Ticket.objects.filter(assigned_to=user, priority='High').exclude(status='Closed').order_by('-created_at')[:5]
         
         # Check if daily log exists for today
         today = timezone.localdate()
@@ -66,10 +85,10 @@ def get_dashboard_stats(user):
         ).exclude(status='CANCELLED')[:5]
 
     # --- Phase 42: Dynamic Greeting & Quotes ---
-    import datetime
+    # --- Phase 42: Dynamic Greeting & Quotes ---
     import random
     
-    current_hour = datetime.datetime.now().hour
+    current_hour = datetime.now().hour
     if 5 <= current_hour < 11:
         stats['greeting'] = "Selamat Pagi ☕"
     elif 11 <= current_hour < 15:
@@ -169,10 +188,17 @@ def get_dashboard_stats(user):
         scope_label = 'My Task' if t.assigned_to == user else 'Unassigned'
         loc_name = "Unknown"
         if t.asset and t.asset.location:
-            loc_name = t.asset.location.name
+             loc_name = t.asset.location.name
         elif t.created_by and hasattr(t.created_by, 'location') and t.created_by.location:
              loc_name = t.created_by.location.name
              
+        # Status Color Map
+        status_color = 'primary'
+        if t.status == 'Open': status_color = 'danger'
+        elif t.status == 'In_Progress': status_color = 'warning'
+        elif t.status == 'Resolved': status_color = 'success'
+        elif t.status == 'Pending_Vendor': status_color = 'info'
+        
         work_queue.append({
             'type': 'Ticket',
             'id': t.ticket_code or t.id,
@@ -184,49 +210,125 @@ def get_dashboard_stats(user):
             'location': loc_name,
             'created_at': t.created_at,
             'icon': 'fas fa-ticket-alt',
-            'color': 'danger' if t.priority in ['High', 'Critical'] else 'primary'
+            'color': 'danger' if t.priority in ['High', 'Critical'] else 'primary',
+            'status': t.get_status_display() if hasattr(t, 'get_status_display') else t.status,
+            'status_color': status_color
         })
 
     # 2. Fetch Maintenance
-    from maintenance.models import AssetMaintenance
+    from maintenance.models import AssetMaintenance, InfraMaintenance
+    from datetime import timedelta
     
+    # 24-hour retention for completed tasks
+    yesterday = timezone.localdate() - timedelta(days=1)
+    
+    # Filter Logic: Active OR (Completed AND Recent)
+    active_or_recent_q = Q(status__in=['Scheduled', 'In Progress']) | Q(status='Completed', completed_date__gte=yesterday)
+
     if is_admin:
          maint_q = AssetMaintenance.objects.filter(
              Q(technician=user) | Q(technician__isnull=True)
-         ).exclude(status__in=['Completed', 'Cancelled'])
+         ).filter(active_or_recent_q).exclude(status='Cancelled')
     else:
          if descendants:
              descendant_ids = [loc.id for loc in descendants]
              maint_q = AssetMaintenance.objects.filter(
                  Q(technician=user) | (Q(technician__isnull=True) & Q(asset__location_id__in=descendant_ids))
-             ).exclude(status__in=['Completed', 'Cancelled'])
+             ).filter(active_or_recent_q).exclude(status='Cancelled')
          else:
-             maint_q = AssetMaintenance.objects.filter(technician=user).exclude(status__in=['Completed', 'Cancelled'])
+             maint_q = AssetMaintenance.objects.filter(technician=user).filter(active_or_recent_q).exclude(status='Cancelled')
              
     for m in maint_q.select_related('asset', 'asset__location'):
         scope_label = 'My Task' if m.technician == user else 'Unassigned'
+        
+        # Convert date to datetime
+        deadline_dt = None
+        if m.scheduled_date:
+            deadline_dt = datetime.combine(m.scheduled_date, datetime.min.time())
+
+        status_color = 'info'
+        if m.status == 'Scheduled': status_color = 'primary'
+        elif m.status == 'In Progress': status_color = 'warning'
+        elif m.status == 'Completed': status_color = 'success'
+
         work_queue.append({
             'type': 'Maintenance',
             'id': f"M-{m.id}",
             'title': m.title,
             'priority': 'Medium',
             'url': f"/maintenance/", 
-            'deadline': m.scheduled_date,
+            'deadline': deadline_dt,
             'scope_label': scope_label,
             'location': m.asset.location.name if m.asset and m.asset.location else "-",
             'created_at': m.scheduled_date, 
             'icon': 'fas fa-tools',
-            'color': 'warning'
+            'color': 'warning',
+            'status': m.status,
+            'status_color': status_color
+        })
+
+    # 3. Fetch Infra Maintenance
+    if is_admin:
+         infra_maint_q = InfraMaintenance.objects.filter(
+             Q(technician=user) | Q(technician__isnull=True)
+         ).filter(active_or_recent_q).exclude(status='Cancelled')
+    else:
+         if descendants:
+             descendant_ids = [loc.id for loc in descendants]
+             # Infra maintenance usually tied to infrastructure -> location
+             # Infrastructure has 'location' field.
+             infra_maint_q = InfraMaintenance.objects.filter(
+                 Q(technician=user) | (Q(technician__isnull=True) & Q(infrastructure__location_id__in=descendant_ids))
+             ).filter(active_or_recent_q).exclude(status='Cancelled')
+         else:
+             infra_maint_q = InfraMaintenance.objects.filter(technician=user).filter(active_or_recent_q).exclude(status='Cancelled')
+             
+    # Helper for date conversion
+    from datetime import datetime
+    
+    for m in infra_maint_q.select_related('infrastructure', 'infrastructure__location'):
+        scope_label = 'My Task' if m.technician == user else 'Unassigned'
+        
+        # Convert date to datetime for template compatibility (H:i filter support)
+        deadline_dt = None
+        if m.scheduled_date:
+            deadline_dt = datetime.combine(m.scheduled_date, datetime.min.time())
+            
+        status_color = 'info'
+        if m.status == 'Scheduled': status_color = 'primary'
+        elif m.status == 'In Progress': status_color = 'warning'
+        elif m.status == 'Completed': status_color = 'success'
+
+        work_queue.append({
+            'type': 'Infra Maint',
+            'id': f"I-{m.id}",
+            'title': m.title,
+            'priority': 'Medium',
+            'url': f"/maintenance/", 
+            'deadline': deadline_dt,
+            'scope_label': scope_label,
+            'location': m.infrastructure.location.name if m.infrastructure and m.infrastructure.location else "-",
+            'created_at': m.scheduled_date, 
+            'icon': 'fas fa-server',
+            'color': 'dark',
+            'status': m.status,
+            'status_color': status_color
         })
         
     def get_sort_weight(item):
-        weight = 0
-        if item['scope_label'] == 'My Task': weight += 100
-        if item['type'] == 'Ticket' and item.get('priority') == 'Critical': weight += 50
-        if item['type'] == 'Ticket' and item.get('priority') == 'High': weight += 40
-        return weight
+        # User requested "Tanggal Terbaru Diatas" (Newest date on top).
+        # We will sort by date descending.
+        dt = item.get('deadline') or item.get('created_at')
+        if not dt:
+             return timezone.datetime.min
+        # Return timestamp for simple comparison
+        if hasattr(dt, 'timestamp'):
+             return dt.timestamp()
+        # If it's a date object
+        from datetime import datetime
+        return datetime.combine(dt, datetime.min.time()).timestamp()
 
-    # Sort: Weight Desc
+    # Sort: Date Descending (Newest/Latest first)
     work_queue.sort(key=lambda x: get_sort_weight(x), reverse=True)
     
     stats['work_queue'] = work_queue
@@ -249,8 +351,20 @@ def get_dashboard_stats(user):
             tickets_open = Ticket.objects.filter(asset__location_id__in=subtree_ids).exclude(status='Closed').count()
             tickets_critical = Ticket.objects.filter(asset__location_id__in=subtree_ids, priority='Critical').exclude(status='Closed').count()
             
+            # Maintenance Counts
+            from maintenance.models import AssetMaintenance, InfraMaintenance
+            asset_maint_count = AssetMaintenance.objects.filter(
+                asset__location_id__in=subtree_ids, 
+                status__in=['Scheduled', 'In Progress']
+            ).count()
+            
+            infra_maint_count = InfraMaintenance.objects.filter(
+                infrastructure__location_id__in=subtree_ids,
+                status__in=['Scheduled', 'In Progress']
+            ).count()
+
             # Simple Health Score
-            score = 100 - (tickets_critical * 20) - (tickets_open * 2)
+            score = 100 - (tickets_critical * 20) - (tickets_open * 2) - (infra_maint_count * 5)
             score = max(0, score)
             
             status = 'Healthy'
@@ -267,6 +381,8 @@ def get_dashboard_stats(user):
                 'total_assets': assets_count,
                 'open_tickets': tickets_open,
                 'critical_tickets': tickets_critical,
+                'asset_maint': asset_maint_count,
+                'infra_maint': infra_maint_count,
                 'health_score': score,
                 'status': status,
                 'color': color

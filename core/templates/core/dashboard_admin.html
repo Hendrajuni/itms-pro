@@ -85,7 +85,14 @@
     <div class="col-12">
         <div class="card shadow-sm border-0">
              <div class="card-header bg-white border-bottom py-3">
-                <h6 class="m-0 fw-bold text-dark"><i class="fas fa-map-marked-alt me-2 text-primary"></i>Branch Health Overview</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-dark"><i class="fas fa-map-marked-alt me-2 text-primary"></i>Branch Health Overview</h6>
+                    <div class="small">
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success me-1">Healthy</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning me-1">Warning</span>
+                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Critical</span>
+                    </div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table align-middle mb-0 text-center table-hover">
@@ -94,6 +101,8 @@
                              <th class="text-start ps-4">Branch Name</th>
                              <th>Health Score</th>
                              <th>Status</th>
+                             <th class="text-center">Maint. (Asset)</th>
+                             <th class="text-center">Maint. (Infra)</th>
                              <th>Active Tickets</th>
                              <th>Critical</th>
                              <th>Assets Managed</th>
@@ -112,6 +121,22 @@
                                 </div>
                             </td>
                             <td><span class="badge bg-{{ branch.color }} bg-opacity-10 text-{{ branch.color }} border border-{{ branch.color }}">{{ branch.status }}</span></td>
+                            
+                             <td class="text-center">
+                                {% if branch.asset_maint > 0 %}
+                                    <span class="badge bg-warning text-dark">{{ branch.asset_maint }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if branch.infra_maint > 0 %}
+                                    <span class="badge bg-danger">{{ branch.infra_maint }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            
                             <td>{{ branch.open_tickets }}</td>
                             <td class="{% if branch.critical_tickets > 0 %}text-danger fw-bold{% else %}text-muted{% endif %}">{{ branch.critical_tickets }}</td>
                             <td>{{ branch.total_assets }}</td>

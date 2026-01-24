@@ -1,0 +1,34 @@
+<div class="card mb-2 shadow-sm border-start border-{{ item.status_color }} border-3">
+    <div class="card-body p-2">
+        <div class="d-flex justify-content-between mb-1">
+            <small class="badge bg-light text-muted border">{% if item.asset %}Asset{% else %}Infra{% endif %}</small>
+            <small class="text-muted" style="font-size: 0.75rem;">{{ item.scheduled_date|date:"d M" }}</small>
+        </div>
+        <h6 class="card-title mb-1 small fw-bold text-dark">
+            <a href="{% if item.asset %}{% url 'asset_maintenance_update' item.pk %}{% else %}{% url 'infra_maintenance_update' item.pk %}{% endif %}" class="text-decoration-none text-dark stretched-link">
+                {{ item.title|truncatechars:35 }}
+            </a>
+        </h6>
+        <div class="mb-1 text-muted small" style="font-size: 0.8rem;">
+            <i class="fas {% if item.asset %}fa-laptop{% else %}fa-server{% endif %} me-1"></i>
+            {% if item.asset %}{{ item.asset.name }}{% else %}{{ item.infrastructure.name }}{% endif %}
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center mt-2 border-top pt-2">
+            <div class="d-flex align-items-center">
+                 {% if item.technician %}
+                <div class="avatar-xxs bg-soft-info text-info rounded-circle d-flex align-items-center justify-content-center me-1" style="width:20px;height:20px;font-size:0.7rem;" title="{{ item.technician.username }}">
+                    {{ item.technician.username|first|upper }}
+                </div>
+                {% else %}
+                <span class="text-muted" style="font-size: 0.7rem;">-</span>
+                {% endif %}
+            </div>
+            {% if item.maintenance_type == 'Preventive' %}
+                <i class="fas fa-sync-alt text-success custom-tooltip" title="Preventive" style="font-size: 0.8rem;"></i>
+            {% else %}
+                <i class="fas fa-wrench text-warning custom-tooltip" title="Corrective" style="font-size: 0.8rem;"></i>
+            {% endif %}
+        </div>
+    </div>
+</div>

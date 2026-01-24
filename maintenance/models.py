@@ -25,6 +25,7 @@ class MaintenanceBase(models.Model):
     maintenance_type = models.CharField(max_length=20, choices=MAINTENANCE_TYPES)
     cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Scheduled')
+    maintenance_checklist = models.JSONField(default=list, blank=True, help_text="List of checklist items e.g. [{'task': 'Clean Fan', 'done': False}]")
     notes = models.TextField(blank=True)
     photo_before = models.ImageField(upload_to='maintenance/before/', blank=True)
     photo_after = models.ImageField(upload_to='maintenance/after/', blank=True)
