@@ -1275,3 +1275,32 @@ class LocationDeleteView(LoginRequiredMixin, DeleteView):
         context['title'] = "Delete Location"
         context['warning'] = "Warning: Deleting this location might affect Assets assigned to it. Please check before deleting."
         return context
+class AssetPrintListView(AssetListView):
+    template_name = 'assets/asset_print_list.html'
+    paginate_by = 500  # Large page size for print report
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add selection objects for Header Display
+        loc_id = self.request.GET.get('loc')
+        if loc_id:
+            try:
+                context['selected_location'] = Location.objects.get(id=loc_id)
+            except Location.DoesNotExist:
+                pass
+        
+        dept_id = self.request.GET.get('dept')
+        if dept_id:
+             try:
+                context['selected_department'] = Department.objects.get(id=dept_id)
+             except Department.DoesNotExist:
+                pass
+        
+        cat_id = self.request.GET.get('category')
+        if cat_id:
+            try:
+                context['selected_category'] = Category.objects.get(id=cat_id)
+            except Category.DoesNotExist:
+                pass
+                
+        return context

@@ -26,6 +26,7 @@ urlpatterns = [
     path('analytics/', views.AssetAnalyticsView.as_view(), name='asset_analytics'),
     path('reports/financials/', views.AssetFinancialView.as_view(), name='asset_financials'),
     path('export/', views.AssetExportView.as_view(), name='asset_export'),
+    path('print-list/', views.AssetPrintListView.as_view(), name='asset_print_list'),
 
     # Software Asset Management
     path('software/', views.SoftwareListView.as_view(), name='software_list'),

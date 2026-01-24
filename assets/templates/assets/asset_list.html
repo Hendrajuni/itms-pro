@@ -128,11 +128,24 @@
             {% endif %}
 
             {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
-            <!-- Export Excel -->
-            <a href="{% url 'asset_export' %}?mode={{ view_mode }}&q={{ request.GET.q|default:'' }}&category={{ current_category|default:'' }}" target="_blank"
-                class="btn btn-success text-white" title="Export to Excel">
-                <i class="fas fa-file-excel me-2"></i>Export
-            </a>
+            <!-- Export / Print Dropdown -->
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-success text-white dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+                <ul class="dropdown-menu shadow-lg border-0" aria-labelledby="exportDropdown">
+                    <li>
+                        <a class="dropdown-item py-2" href="{% url 'asset_export' %}?mode={{ view_mode }}&q={{ request.GET.q|default:'' }}&category={{ current_category|default:'' }}&loc={{ request.GET.loc|default:'' }}&dept={{ request.GET.dept|default:'' }}" target="_blank">
+                            <i class="fas fa-file-excel text-success me-2" style="width:20px;"></i> Export to Excel
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2" href="{% url 'asset_print_list' %}?mode={{ view_mode }}&q={{ request.GET.q|default:'' }}&category={{ current_category|default:'' }}&loc={{ request.GET.loc|default:'' }}&dept={{ request.GET.dept|default:'' }}" target="_blank">
+                            <i class="fas fa-print text-primary me-2" style="width:20px;"></i> Print Report
+                        </a>
+                    </li>
+                </ul>
+            </div>
             
             <!-- Scan QR (Desktop/Tablet) -->
             <a href="{% url 'asset_scanner' %}" class="btn btn-outline-primary d-none d-md-inline-block">

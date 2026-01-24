@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Asset Report - ITMS</title>
+    {% load static humanize %}
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; -webkit-print-color-adjust: exact; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 15px; }
+        .logo { height: 50px; }
+        .title { text-align: center; flex-grow: 1; }
+        .title h2 { margin: 0; text-transform: uppercase; font-size: 18px; font-weight: bold; }
+        .title p { margin: 5px 0 0; font-size: 12px; color: #666; }
+        .meta { text-align: right; font-size: 10px; color: #666; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .footer { margin-top: 30px; display: flex; justify-content: space-between; font-size: 10px; border-top: 1px solid #ddd; padding-top: 10px; }
+        .status-badge { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+        .status-IN_USE { background: #d1e7dd; color: #0f5132; }
+        .status-AVAILABLE { background: #cff4fc; color: #055160; }
+        .status-BROKEN { background: #f8d7da; color: #842029; }
+        .status-MAINTENANCE { background: #fff3cd; color: #664d03; }
+        .status-DISPOSED { background: #e2e3e5; color: #41464b; }
+        
+        @media print {
+            @page { size: A4 landscape; margin: 10mm; }
+            body { margin: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+
+    <div class="header">
+        <img src="{% static 'assets/images/logo-placeholder.png' %}" alt="Logo" class="logo" onerror="this.style.display='none'">
+        <div class="title">
+            <h2>Asset Inventory Report</h2>
+            <p>IT Management System</p>
+            <p>
+                {% if request.GET.loc %}Location: <strong>{{ selected_location.name }}</strong>{% endif %}
+                {% if request.GET.dept %} | Dept: <strong>{{ selected_department.name }}</strong>{% endif %}
+                {% if request.GET.category %} | Category: <strong>{{ selected_category.name }}</strong>{% endif %}
+            </p>
+        </div>
+        <div class="meta">
+            Generated: {% now "d M Y H:i" %}<br>
+            User: {{ user.get_full_name|default:user.username }}<br>
+            Total: {{ assets.count }} Assets
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 30px;">#</th>
+                <th style="width: 100px;">Asset Code</th>
+                <th>Name / Description</th>
+                <th>Brand / Model</th>
+                <th>Serial Number</th>
+                <th>Location</th>
+                <th>Department</th>
+                <th>Assigned User</th>
+                <th style="width: 80px;">Purchase Date</th>
+                <th style="width: 80px;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset in assets %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td style="font-family: monospace; font-weight: bold;">{{ asset.asset_code }}</td>
+                <td>
+                    <strong>{{ asset.name }}</strong>
+                </td>
+                <td>{{ asset.brand }} {{ asset.model }}</td>
+                <td>{{ asset.serial_number|default:"-" }}</td>
+                <td>{{ asset.location.name }}</td>
+                <td>{{ asset.department.name|default:"-" }}</td>
+                <td>{{ asset.assigned_to.get_full_name|default:"Unassigned" }}</td>
+                <td>{{ asset.purchase_date|date:"d/m/Y"|default:"-" }}</td>
+                <td>
+                    <span class="status-badge status-{{ asset.status }}">{{ asset.get_status_display }}</span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="10" style="text-align: center; padding: 20px;">No assets found matching the criteria.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <div>
+            Printed from IT Management System
+        </div>
+        <div>
+            Page <span class="page-number"></span>
+        </div>
+    </div>
+
+</body>
+</html>
