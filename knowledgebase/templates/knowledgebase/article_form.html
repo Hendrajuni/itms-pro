@@ -1,0 +1,82 @@
+{% extends 'layouts/base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}
+    {% if object %}Edit Article - {{ object.title }}{% else %}New Article{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    .django-ckeditor-widget { width: 100% !important; }
+</style>
+{{ form.media }} <!-- Required for CKEditor -->
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold mb-0">{% if object %}Edit Article{% else %}Create New Article{% endif %}</h3>
+            <a href="{% url 'article_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            {{ form.title|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.category|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.visibility|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.status|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.content|as_crispy_field }}
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="fw-bold fs-6 mb-3"><i class="fas fa-link me-2"></i>Linked Assets</h5>
+                    <p class="text-muted small">Select assets related to this article to show this guide on the Asset Detail page.</p>
+                    
+                    {{ form.related_assets|as_crispy_field }}
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-2"></i>Save Article
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select items'
+        });
+    });
+</script>
+{% endblock %}

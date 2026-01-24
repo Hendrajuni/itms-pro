@@ -84,6 +84,8 @@
                         <th>Name</th>
                         <th>Job Title</th>
                         <th>Email</th>
+                        <th class="text-center">Total Assets</th>
+                        <th class="text-center">Total Tickets</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,6 +101,12 @@
                         </td>
                         <td>{{ staff.job_title|default:"-" }}</td>
                         <td>{{ staff.email }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-soft-primary text-primary">{{ staff.asset_count }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-soft-warning text-warning">{{ staff.ticket_count }}</span>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>

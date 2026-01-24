@@ -13,6 +13,10 @@ urlpatterns = [
     path('departments/<int:pk>/edit/', views.DepartmentUpdateView.as_view(), name='department_update'),
     path('departments/<int:pk>/delete/', views.DepartmentDeleteView.as_view(), name='department_delete'),
 
+    # Regional Heads
+    path('departments/regional/create/', views.RegionalHeadCreateView.as_view(), name='regional_head_create'),
+    path('departments/regional/<int:pk>/delete/', views.RegionalHeadDeleteView.as_view(), name='regional_head_delete'),
+
     path('users/toggle/<int:pk>/', views.UserToggleStatusView.as_view(), name='user_toggle_status'),
     path('users/reset-password/<int:pk>/', views.AdminPasswordResetView.as_view(), name='admin_password_reset'),
     

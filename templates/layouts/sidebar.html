@@ -28,8 +28,7 @@
             <i class="fas fa-ticket-alt me-3" style="width: 20px;"></i>Ticketing
         </a>
 
-        <a href="{% url 'knowledge_home' %}"
-            class="list-group-item list-group-item-action py-2 {% if 'knowledge' in request.path %}active{% endif %}">
+        <a href="{% url 'article_list' %}" class="list-group-item list-group-item-action py-2 {% if 'knowledge' in request.path %}active{% endif %}">
             <i class="fas fa-book-open me-3" style="width: 20px;"></i>Knowledge Base
         </a>
 

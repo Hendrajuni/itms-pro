@@ -117,9 +117,9 @@ class AdminPasswordResetView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 from django.views.generic import UpdateView
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
-from .forms import UserProfileForm, DepartmentForm
+from .forms import UserProfileForm, DepartmentForm, RegionalHeadForm
 from django.views.generic import CreateView, DeleteView, ListView
-from assets.models import Department
+from assets.models import Department, DepartmentHead
 
 class DepartmentListView(LoginRequiredMixin, SuperuserRequiredMixin, ListView):
     model = Department
@@ -130,6 +130,10 @@ class DepartmentListView(LoginRequiredMixin, SuperuserRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = DepartmentForm() # For Create Modal
+        
+        # Regional Heads for Tab 2
+        context['regional_heads'] = DepartmentHead.objects.select_related('department', 'location', 'manager').order_by('location__name', 'department__name')
+        context['regional_form'] = RegionalHeadForm()
         return context
 
 class DepartmentCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
@@ -143,7 +147,7 @@ class DepartmentCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateVie
     
     def form_invalid(self, form):
         messages.error(self.request, "Error creating department.")
-        return redirect('department_list') # Simplified for Modal
+        return redirect('department_list')
 
 class DepartmentUpdateView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
     model = Department
@@ -161,6 +165,28 @@ class DepartmentDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteVie
     
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, "Department deleted successfully.")
+        return super().delete(request, *args, **kwargs)
+
+# Regional Head Views
+class RegionalHeadCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+    model = DepartmentHead
+    form_class = RegionalHeadForm
+    success_url = reverse_lazy('department_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Regional Head assigned successfully.")
+        return super().form_valid(form)
+        
+    def form_invalid(self, form):
+        messages.error(self.request, "Error assigning regional head. Check duplicates.")
+        return redirect('department_list')
+
+class RegionalHeadDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
+    model = DepartmentHead
+    success_url = reverse_lazy('department_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, "Regional Head assignment removed.")
         return super().delete(request, *args, **kwargs)
 
 class UserProfileView(LoginRequiredMixin, UpdateView):
@@ -369,9 +395,24 @@ class OrgChartView(LoginRequiredMixin, TemplateView):
         
         # 4. Fetch Departments with Filtered Employees
         # We filter the 'employees' relation using Prefetch
-        context['departments'] = Department.objects.select_related('manager').prefetch_related(
+        departments = Department.objects.select_related('manager').prefetch_related(
             Prefetch('employees', queryset=employee_qs)
         ).order_by('name')
+
+        # 5. Map Regional Heads if location selected
+        if loc_id:
+             try:
+                 from assets.models import DepartmentHead
+                 # Fetch heads for this specific location
+                 regional_heads = DepartmentHead.objects.filter(location_id=loc_id).select_related('manager')
+                 reg_map = {rh.department_id: rh.manager for rh in regional_heads}
+                 
+                 for dept in departments:
+                     if dept.id in reg_map:
+                         dept.regional_manager = reg_map[dept.id]
+             except Exception: pass
+
+        context['departments'] = departments
         
         return context
 

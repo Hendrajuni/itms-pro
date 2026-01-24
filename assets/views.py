@@ -1233,7 +1233,10 @@ class LocationDetailAjaxView(LoginRequiredMixin, DetailView):
         # 2. Staff Assigned
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        staff_qs = User.objects.filter(location_id__in=relevant_ids)
+        staff_qs = User.objects.filter(location_id__in=relevant_ids).annotate(
+            asset_count=Count('assigned_assets', distinct=True),
+            ticket_count=Count('tickets_created', distinct=True)
+        )
         context['staff_list'] = staff_qs
         context['total_users'] = staff_qs.count()
         

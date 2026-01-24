@@ -49,3 +49,17 @@ class DepartmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['manager'].queryset = User.objects.filter(is_active=True).order_by('username')
         self.fields['manager'].widget.attrs.update({'class': 'form-select select2'})
+
+from assets.models import DepartmentHead
+
+class RegionalHeadForm(forms.ModelForm):
+    class Meta:
+        model = DepartmentHead
+        fields = ['department', 'location', 'manager']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['manager'].queryset = User.objects.filter(is_active=True).order_by('username')
+        self.fields['manager'].widget.attrs.update({'class': 'form-select select2'})
+        self.fields['department'].widget.attrs.update({'class': 'form-select select2'})
+        self.fields['location'].widget.attrs.update({'class': 'form-select select2'})

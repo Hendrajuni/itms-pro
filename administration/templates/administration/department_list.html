@@ -5,153 +5,314 @@
 {% block header_title %}Organization{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h3 class="fw-bold text-dark mb-0">Departments</h3>
-        <p class="text-muted small">Manage organizational units and leadership.</p>
-    </div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createDeptModal">
-        <i class="fas fa-plus me-2"></i>New Department
-    </button>
-</div>
-
-<!-- Stats -->
-<div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body d-flex align-items-center">
-                <div class="avatar-circle bg-light text-primary me-3 pt-2" style="width: 50px; height: 50px; text-align: center;">
-                    <i class="fas fa-building fa-lg"></i>
-                </div>
-                <div>
-                    <h5 class="fw-bold mb-0">{{ departments.count }}</h5>
-                    <small class="text-muted">Total Departments</small>
-                </div>
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-dark mb-0">Organization Management</h3>
+                <p class="text-muted small mb-0">Manage global departments and regional leadership structures.</p>
             </div>
+            
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body d-flex align-items-center">
-                <div class="avatar-circle bg-light text-warning me-3 pt-2" style="width: 50px; height: 50px; text-align: center;">
-                    <i class="fas fa-user-tie fa-lg"></i>
-                </div>
-                <div>
-                    <h5 class="fw-bold mb-0">
-                        {% with vacant=0 %}
-                            {% for d in departments %}{% if not d.manager %}{% endif %}{% endfor %}
-                            {{ departments|length }} <!-- Logic check needed here, easier in view -->
-                             - Active Managers
-                        {% endwith %}
-                    </h5>
-                    <small class="text-muted">Leadership Positions</small>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Departments List -->
-<div class="card shadow-sm border-0">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">Department Name</th>
-                        <th>Description</th>
-                        <th>Manager</th>
-                        <th>Members</th>
-                        <th class="text-end pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for dept in departments %}
-                    <tr>
-                        <td class="ps-4 fw-bold text-dark">{{ dept.name }}</td>
-                        <td class="text-muted small">{{ dept.description|default:"-"|truncatechars:50 }}</td>
-                        <td>
-                            {% if dept.manager %}
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-circle-sm bg-primary text-white me-2" style="width: 28px; height: 28px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size: 0.7rem;">
-                                    {{ dept.manager.username|make_list|first|upper }}
+        <!-- Stylish Tabs -->
+        <ul class="nav nav-pills mb-4 id="deptTabs" role="tablist" style="background: white; padding: 0.5rem; border-radius: 0.5rem; display: inline-flex; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+          <li class="nav-item me-1" role="presentation">
+            <button class="nav-link active fw-bold px-4" id="dept-tab" data-bs-toggle="tab" data-bs-target="#tab-departments" type="button" role="tab" aria-selected="true">
+                <i class="fas fa-globe me-2"></i>Global Departments
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold px-4" id="regional-tab" data-bs-toggle="tab" data-bs-target="#tab-regional" type="button" role="tab" aria-selected="false">
+                <i class="fas fa-map-marked-alt me-2"></i>Regional Heads
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+          
+          <!-- TAB 1: DEPARTMENTS -->
+          <div class="tab-pane fade show active" id="tab-departments" role="tabpanel">
+                
+                <!-- Action Bar -->
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createDeptModal">
+                        <i class="fas fa-plus me-2"></i>New Department
+                    </button>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <div class="card shadow-sm border-0 h-100 bg-white">
+                            <div class="card-body d-flex align-items-center p-4">
+                                <div class="avatar-circle bg-soft-primary text-primary me-3 flex-shrink-0" style="width: 50px; height: 50px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                                    <i class="fas fa-building fa-lg"></i>
                                 </div>
-                                <small class="fw-bold text-dark">{{ dept.manager.get_full_name|default:dept.manager.username }}</small>
+                                <div>
+                                    <h4 class="fw-bold mb-0 text-dark">{{ departments.count }}</h4>
+                                    <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total Departments</small>
+                                </div>
                             </div>
-                            {% else %}
-                            <span class="badge bg-light text-muted border">Vacancy</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'user_list' %}?dept={{ dept.id }}" class="text-decoration-none badge badge-soft-info">
-                                {{ dept.employees.count }} Staff
-                            </a>
-                        </td>
-                        <td class="text-end pe-4">
-                            <a href="{% url 'department_update' dept.id %}" class="btn btn-sm btn-light text-primary me-1" title="Edit">
-                                <i class="fas fa-pen"></i>
-                            </a>
-                            <button type="button" class="btn btn-sm btn-light text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ dept.id }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            
-                            <!-- Delete Modal -->
-                            <div class="modal fade" id="deleteModal{{ dept.id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content text-start">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Delete Department</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            Are you sure you want to delete <strong>{{ dept.name }}</strong>?
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                            <form action="{% url 'department_delete' dept.id %}" method="post" class="d-inline">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card shadow-sm border-0 h-100 bg-white">
+                            <div class="card-body d-flex align-items-center p-4">
+                                <div class="avatar-circle bg-soft-success text-success me-3 flex-shrink-0" style="width: 50px; height: 50px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                                    <i class="fas fa-user-tie fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="fw-bold mb-0 text-dark">
+                                        {% with vacant=0 %}
+                                            {% for d in departments %}{% if d.manager %}{% endif %}{% endfor %}
+                                            <!-- Simple count not working well in template loop without variable, using length approximation logic -->
+                                            {{ departments|length }} 
+                                        {% endwith %}
+                                    </h4>
+                                    <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Active Managers</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Departments Table -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h6 class="fw-bold mb-0 text-dark">All Departments</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+                                <thead style="background-color: #f8f9fa;">
+                                    <tr>
+                                        <th class="ps-4 py-3 text-uppercase text-muted small fw-bold">Department Name</th>
+                                        <th class="py-3 text-uppercase text-muted small fw-bold">Manager (Global)</th>
+                                        <th class="py-3 text-uppercase text-muted small fw-bold">Staff</th>
+                                        <th class="text-end pe-4 py-3 text-uppercase text-muted small fw-bold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for dept in departments %}
+                                    <tr>
+                                        <td class="ps-4 py-3">
+                                            <div class="fw-bold text-dark">{{ dept.name }}</div>
+                                            <div class="text-muted small text-truncate" style="max-width: 200px;">{{ dept.description|default:"-" }}</div>
+                                        </td>
+                                        <td class="py-3">
+                                            {% if dept.manager %}
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle-sm bg-primary text-white me-2" style="width: 32px; height: 32px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size: 0.8rem;">
+                                                    {{ dept.manager.username|make_list|first|upper }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark small" style="line-height: 1.2;">{{ dept.manager.get_full_name|default:dept.manager.username }}</div>
+                                                    <div class="text-muted" style="font-size: 0.7rem;">{{ dept.manager.job_title|default:"Manager" }}</div>
+                                                </div>
+                                            </div>
+                                            {% else %}
+                                            <span class="badge bg-light text-muted border fw-normal">Vacancy</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-3">
+                                            <a href="{% url 'user_list' %}?dept={{ dept.id }}" class="text-decoration-none d-inline-flex align-items-center px-2 py-1 rounded bg-light text-secondary hover-primary">
+                                                <i class="fas fa-users me-2 small"></i> <span class="fw-bold small">{{ dept.employees.count }}</span>
+                                            </a>
+                                        </td>
+                                        <td class="text-end pe-4 py-3">
+                                            <a href="{% url 'department_update' dept.id %}" class="btn btn-sm btn-icon btn-light text-primary me-1" title="Edit">
+                                                <i class="fas fa-pen"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-icon btn-light text-danger bg-light" data-bs-toggle="modal" data-bs-target="#deleteModal{{ dept.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            
+                                             <!-- Delete Modal -->
+                                            <div class="modal fade" id="deleteModal{{ dept.id }}" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content text-start">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Delete Department</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            Are you sure you want to delete <strong>{{ dept.name }}</strong>?
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                            <form action="{% url 'department_delete' dept.id %}" method="post" class="d-inline">
+                                                                {% csrf_token %}
+                                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-5 text-muted">
+                                            <i class="fas fa-folder-open fa-2x mb-3 opacity-25"></i>
+                                            <p class="mb-0">No departments found.</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+          </div>
+
+          <!-- TAB 2: REGIONAL HEADS -->
+          <div class="tab-pane fade" id="tab-regional" role="tabpanel">
+                
+                <div class="d-flex justify-content-between align-items-end mb-4">
+                     <div>
+                        <h4 class="fw-bold mb-1">Regional Leadership</h4>
+                        <p class="text-muted small mb-0">Customize department heads for specific locations.</p>
+                     </div>
+                     <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createRegionalModal">
+                        <i class="fas fa-user-plus me-2"></i>Assign Regional Head
+                    </button>
+                </div>
+                
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead style="background-color: #f8f9fa;">
+                                    <tr>
+                                        <th class="ps-4 py-3 text-uppercase text-muted small fw-bold">Location</th>
+                                        <th class="py-3 text-uppercase text-muted small fw-bold">Department</th>
+                                        <th class="py-3 text-uppercase text-muted small fw-bold">Assigned Head</th>
+                                        <th class="text-end pe-4 py-3 text-uppercase text-muted small fw-bold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for head in regional_heads %}
+                                    <tr>
+                                        <td class="ps-4 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle-sm bg-light text-muted me-2" style="width: 32px; height: 32px; display:flex; align-items:center; justify-content:center; border-radius:8px;">
+                                                    <i class="fas fa-map-marker-alt small"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark">{{ head.location.name }}</div>
+                                                    <small class="text-muted">{{ head.location.get_type_display }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 fw-bold text-dark">{{ head.department.name }}</td>
+                                        <td class="py-3">
+                                            {% if head.manager %}
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle-sm bg-info text-white me-2" style="width: 32px; height: 32px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size: 0.8rem;">
+                                                    {{ head.manager.username|make_list|first|upper }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">{{ head.manager.get_full_name|default:head.manager.username }}</div>
+                                                    <div class="text-muted small" style="font-size: 0.7rem;">{{ head.manager.job_title|default:"Regional Manager" }}</div>
+                                                </div>
+                                            </div>
+                                            {% else %}
+                                            <span class="text-muted small fst-italic">Unassigned</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end pe-4 py-3">
+                                            <form action="{% url 'regional_head_delete' head.id %}" method="post" class="d-inline" onsubmit="return confirm('Remove this regional assignment?');">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                                <button type="submit" class="btn btn-sm btn-icon btn-white border-0 text-danger hover-bg-light">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
                                             </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">No departments found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-5 text-muted">
+                                            <img src="{% static 'assets/images/illustrations/map.svg' %}" alt="No Data" style="height: 80px; opacity: 0.3; margin-bottom: 1rem;">
+                                            <p class="mb-0">No regional heads assigned yet.</p>
+                                            <small>Default global managers will apply.</small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+          </div>
         </div>
     </div>
 </div>
 
-<!-- Create Modal -->
+<!-- Modals -->
 <div class="modal fade" id="createDeptModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
             <form action="{% url 'department_create' %}" method="post">
                 {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Add New Department</h5>
+                <div class="modal-header bg-light border-bottom-0">
+                    <h5 class="modal-title fw-bold">New Department</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     {{ form|crispy }}
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Department</button>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Create</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<script>
-    // Initialize tooltips/etc if needed
-</script>
+<div class="modal fade" id="createRegionalModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form action="{% url 'regional_head_create' %}" method="post">
+                {% csrf_token %}
+                <div class="modal-header bg-light border-bottom-0">
+                    <h5 class="modal-title fw-bold">Assign Regional Head</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 d-flex align-items-center small mb-4">
+                        <i class="fas fa-info-circle me-3 fa-lg"></i>
+                        <div>Override the global manager for a specific location.</div>
+                    </div>
+                    {{ regional_form|crispy }}
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Assign Manager</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nav-pills .nav-link {
+        color: #6c757d;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .nav-pills .nav-link.active {
+        background-color: #0d6efd;
+        color: white;
+        box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+    }
+    .hover-primary:hover {
+        background-color: #e9ecef !important;
+        color: #0d6efd !important;
+    }
+    .bg-soft-primary { background-color: rgba(13, 110, 253, 0.1); }
+    .bg-soft-success { background-color: rgba(25, 135, 84, 0.1); }
+    .btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; }
+</style>
 {% endblock %}

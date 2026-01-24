@@ -24,7 +24,7 @@ urlpatterns = [
     path('maintenance/', include('maintenance.urls')),
     path('governance/', include('governance.urls')),
     path('network/', include('network.urls')),
-    path('knowledge/', include('knowledge.urls')),
+    path('knowledge/', include('knowledgebase.urls')),
     path('notifications/', include('notifications.urls')),
     path('integrations/', include('integrations.urls')),
     path('administration/', include('administration.urls')),

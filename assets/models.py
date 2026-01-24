@@ -17,6 +17,19 @@ class Department(models.Model):
     def __str__(self):
         return self.name
 
+class DepartmentHead(models.Model):
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='regional_heads')
+    location = models.ForeignKey('Location', on_delete=models.CASCADE, related_name='regional_heads')
+    manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='regional_roles')
+    
+    class Meta:
+        unique_together = ('department', 'location')
+        verbose_name = "Regional Head"
+        verbose_name_plural = "Regional Heads"
+
+    def __str__(self):
+        return f"{self.department.name} - {self.location.name} ({self.manager})"
+
 class Location(models.Model):
     TYPE_CHOICES = [
         ('HO', 'Head Office'),

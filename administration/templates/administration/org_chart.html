@@ -84,15 +84,23 @@
 
                 <!-- Manager -->
                 <div class="col-md-4 mb-3 mb-md-0 border-start-md ps-md-4">
-                    {% if dept.manager %}
+                    {% with active_manager=dept.regional_manager|default:dept.manager %}
+                    {% if active_manager %}
                     <div class="d-flex align-items-center">
-                        <div class="avatar-circle bg-primary text-white me-3" 
+                        <div class="avatar-circle {% if dept.regional_manager %}bg-info{% else %}bg-primary{% endif %} text-white me-3" 
                              style="width: 36px; height: 36px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size: 0.9rem;">
-                            {{ dept.manager.username|make_list|first|upper }}
+                            {{ active_manager.username|make_list|first|upper }}
                         </div>
                         <div>
-                            <div class="fw-bold text-dark small">{{ dept.manager.get_full_name|default:dept.manager.username }}</div>
-                            <div class="text-muted small" style="font-size: 0.75rem;">{{ dept.manager.job_title|default:"Manager" }}</div>
+                            <div class="fw-bold text-dark small">
+                                {{ active_manager.get_full_name|default:active_manager.username }}
+                                {% if dept.regional_manager %}
+                                <i class="fas fa-map-marker-alt text-info ms-1" title="Regional Head" style="font-size: 0.7rem;"></i>
+                                {% endif %}
+                            </div>
+                            <div class="text-muted small" style="font-size: 0.75rem;">
+                                {{ active_manager.job_title|default:"Manager" }}
+                            </div>
                         </div>
                     </div>
                     {% else %}
@@ -101,6 +109,7 @@
                         <span class="small fst-italic">Vacancy</span>
                     </div>
                     {% endif %}
+                    {% endwith %}
                 </div>
 
                 <!-- Members -->

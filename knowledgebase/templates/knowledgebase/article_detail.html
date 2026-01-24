@@ -1,0 +1,158 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ object.title }} - Knowledge Base{% endblock %}
+
+{% block extra_css %}
+<!-- PrismJS for Syntax Highlighting -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+<style>
+    .article-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin: 1rem 0;
+    }
+    pre {
+        position: relative;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+    .copy-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .copy-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-9">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4 p-lg-5">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <div class="mb-2">
+                            <span class="badge bg-soft-primary text-primary">{{ object.get_category_display }}</span>
+                            {% if object.visibility == 'INTERNAL' %}
+                                <span class="badge bg-soft-danger text-danger"><i class="fas fa-lock me-1"></i>Internal</span>
+                            {% else %}
+                                <span class="badge bg-soft-success text-success"><i class="fas fa-globe me-1"></i>Public</span>
+                            {% endif %}
+                        </div>
+                        <h1 class="fw-bold text-dark mb-2">{{ object.title }}</h1>
+                        <div class="text-muted small">
+                            <i class="far fa-user me-1"></i> {{ object.author.get_full_name|default:object.author.username }} &bull; 
+                            <i class="far fa-clock me-1 ms-2"></i> {{ object.updated_at|date:"M d, Y" }} &bull;
+                            <i class="far fa-eye me-1 ms-2"></i> {{ object.views_count }} views
+                        </div>
+                    </div>
+                    
+                    {% if can_edit_article %}
+                    <div>
+                        <a href="{% url 'article_update' object.slug %}" class="btn btn-light"><i class="fas fa-pen"></i> Edit</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <hr class="text-muted opacity-25">
+
+                <div class="article-content mt-4 line-numbers">
+                    {{ object.content|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-3">
+        <!-- Linked Assets -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="fas fa-link me-2 text-primary"></i> Linked Assets
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for asset in object.related_assets.all %}
+                    <a href="{% url 'asset_detail' asset.pk %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <div class="avatar-circle-sm bg-light text-dark me-2" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:6px;">
+                            <i class="fas fa-desktop small"></i>
+                        </div>
+                        <div class="text-truncate">
+                            <div class="fw-bold small text-dark">{{ asset.name }}</div>
+                            <small class="text-muted" style="font-size:0.7rem;">{{ asset.asset_code }}</small>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="p-4 text-center text-muted small">
+                        No assets linked to this article.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="fw-bold small text-uppercase text-muted">Information</h6>
+                <dl class="row mb-0 small">
+                    <dt class="col-5">Created</dt>
+                    <dd class="col-7">{{ object.created_at|date:"M d, Y" }}</dd>
+                    
+                    <dt class="col-5">Status</dt>
+                    <dd class="col-7">{{ object.get_status_display }}</dd>
+                    
+                    <dt class="col-5">Slug</dt>
+                    <dd class="col-7 text-truncate" title="{{ object.slug }}">{{ object.slug }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add Copy Button to Code Blocks
+        document.querySelectorAll('pre').forEach(function(pre) {
+            var btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.innerHTML = '<i class="far fa-copy"></i> Copy';
+            
+            btn.addEventListener('click', function() {
+                var code = pre.querySelector('code');
+                var text = code ? code.innerText : pre.innerText;
+                
+                navigator.clipboard.writeText(text).then(function() {
+                    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    setTimeout(function() {
+                        btn.innerHTML = '<i class="far fa-copy"></i> Copy';
+                    }, 2000);
+                });
+            });
+            
+            pre.appendChild(btn);
+        });
+    });
+</script>
+{% endblock %}

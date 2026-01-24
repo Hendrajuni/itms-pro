@@ -177,6 +177,9 @@
                 <li class="nav-item">
                     <a class="nav-link fw-bold" data-bs-toggle="tab" href="#notes" role="tab">Notes</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-bold" data-bs-toggle="tab" href="#kb" role="tab">Knowledge Base</a>
+                </li>
             </ul>
         </div>
         <div class="card-body p-4">
@@ -576,6 +579,45 @@
                         {{ asset.infrastructure.notes|linebreaks }}
                     </div>
                     {% endif %}
+                </div>
+
+                <!-- Knowledge Base Tab -->
+                <div class="tab-pane fade" id="kb" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-muted text-uppercase mb-0 small fw-bold ls-1">Related Articles</h6>
+                        {% if user.is_superuser or user.is_staff or user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Administrator" or user|has_group:"Manager" %}
+                        <a href="{% url 'article_create' %}?asset_id={{ asset.pk }}" target="_blank" class="btn btn-sm btn-outline-primary py-0">
+                            <i class="fas fa-plus fa-sm"></i> New Article
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="list-group list-group-flush">
+                        {% for article in asset.kb_articles.all %}
+                        <a href="{% url 'article_detail' article.slug %}" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-soft-info text-info me-3" style="min-width: 100px;">{{ article.get_category_display }}</span>
+                                <div>
+                                    <span class="fw-bold text-dark d-block mb-1">{{ article.title }}</span>
+                                    <small class="text-muted d-flex align-items-center">
+                                        <i class="far fa-user me-1"></i> {{ article.author.first_name }}
+                                        <span class="mx-2">&bull;</span>
+                                        <i class="far fa-clock me-1"></i> {{ article.updated_at|date:"d M Y" }}
+                                    </small>
+                                </div>
+                            </div>
+                            <small class="text-muted border rounded px-2 py-1 bg-light">
+                                <i class="far fa-eye me-1"></i> {{ article.views_count }}
+                            </small>
+                        </a>
+                        {% empty %}
+                        <div class="text-center py-5 border rounded bg-light">
+                            <i class="fas fa-book-reader text-muted mb-3 fs-3 opacity-25"></i>
+                            <p class="text-muted mb-0">No articles linked to this asset.</p>
+                            <small class="text-muted">Create a guide (e.g., Troubleshooting) and link it here.</small>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
 
             </div>

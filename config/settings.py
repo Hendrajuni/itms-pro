@@ -48,6 +48,9 @@ INSTALLED_APPS = [
     'knowledge',
     'notifications',
     'integrations',
+    'knowledgebase',
+
+    'ckeditor',
 
     'administration',
     'crispy_forms',
@@ -157,5 +160,25 @@ AUTH_USER_MODEL = 'core.CustomUser'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'staff_dashboard'  # Default fallback
 LOGOUT_REDIRECT_URL = 'login'
+
+# CKEditor Settings
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Custom',
+        'height': 400,
+        'width': '100%',
+        'extraPlugins': 'codesnippet',
+        'toolbar_Custom': [
+            ['Styles', 'Format', 'Bold', 'Italic', 'Underline', 'Strike', 'SpellChecker', 'Undo', 'Redo'],
+            ['Link', 'Unlink', 'Anchor'],
+            ['Image', 'Table', 'HorizontalRule', 'Blockquote'],
+            ['TextColor', 'BGColor'],
+            ['Smiley', 'SpecialChar'], 
+            ['Source'],
+            ['CodeSnippet'], 
+            ['Maximize']
+        ],
+    },
+}
 
 # Trigger reload for new template directory
