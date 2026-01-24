@@ -34,3 +34,18 @@ class UserProfileForm(forms.ModelForm):
         self.fields['location'].required = False
         self.fields['job_title'].required = False
         self.fields['email'].required = False
+
+from assets.models import Department
+
+class DepartmentForm(forms.ModelForm):
+    class Meta:
+        model = Department
+        fields = ['name', 'manager', 'description']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['manager'].queryset = User.objects.filter(is_active=True).order_by('username')
+        self.fields['manager'].widget.attrs.update({'class': 'form-select select2'})

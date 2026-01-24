@@ -117,7 +117,51 @@ class AdminPasswordResetView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 from django.views.generic import UpdateView
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
-from .forms import UserProfileForm
+from .forms import UserProfileForm, DepartmentForm
+from django.views.generic import CreateView, DeleteView, ListView
+from assets.models import Department
+
+class DepartmentListView(LoginRequiredMixin, SuperuserRequiredMixin, ListView):
+    model = Department
+    template_name = 'administration/department_list.html'
+    context_object_name = 'departments'
+    ordering = ['name']
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = DepartmentForm() # For Create Modal
+        return context
+
+class DepartmentCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+    model = Department
+    form_class = DepartmentForm
+    success_url = reverse_lazy('department_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Department created successfully.")
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, "Error creating department.")
+        return redirect('department_list') # Simplified for Modal
+
+class DepartmentUpdateView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+    model = Department
+    form_class = DepartmentForm
+    template_name = 'administration/department_form.html'
+    success_url = reverse_lazy('department_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Department updated successfully.")
+        return super().form_valid(form)
+
+class DepartmentDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
+    model = Department
+    success_url = reverse_lazy('department_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, "Department deleted successfully.")
+        return super().delete(request, *args, **kwargs)
 
 class UserProfileView(LoginRequiredMixin, UpdateView):
     model = User
@@ -276,7 +320,58 @@ class UserPrintView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
         context['users'] = user_list
         context['filter_display'] = " | ".join(filter_display) if filter_display else "All Data"
         context['print_date'] = timezone.now()
-        context['site_setting'] = SiteSetting.get_solo()
+        return context
+
+class OrgChartView(LoginRequiredMixin, TemplateView):
+    template_name = 'administration/org_chart.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from assets.models import Department, Location
+        from django.db.models import Prefetch
+        
+        user = self.request.user
+
+        # 1. Location Roots for Dropdown
+        location_roots = Location.objects.filter(parent__isnull=True).prefetch_related('children')
+        
+        # IT Support Scope: Restrict Dropdown
+        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+            if user.groups.filter(name='IT Support').exists() and hasattr(user, 'location') and user.location:
+                root = user.location.root_node
+                location_roots = location_roots.filter(id=root.id)
+
+        context['location_roots'] = location_roots
+        
+        # 2. Determine Filter Location
+        loc_id = self.request.GET.get('loc')
+        
+        # Auto-enforce scope for IT Support if no filter selected (Default to their region)
+        if not loc_id and not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+             if hasattr(user, 'location') and user.location:
+                  # Default to their root region
+                  loc_id = user.location.root_node.id
+        
+        # 3. Prepare Employee Queryset based on Location
+        # Start with all users
+        employee_qs = User.objects.all().order_by('username')
+        
+        if loc_id:
+            try:
+                selected_loc = Location.objects.get(id=loc_id)
+                context['selected_loc'] = selected_loc
+                
+                # Recursive location filter
+                descendants = selected_loc.get_descendants(include_self=True)
+                employee_qs = employee_qs.filter(location__in=descendants)
+            except Location.DoesNotExist:
+                pass
+        
+        # 4. Fetch Departments with Filtered Employees
+        # We filter the 'employees' relation using Prefetch
+        context['departments'] = Department.objects.select_related('manager').prefetch_related(
+            Prefetch('employees', queryset=employee_qs)
+        ).order_by('name')
         
         return context
 

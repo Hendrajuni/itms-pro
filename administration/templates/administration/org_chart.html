@@ -1,0 +1,155 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize rbac_tags %}
+
+{% block title %}Organization Structure - ITMS{% endblock %}
+{% block header_title %}Organization{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0">Organization Chart</h3>
+        <p class="text-muted small">
+            Structure for 
+            <span class="fw-bold text-primary">{{ selected_loc.name|default:"Global Organization" }}</span>
+        </p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        
+        <!-- Location Filter -->
+        <form id="filterForm" method="get">
+            <div class="dropdown">
+                <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 200px;">
+                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                    <span class="text-truncate fw-bold text-dark" style="max-width: 160px;">
+                        {{ selected_loc.name|default:"Global View" }}
+                    </span>
+                </button>
+                <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 400px; overflow-y: auto;">
+                    <li><a class="dropdown-item fw-bold {% if not request.GET.loc %}active{% endif %}" href="#" onclick="setFilter('loc', ''); return false;">Global View</a></li>
+                    {% for root in location_roots %}
+                        <li><h6 class="dropdown-header text-uppercase fw-bold text-dark mt-2 bg-light mx-2 py-1 rounded small px-2"><i class="fas fa-building me-1 opacity-50"></i> {{ root.name }}</h6></li>
+                        <li><a class="dropdown-item ps-4 {% if request.GET.loc == root.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('loc', '{{ root.id }}'); return false;">{{ root.name }} (Main)</a></li>
+                        {% for child in root.children.all %}
+                            <li><a class="dropdown-item ps-4 {% if request.GET.loc == child.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('loc', '{{ child.id }}'); return false;">{{ child.name }}</a></li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+                <input type="hidden" name="loc" id="filter_loc" value="{{ request.GET.loc }}">
+            </div>
+        </form>
+
+        {% if user.is_superuser %}
+        <a href="{% url 'department_list' %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-edit me-2"></i>Manage
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function setFilter(name, val) {
+        document.getElementById('filter_' + name).value = val;
+        document.getElementById('filterForm').submit();
+    }
+</script>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+        <div class="row text-uppercase text-muted fw-bold small" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+            <div class="col-md-4">Department</div>
+            <div class="col-md-4">Head of Department</div>
+            <div class="col-md-4">Team Members</div>
+        </div>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for dept in departments %}
+        <div class="list-group-item py-4 px-4 hover-bg-light transition-base">
+            <div class="row align-items-center">
+                
+                <!-- Department Info -->
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle-sm bg-light text-primary me-3 flex-shrink-0" 
+                             style="width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold text-dark mb-1">{{ dept.name }}</h5>
+                            <p class="text-muted small mb-0 text-truncate" style="max-width: 250px;">
+                                {{ dept.description|default:"Functional Unit" }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manager -->
+                <div class="col-md-4 mb-3 mb-md-0 border-start-md ps-md-4">
+                    {% if dept.manager %}
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle bg-primary text-white me-3" 
+                             style="width: 36px; height: 36px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size: 0.9rem;">
+                            {{ dept.manager.username|make_list|first|upper }}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark small">{{ dept.manager.get_full_name|default:dept.manager.username }}</div>
+                            <div class="text-muted small" style="font-size: 0.75rem;">{{ dept.manager.job_title|default:"Manager" }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="d-flex align-items-center text-muted opacity-50">
+                        <div class="avatar-circle bg-light border border-dashed me-3" style="width: 36px; height: 36px; border-radius:50%;"></div>
+                        <span class="small fst-italic">Vacancy</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Members -->
+                <div class="col-md-4 d-flex align-items-center justify-content-between border-start-md ps-md-4">
+                    <!-- Avatar Stack -->
+                    <div class="d-flex align-items-center">
+                        {% for emp in dept.employees.all|slice:":4" %}
+                            {% if emp != dept.manager %}
+                            <div class="avatar-circle-sm bg-secondary text-white border border-2 border-white" 
+                                title="{{ emp.get_full_name|default:emp.username }}"
+                                style="width: 32px; height: 32px; display:flex; align-items:center; justify-content:center; border-radius:50%; margin-right:-10px; font-size: 0.7rem; position: relative;">
+                                {{ emp.username|make_list|first|upper }}
+                            </div>
+                            {% endif %}
+                        {% empty %}
+                            <span class="text-muted small fst-italic">-</span>
+                        {% endfor %}
+
+                        {% if dept.employees.count > 5 %} <!-- Adjust logic if manager included in count -->
+                        <div class="avatar-circle-sm bg-light text-muted border border-2 border-white small ps-2" 
+                             style="width: 32px; height: 32px; display:flex; align-items:center; justify-content:center; border-radius:50%; margin-left: -5px; position: relative; z-index: 0;">
+                            +{{ dept.employees.count|add:"-5" }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if user.is_superuser or user|has_group:"Manager" or user|has_group:"Admin" %}
+                    <a href="{% url 'user_list' %}?dept={{ dept.id }}" class="btn btn-sm btn-white border text-muted hover-primary ms-3">
+                        <i class="fas fa-users me-1"></i> {{ dept.employees.count }}
+                    </a>
+                    {% else %}
+                    <span class="btn btn-sm btn-white border text-muted ms-3 disabled" style="cursor: default;">
+                        <i class="fas fa-users me-1"></i> {{ dept.employees.count }}
+                    </span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .hover-bg-light:hover { background-color: #f8f9fa; }
+    .transition-base { transition: all 0.2s ease; }
+    .border-start-md { border-left: 1px solid #eee; }
+    @media (max-width: 768px) {
+        .border-start-md { border-left: none; border-top: 1px solid #eee; padding-top: 1rem; }
+    }
+</style>
+{% endblock %}

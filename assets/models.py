@@ -12,6 +12,7 @@ from django.urls import reverse
 class Department(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
+    manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_departments', help_text="Head of Department")
 
     def __str__(self):
         return self.name

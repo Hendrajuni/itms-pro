@@ -5,6 +5,14 @@ urlpatterns = [
     path('users/', views.UserListView.as_view(), name='user_list'),
     path('users/export/', views.UserExportView.as_view(), name='user_export'),
     path('users/print/', views.UserPrintView.as_view(), name='user_print'),
+    path('org-chart/', views.OrgChartView.as_view(), name='org_chart'),
+    
+    # Department Management
+    path('departments/', views.DepartmentListView.as_view(), name='department_list'),
+    path('departments/create/', views.DepartmentCreateView.as_view(), name='department_create'),
+    path('departments/<int:pk>/edit/', views.DepartmentUpdateView.as_view(), name='department_update'),
+    path('departments/<int:pk>/delete/', views.DepartmentDeleteView.as_view(), name='department_delete'),
+
     path('users/toggle/<int:pk>/', views.UserToggleStatusView.as_view(), name='user_toggle_status'),
     path('users/reset-password/<int:pk>/', views.AdminPasswordResetView.as_view(), name='admin_password_reset'),
     
