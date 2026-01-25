@@ -20,7 +20,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, Location, Department, Category, AssetStorage, Vendor
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, InfrastructureType, Contract, Location, Department, Category, AssetStorage, Vendor
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
 from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm
@@ -913,28 +913,111 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Summary Counts
-        # Constructing querysets for counts efficiently? 
-        # Better to do distinct counts? Or just simple filters.
-        # We need counts of ALL items, not just filtered ones, for the top cards.
-        qs = Infrastructure.objects.all()
-        context['tower_count'] = qs.filter(type='TOWER').count()
-        context['rack_count'] = qs.filter(type='SERVER_RACK').count()
-        context['wallmount_count'] = qs.filter(type='WALLMOUNT').count()
-        context['panel_count'] = qs.filter(type='PANEL').count()
+        user = self.request.user
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_it_support = user.groups.filter(name='IT Support').exists()
+
+        # 1. Location Data for Filter
+        # Use hierarchy for cleaner dropdowns (Tree structure)
         
+        if is_it_support and not is_manager:
+            # SCOPED: Only show user's assigned location as a "Root"
+            if hasattr(user, 'location') and user.location:
+                # We wrap it in a list so the template loop works
+                # Prefetch children to allow sub-location selection
+                # Re-querying to ensure children are attached if user.location is stale or lazy
+                user_loc = Location.objects.filter(pk=user.location.pk).prefetch_related('children').first()
+                context['location_roots'] = [user_loc] if user_loc else []
+            else:
+                context['location_roots'] = []
+        else:
+            # FULL: Show actual roots
+            context['location_roots'] = Location.objects.filter(parent__isnull=True).prefetch_related('children').order_by('name')
+        
+        # 2. Dynamic Summary Counts
+        # Calculate counts for ALL types defined in choices to make it dynamic
+        
+        current_loc = self.request.GET.get('loc')
+        
+        qs_for_counts = Infrastructure.objects.all()
+        
+        # Apply Base Scope to Counts Query as well
+        if is_it_support and not is_manager:
+            if hasattr(user, 'location') and user.location:
+                descendants = user.location.get_descendants(include_self=True)
+                qs_for_counts = qs_for_counts.filter(location__in=descendants)
+            else:
+                qs_for_counts = qs_for_counts.none()
+
+        if current_loc:
+            # Hierarchy Logic: Get all descendants including self
+            try:
+                location = Location.objects.get(pk=current_loc)
+                descendants = location.get_descendants(include_self=True)
+                qs_for_counts = qs_for_counts.filter(location__in=descendants)
+            except Location.DoesNotExist:
+                 pass # Invalid ID, ignore
+
+        # DYNAMIC COUNTS via InfrastructureType (New Relation)
+        # 1. Get counts for each infra_type_id in current filter
+        type_counts = qs_for_counts.values('infra_type').annotate(count=Count('id'))
+        
+        # 2. Convert to dict {infra_type_id: count}
+        count_dict = {item['infra_type']: item['count'] for item in type_counts}
+        
+        # 3. Get all defined types (Cards)
+        # Only show "Featured" types as per user request ("show only 4")
+        # User can change this in Admin Panel
+        all_types = InfrastructureType.objects.filter(is_featured=True).order_by('name')
+        
+        summary_cards = []
+        for t in all_types:
+            count = count_dict.get(t.id, 0)
+            
+            summary_cards.append({
+                'code': t.slug, # Used for filtering? Need to update filter too
+                'id': t.id,
+                'label': t.name,
+                'count': count,
+                'icon': t.icon,
+                'color': t.color
+            })
+        
+        context['summary_cards'] = summary_cards
         context['current_type'] = self.request.GET.get('type', '')
+        context['current_loc'] = int(current_loc) if current_loc and current_loc.isdigit() else None
         context['search_query'] = self.request.GET.get('q', '')
         context['today'] = timezone.now().date()
         return context
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        user = self.request.user
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_it_support = user.groups.filter(name='IT Support').exists()
+
+        # SCOPE ENFORCEMENT
+        if is_it_support and not is_manager:
+            if hasattr(user, 'location') and user.location:
+                descendants = user.location.get_descendants(include_self=True)
+                queryset = queryset.filter(location__in=descendants)
+            else:
+                return queryset.none() # Assigned to nothing
         
-        # Filter by Type
+        # Filter by Type (Dynamic Slug)
         req_type = self.request.GET.get('type')
         if req_type:
-            queryset = queryset.filter(type=req_type)
+            queryset = queryset.filter(infra_type__slug=req_type)
+            
+        # Filter by Location (Hierarchical)
+        req_loc = self.request.GET.get('loc')
+        if req_loc:
+             try:
+                 location = Location.objects.get(pk=req_loc)
+                 descendants = location.get_descendants(include_self=True)
+                 queryset = queryset.filter(location__in=descendants)
+             except Location.DoesNotExist:
+                 pass
             
         # Search
         query = self.request.GET.get('q')

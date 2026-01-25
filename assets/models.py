@@ -404,7 +404,46 @@ class PartHistory(models.Model):
     def __str__(self):
         return f"{self.part_name} - {self.asset.asset_code}"
 
+class InfrastructureType(models.Model):
+    ICON_CHOICES = [
+        ('server', 'Server'),
+        ('broadcast-tower', 'Tower'),
+        ('hdd', 'Storage / Rack'),
+        ('bolt', 'Power / Panel'),
+        ('battery-full', 'UPS'),
+        ('network-wired', 'Cabling'),
+        ('snowflake', 'Cooling'),
+        ('cube', 'Generic Cube'),
+        ('wifi', 'Wireless'),
+        ('video', 'Camera'),
+        ('print', 'Printer'),
+    ]
+    COLOR_CHOICES = [
+        ('primary', 'Blue'),
+        ('success', 'Green'),
+        ('warning', 'Yellow'),
+        ('danger', 'Red'),
+        ('info', 'Cyan'),
+        ('secondary', 'Gray'),
+    ]
+
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True, editable=False)
+    icon = models.CharField(max_length=50, choices=ICON_CHOICES, default='cube')
+    color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='primary')
+    is_featured = models.BooleanField(default=True, help_text="Show this type as a card on the dashboard")
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
 class Infrastructure(models.Model):
+    # Deprecated Choices - Moving to InfrastructureType
     TYPE_CHOICES = [
         ('TOWER', 'Tower'),
         ('SERVER_RACK', 'Server Rack'),
@@ -426,7 +465,9 @@ class Infrastructure(models.Model):
 
     infra_id = models.CharField(max_length=50, unique=True, editable=False)
     name = models.CharField(max_length=200)
-    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='OTHER')
+    # Keeping old type for migration, added new relation
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='OTHER', blank=True) 
+    infra_type = models.ForeignKey(InfrastructureType, on_delete=models.SET_NULL, null=True, blank=True, related_name='items')
     location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
     
     capacity = models.CharField(max_length=100, blank=True, null=True, help_text="e.g. 42U, 1200VA")

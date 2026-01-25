@@ -125,3 +125,11 @@ class ContractAdmin(admin.ModelAdmin):
     date_hierarchy = 'end_date'
     readonly_fields = ('status',)
 
+from .models import InfrastructureType
+@admin.register(InfrastructureType)
+class InfrastructureTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_featured', 'slug', 'icon', 'color')
+    list_editable = ('is_featured', 'color', 'icon')
+    search_fields = ('name',)
+
+

@@ -234,14 +234,7 @@
                     </a>
                 </li>
 
-                {% if user.is_superuser %}
-                <li class="nav-item">
-                    <a href="{% url 'admin:index' %}" class="nav-link" target="_blank">
-                        <i class="fas fa-shield-alt icon"></i>
-                        <span>Django Admin</span>
-                    </a>
-                </li>
-                {% endif %}
+
             {% endif %}
 
         </ul>

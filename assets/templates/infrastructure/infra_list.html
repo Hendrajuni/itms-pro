@@ -1,120 +1,90 @@
 {% extends 'layouts/base.html' %}
-{% load static humanize %}
+{% load static humanize asset_tags %}
 
 {% block title %}Infrastructure - ITMS{% endblock %}
 
 {% block content %}
+<!-- 1. Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0 text-gray-800">Server & Infrastructure</h1>
-    
 </div>
 
-<!-- 1. Summary Cards (Filters) -->
+<!-- 2. Dynamic Summary Cards (Softer Design) -->
 <div class="row mb-4">
-    <!-- Tower -->
+    {% for card in summary_cards %}
     <div class="col-xl-3 col-md-6 mb-4">
-        <a href="?type=TOWER" class="text-decoration-none">
-            <div class="card border-left-info shadow h-100 py-2 {% if current_type == 'TOWER' %}border border-primary border-3{% endif %}">
+        <a href="?{% param_replace type=card.code %}" class="text-decoration-none">
+            <div class="card border-0 border-start border-4 border-{{ card.color }} shadow-sm h-100 py-3 {% if current_type == card.code %}bg-{{ card.color }} bg-opacity-10{% endif %} hover-top">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Tower Nodes</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ tower_count }}</div>
+                            <div class="text-xs fw-bold text-{{ card.color }} text-uppercase mb-1">
+                                {{ card.label }}
+                            </div>
+                            <div class="h4 mb-0 fw-bold text-gray-800">{{ card.count }}</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-broadcast-tower fa-2x text-gray-300"></i>
+                            <div class="bg-{{ card.color }} bg-opacity-10 p-3 rounded-circle">
+                                <i class="fas fa-{{ card.icon }} fa-lg text-{{ card.color }}"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </a>
     </div>
-
-    <!-- Server Rack -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <a href="?type=SERVER_RACK" class="text-decoration-none">
-            <div class="card border-left-primary shadow h-100 py-2 {% if current_type == 'SERVER_RACK' %}border border-primary border-3{% endif %}">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Server Racks</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ rack_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-server fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <!-- Wallmount -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <a href="?type=WALLMOUNT" class="text-decoration-none">
-            <div class="card border-left-success shadow h-100 py-2 {% if current_type == 'WALLMOUNT' %}border border-primary border-3{% endif %}">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Wallmount Racks</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ wallmount_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-hdd fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <!-- Panel -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <a href="?type=PANEL" class="text-decoration-none">
-            <div class="card border-left-warning shadow h-100 py-2 {% if current_type == 'PANEL' %}border border-primary border-3{% endif %}">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Box Panels</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ panel_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-bolt fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
+    {% endfor %}
 </div>
 
-<!-- 2. Toolbar -->
-<div class="card shadow mb-4">
-    <div class="card-body py-3 d-flex justify-content-between align-items-center">
-        <form method="get" class="form-inline mw-100 navbar-search">
+<!-- 3. Toolbar -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <!-- Search -->
+        <form method="get" class="d-flex align-items-center" style="max-width: 300px;">
             {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
+            {% if current_loc %}<input type="hidden" name="loc" value="{{ current_loc }}">{% endif %}
             <div class="input-group">
+                <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
                 <input type="text" name="q" class="form-control bg-light border-0 small" 
                        placeholder="Search infrastructure..." aria-label="Search" value="{{ search_query }}">
-                <div class="input-group-append">
-                    <button class="btn btn-primary" type="button">
-                        <i class="fas fa-search fa-sm"></i>
-                    </button>
-                </div>
             </div>
         </form>
         
-        <div class="d-flex gap-2">
-            {% if current_type or search_query %}
-            <a href="{% url 'infra_list' %}" class="btn btn-secondary">
-                <i class="fas fa-times me-1"></i> Reset
+        <div class="d-flex align-items-center gap-2">
+            <!-- Location Filter (Moved Here) -->
+            <div class="dropdown">
+                <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 180px;">
+                    <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                    <span class="text-truncate fw-bold text-dark me-auto" style="max-width: 150px;">
+                        {% if current_loc %}
+                            {% for l in locations %}
+                                {% if current_loc == l.id %}{{ l.name }}{% endif %}
+                            {% endfor %}
+                        {% else %}
+                            All Locations
+                        {% endif %}
+                    </span>
+                </button>
+                <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 400px; overflow-y: auto;">
+                    <li><a class="dropdown-item fw-bold {% if not current_loc %}active{% endif %}" href="?{% param_replace loc='' %}">All Locations</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% for root in location_roots %}
+                        <li><h6 class="dropdown-header fw-bold text-uppercase mt-2">{{ root.name }}</h6></li>
+                        <li><a class="dropdown-item ps-4 {% if current_loc == root.id %}active{% endif %}" href="?{% param_replace loc=root.id %}">{{ root.name }} (Main)</a></li>
+                        {% for child in root.children.all %}
+                        <li><a class="dropdown-item ps-4 {% if current_loc == child.id %}active{% endif %}" href="?{% param_replace loc=child.id %}">{{ child.name }}</a></li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+
+            {% if current_type or search_query or current_loc %}
+            <a href="{% url 'infra_list' %}" class="btn btn-light text-danger border shadow-sm" title="Reset Filters">
+                <i class="fas fa-times"></i>
             </a>
             {% endif %}
-            <a href="{% url 'infra_create' %}" class="btn btn-primary">
+            
+            <a href="{% url 'infra_create' %}" class="btn btn-primary shadow-sm">
                 <i class="fas fa-plus me-1"></i> Add New
             </a>
         </div>
