@@ -49,6 +49,9 @@ class AssetListView(LoginRequiredMixin, ListView):
                 queryset = queryset.filter(location_id__in=descendant_ids)
             else:
                 queryset = queryset.none()  # Unassigned IT sees nothing
+        elif not is_manager and not is_it_support:
+            # Standard User: See ONLY assigned assets
+            queryset = queryset.filter(assigned_to=user)
         
         # Filter: Location (Recursive: Include children)
         loc = self.request.GET.get('loc')
