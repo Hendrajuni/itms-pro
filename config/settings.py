@@ -72,6 +72,7 @@ MIDDLEWARE = [
     'administration.middleware.UserActivityMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'core.middleware.MaintenanceMiddleware',
+    'core.middleware.NavigationHistoryMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

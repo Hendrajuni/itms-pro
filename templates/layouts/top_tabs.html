@@ -1,0 +1,19 @@
+{% if request.session.nav_history %}
+<div class="dynamic-tabs">
+    <div class="tabs-scroll-container">
+        {% for tab in request.session.nav_history %}
+        <div class="tab-item {% if request.path == tab.url %}active{% endif %}">
+            <a href="{{ tab.url }}" class="tab-link">
+                <i class="{{ tab.icon }} me-2 text-muted small"></i>
+                <span class="tab-label">{{ tab.title }}</span>
+            </a>
+            {% if request.path == tab.url %}
+            <span class="tab-status-dot"></span>
+            {% endif %}
+            <!-- Close button placeholder for future JS implementation -->
+            <!-- <i class="fas fa-times tab-close ms-2"></i> -->
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

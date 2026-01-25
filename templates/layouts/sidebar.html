@@ -59,7 +59,6 @@
 
         <ul class="sidebar-nav">
 
-
             <!-- SELF SERVICE (For Everyone) -->
             <li class="sidebar-header">Self Service</li>
             
@@ -104,8 +103,7 @@
                             </li>
                             <li class="nav-item">
                                 <a href="{% url 'software_list' %}" class="nav-link {% if 'software' in request.path %}active{% endif %}">
-                                    <span>Software & Licenses</span> 
-                                    <!-- Optional: Badge if needed, otherwise clean -->
+                                    <span>Software & Licenses</span>
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -114,6 +112,8 @@
                         </ul>
                     </div>
                 </li>
+
+
 
                 <!-- INFRA & NETWORK GROUP -->
                 <li class="nav-item">
