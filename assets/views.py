@@ -20,7 +20,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, Location, Department, Category, AssetStorage
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, Location, Department, Category, AssetStorage, Vendor
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
 from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm
@@ -1174,11 +1174,42 @@ class ContractListView(LoginRequiredMixin, ListView):
     context_object_name = 'contracts'
     ordering = ['end_date']
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filtering
+        contract_type = self.request.GET.get('type')
+        vendor_id = self.request.GET.get('vendor')
+        search_query = self.request.GET.get('q')
+
+        if contract_type:
+            queryset = queryset.filter(contract_type=contract_type)
+        
+        if vendor_id:
+            queryset = queryset.filter(vendor_id=vendor_id)
+            
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) | 
+                Q(vendor__name__icontains=search_query) |
+                Q(notes__icontains=search_query)
+            )
+            
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        # Filters Data
+        context['vendors'] = Vendor.objects.filter(contracts__isnull=False).distinct()
+        context['contract_types'] = Contract.TYPE_CHOICES
+        
         # KPIS
         today = timezone.now().date()
+        # Note: KPIs should reflect the filtered queryset OR global? Usually global for dashboard cards.
+        # Let's keep cards global (all contracts) to show overall health, 
+        # while the table shows filtered results.
+        
         context['total_value'] = Contract.objects.exclude(status='CANCELLED').aggregate(total=Sum('cost'))['total'] or 0
         context['active_count'] = Contract.objects.filter(status='ACTIVE').count()
         context['expiring_soon_count'] = Contract.objects.filter(
@@ -1217,11 +1248,19 @@ class ContractCreateView(LoginRequiredMixin, CreateView):
     template_name = 'assets/contract_form.html'
     success_url = reverse_lazy('contract_list')
 
+    def form_valid(self, form):
+        messages.success(self.request, f"Contract '{form.instance.title}' created successfully.")
+        return super().form_valid(form)
+
 class ContractUpdateView(LoginRequiredMixin, UpdateView):
     model = Contract
     form_class = ContractForm
     template_name = 'assets/contract_form.html'
     success_url = reverse_lazy('contract_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, f"Contract '{form.instance.title}' updated successfully.")
+        return super().form_valid(form)
 
 class ContractDeleteView(LoginRequiredMixin, DeleteView):
     model = Contract

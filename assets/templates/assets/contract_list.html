@@ -59,10 +59,79 @@
 </div>
 
 <div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 fw-bold text-primary"><i class="fas fa-file-contract me-2"></i>Contract Registry</h6>
-        <div>
-            <a href="{% url 'contract_create' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-2"></i>Add Contract</a>
+    <div class="card-header bg-white py-3">
+        <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3">
+            <h6 class="m-0 fw-bold text-primary text-nowrap"><i class="fas fa-file-contract me-2"></i>Contract Registry</h6>
+            
+            <form method="get" id="filterForm" class="d-flex flex-wrap align-items-center gap-2 w-100 justify-content-lg-end">
+                <input type="hidden" name="type" id="filter_type" value="{{ request.GET.type }}">
+                <input type="hidden" name="vendor" id="filter_vendor" value="{{ request.GET.vendor }}">
+                
+                <!-- Type Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 140px;">
+                        <span class="text-truncate fw-bold text-dark me-auto">
+                            {% if request.GET.type %}
+                                {% for code, label in contract_types %}
+                                    {% if request.GET.type == code %}{{ label }}{% endif %}
+                                {% endfor %}
+                            {% else %}
+                                All Types
+                            {% endif %}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 300px; overflow-y: auto;">
+                        <li><a class="dropdown-item fw-bold {% if not request.GET.type %}active{% endif %}" href="#" onclick="setFilter('type', ''); return false;">All Types</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% for code, label in contract_types %}
+                        <li><a class="dropdown-item {% if request.GET.type == code %}active{% endif %}" href="#" onclick="setFilter('type', '{{ code }}'); return false;">{{ label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Vendor Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 140px;">
+                        <span class="text-truncate fw-bold text-dark me-auto">
+                            {% if request.GET.vendor %}
+                                {% for v in vendors %}
+                                    {% if request.GET.vendor == v.id|stringformat:"s" %}{{ v.name }}{% endif %}
+                                {% endfor %}
+                            {% else %}
+                                All Vendors
+                            {% endif %}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 300px; overflow-y: auto;">
+                        <li><a class="dropdown-item fw-bold {% if not request.GET.vendor %}active{% endif %}" href="#" onclick="setFilter('vendor', ''); return false;">All Vendors</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% for v in vendors %}
+                        <li><a class="dropdown-item {% if request.GET.vendor == v.id|stringformat:'s' %}active{% endif %}" href="#" onclick="setFilter('vendor', '{{ v.id }}'); return false;">{{ v.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Search -->
+                <div class="input-group input-group-sm" style="max-width: 200px; min-width: 150px;">
+                    <span class="input-group-text bg-light border-0 rounded-pill-start ps-3"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-0 bg-light rounded-pill-end ps-1" placeholder="Search..." value="{{ request.GET.q }}">
+                </div>
+
+                {% if request.GET.type or request.GET.vendor or request.GET.q %}
+                    <a href="{% url 'contract_list' %}" class="btn btn-sm btn-light text-danger border shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Clear Filters"><i class="fas fa-times"></i></a>
+                {% endif %}
+
+                <div class="border-start mx-1 h-50 d-none d-lg-block" style="height: 20px;"></div>
+
+                <a href="{% url 'contract_create' %}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm text-nowrap"><i class="fas fa-plus me-1"></i> New Contract</a>
+            </form>
+            
+            <script>
+                function setFilter(name, val) {
+                    document.getElementById('filter_' + name).value = val;
+                    document.getElementById('filterForm').submit();
+                }
+            </script>
         </div>
     </div>
     <div class="card-body p-0">

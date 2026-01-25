@@ -1,83 +1,158 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
+{% load crispy_forms_tags %}
 
-{% block title %}{% if form.instance.pk %}Edit Contract{% else %}Add Contract{% endif %}{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit Contract{% else %}Add Value Contract{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-lg-10">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3">
-                <h5 class="m-0 fw-bold border-start border-primary border-4 ps-3">
-                    {% if form.instance.pk %}Edit Contract: {{ form.instance.title }}{% else %}Add New Contract{% endif %}
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="m-0 fw-bold text-primary">
+                    <i class="fas fa-file-contract me-2"></i>
+                    {% if form.instance.pk %}Edit Contract: {{ form.instance.title }}{% else %}New Contract / Service{% endif %}
                 </h5>
+                <span class="badge bg-light text-dark border">
+                    <i class="fas fa-info-circle me-1"></i> Registry
+                </span>
             </div>
+            
             <div class="card-body p-4">
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                     {% csrf_token %}
                     
                     {% if form.non_field_errors %}
-                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        <div class="alert alert-danger mb-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i>{{ form.non_field_errors }}
+                        </div>
                     {% endif %}
 
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Title</label>
-                            {{ form.title }}
-                            <div class="form-text">Descriptive title for the contract.</div>
-                        </div>
+                    <div class="row g-4">
+                        <!-- LEFT COLUMN: General Info -->
+                        <div class="col-md-7 border-end">
+                            <h6 class="text-uppercase text-muted fw-bold mb-3 small">
+                                <i class="fas fa-align-left me-1"></i> General Information
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Contract Title</label>
+                                {{ form.title }}
+                                <div class="form-text text-muted">e.g., "Office 365 Subscription" or "AC Maintenance 2026"</div>
+                            </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Vendor</label>
-                            <div class="input-group">
-                                {{ form.vendor }}
-                                <a href="{% url 'admin:assets_vendor_add' %}" class="btn btn-outline-secondary" target="_blank" title="Add Vendor">+</a>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">Category / Type</label>
+                                    {{ form.contract_type }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">Vendor / Provider</label>
+                                    <div class="input-group">
+                                        {{ form.vendor }}
+                                        <button class="btn btn-outline-secondary" type="button" title="Add Vendor">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3 mt-3">
+                                <label class="form-label fw-bold small">Attachment / Document</label>
+                                {{ form.document }}
+                                {% if form.instance.document %}
+                                <div class="mt-1 small">
+                                    <a href="{{ form.instance.document.url }}" target="_blank" class="text-decoration-none">
+                                        <i class="fas fa-paperclip me-1"></i> Current File
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label fw-bold small">Notes / Remarks</label>
+                                {{ form.notes }}
                             </div>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Contract Type</label>
-                            {{ form.contract_type }}
-                        </div>
+                        <!-- RIGHT COLUMN: Financials & Terms -->
+                        <div class="col-md-5 bg-light-subtle rounded-3 p-3">
+                            <h6 class="text-uppercase text-muted fw-bold mb-3 small">
+                                <i class="fas fa-money-bill-wave me-1"></i> Financials & Terms
+                            </h6>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Start Date</label>
-                            {{ form.start_date }}
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">End Date</label>
-                            {{ form.end_date }}
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Total Cost (IDR)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                {{ form.cost }}
+                            <div class="row g-2 mb-3">
+                                <div class="col-8">
+                                    <label class="form-label fw-bold small">Contract Cost</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white fw-bold">Rp</span>
+                                        {{ form.cost }}
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-bold small">Billing Cycle</label>
+                                    {{ form.billing_cycle }}
+                                </div>
                             </div>
-                        </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    {{ form.auto_renew }}
+                                    <label class="form-check-label small fw-bold mt-1 ms-1" for="{{ form.auto_renew.id_for_label }}">Auto Renewal</label>
+                                </div>
+                            </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Notify Before (Days)</label>
-                            {{ form.notify_days_before }}
-                        </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-bold small">Effectivity Date</label>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        {{ form.start_date }}
+                                        <label for="{{ form.start_date.id_for_label }}">Start Date</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        {{ form.end_date }}
+                                        <label for="{{ form.end_date.id_for_label }}">Expiring Date</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Digital / Cloud Details -->
+                            <div class="mb-3 border-top pt-3">
+                                <label class="form-label fw-bold small text-muted">Service Details (Optional)</label>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        {{ form.login_url }}
+                                    </div>
+                                    <div class="col-12">
+                                        {{ form.ip_address }}
+                                    </div>
+                                </div>
+                            </div>
 
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Document</label>
-                            {{ form.document }}
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Notes</label>
-                            {{ form.notes }}
+                            <div class="alert alert-warning border-warning border-opacity-25 bg-warning-soft mt-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-bell me-2"></i> 
+                                    <label class="form-label fw-bold mb-0 small">Expiration Alert</label>
+                                </div>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white">Notify Me</span>
+                                    {{ form.notify_days_before }}
+                                    <span class="input-group-text bg-white">Days Before</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mt-4 d-flex justify-content-end gap-2">
-                        <a href="{% url 'contract_list' %}" class="btn btn-light">Cancel</a>
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="fas fa-save me-2"></i>Save Contract
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{% url 'contract_list' %}" class="btn btn-outline-secondary btn-sm px-3">
+                            <i class="fas fa-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                            <i class="fas fa-save me-2"></i> Save Changes
                         </button>
                     </div>
                 </form>
