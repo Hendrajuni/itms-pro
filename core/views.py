@@ -84,16 +84,18 @@ def get_dashboard_stats(user):
         stats['total_assets'] = Asset.objects.count()
         
         # Contracts Expiring Soon (30 Days)
+        # Contracts Expiring Soon (30 Days) OR Recently Expired (Last 30 Days)
+        # Fix: Show items that expired recently so they don't disappear immediately
         stats['expiring_contracts'] = Contract.objects.filter(
             end_date__lte=timezone.localdate() + timedelta(days=30),
-            end_date__gte=timezone.localdate()
-        ).exclude(status='CANCELLED')[:5]
+            end_date__gte=timezone.localdate() - timedelta(days=60) # Keep visible for 60 days after expiry
+        ).exclude(status='CANCELLED').order_by('end_date')[:5]
 
-        # Software Subscriptions Expiring Soon (30 Days)
+        # Software Subscriptions Expiring Soon (30 Days) OR Recently Expired
         stats['expiring_software'] = Software.objects.filter(
             expiry_date__lte=timezone.localdate() + timedelta(days=30),
-            expiry_date__gte=timezone.localdate()
-        ).exclude(license_type='PERPETUAL')[:5]
+            expiry_date__gte=timezone.localdate() - timedelta(days=60) # Keep visible for 60 days after expiry
+        ).exclude(license_type='PERPETUAL').order_by('expiry_date')[:5]
 
         # -----------------------------------------------------
         # NEW WIDGETS

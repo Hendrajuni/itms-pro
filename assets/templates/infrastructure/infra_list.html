@@ -51,6 +51,31 @@
         </form>
         
         <div class="d-flex align-items-center gap-2">
+            <!-- Type Filter -->
+            <div class="dropdown">
+                <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 160px;">
+                    <i class="fas fa-filter text-primary me-2"></i>
+                    <span class="text-truncate fw-bold text-dark me-auto" style="max-width: 130px;">
+                        {% if current_type %}
+                            {% for t in all_infra_types %}
+                                {% if current_type == t.slug %}{{ t.name }}{% endif %}
+                            {% endfor %}
+                        {% else %}
+                            All Types
+                        {% endif %}
+                    </span>
+                </button>
+                <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 400px; overflow-y: auto;">
+                    <li><a class="dropdown-item fw-bold {% if not current_type %}active{% endif %}" href="?{% param_replace type='' %}">All Types</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% for t in all_infra_types %}
+                    <li><a class="dropdown-item ps-4 {% if current_type == t.slug %}active{% endif %}" href="?{% param_replace type=t.slug %}">
+                        <i class="fas fa-{{ t.icon }} text-{{ t.color }} me-2"></i>{{ t.name }}
+                    </a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+
             <!-- Location Filter (Moved Here) -->
             <div class="dropdown">
                 <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 180px;">
@@ -84,7 +109,20 @@
             </a>
             {% endif %}
             
-            <a href="{% url 'infra_create' %}" class="btn btn-primary shadow-sm">
+            <div class="btn-group shadow-sm ms-2">
+                <a href="?{% param_replace view='list' %}" class="btn btn-{{ view_mode|yesno:'outline-secondary,primary,primary' }}">
+                    <i class="fas fa-list"></i> List
+                </a>
+                <a href="?{% param_replace view='map' %}" class="btn btn-{{ view_mode|yesno:'primary,outline-secondary,outline-secondary' }}">
+                    {% if view_mode == 'map' %}
+                        <i class="fas fa-map text-white"></i> Map
+                    {% else %}
+                        <i class="fas fa-map"></i> Map
+                    {% endif %}
+                </a>
+            </div>
+
+            <a href="{% url 'infra_create' %}" class="btn btn-primary shadow-sm ms-2">
                 <i class="fas fa-plus me-1"></i> Add New
             </a>
         </div>
@@ -93,116 +131,173 @@
 
 {% load asset_tags %}
 
-<!-- 3. Infrastructure Table -->
-<div class="card shadow mb-4">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-striped align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-3">
-                            <a href="?{% param_replace sort='name' order='asc' %}" class="text-dark text-decoration-none">
-                                Name {% if current_sort == 'name' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th>
-                            <a href="?{% param_replace sort='type' order='asc' %}" class="text-dark text-decoration-none">
-                                Type {% if current_sort == 'type' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th>
-                            <a href="?{% param_replace sort='location' order='asc' %}" class="text-dark text-decoration-none">
-                                Location {% if current_sort == 'location' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th>Capacity</th>
-                        <th>
-                            <a href="?{% param_replace sort='condition' order='asc' %}" class="text-dark text-decoration-none">
-                                Condition {% if current_sort == 'condition' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th>
-                            <a href="?{% param_replace sort='last_maint' order='asc' %}" class="text-dark text-decoration-none">
-                                Last Maint {% if current_sort == 'last_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th>
-                            <a href="?{% param_replace sort='next_maint' order='asc' %}" class="text-dark text-decoration-none">
-                                Next Maint {% if current_sort == 'next_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th class="text-end pe-3">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in infra_assets %}
-                    <tr>
-                        <td class="ps-3">
-                            <div class="d-flex align-items-center">
-                                {% if item.photo %}
-                                    <img src="{{ item.photo.url }}" class="rounded me-2" width="32" height="32" style="object-fit: cover; cursor: pointer;" title="View Image">
-                                {% else %}
-                                    <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                        <i class="fas fa-cube text-muted small"></i>
-                                    </div>
-                                {% endif %}
-                                <div>
-                                    <a href="{% url 'infra_detail' item.pk %}" class="text-dark fw-bold text-decoration-none">{{ item.name }}</a>
-                                    <div class="small text-muted">{{ item.infra_id }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span class="badge bg-light text-dark border">{{ item.get_type_display }}</span></td>
-                        <td>{{ item.location.name|default:"-" }}</td>
-                        <td>{{ item.capacity|default:"-" }}</td>
-                        <td>
-                            {% if item.condition == 'GOOD' or item.condition == 'EXCELLENT' %}
-                                <span class="badge bg-success">{{ item.get_condition_display }}</span>
-                            {% elif item.condition == 'CRITICAL' or item.condition == 'POOR' %}
-                                <span class="badge bg-danger">{{ item.get_condition_display }}</span>
-                            {% else %}
-                                <span class="badge bg-warning text-dark">{{ item.get_condition_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ item.last_maintenance_date|date:"d M Y"|default:"-" }}</td>
-                        <td>
-                            {% if item.next_maintenance_date %}
-                                {% if item.next_maintenance_date < today %}
-                                    <span class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>{{ item.next_maintenance_date|date:"d M Y" }}</span>
-                                {% else %}
-                                    <span class="text-success">{{ item.next_maintenance_date|date:"d M Y" }}</span>
-                                {% endif %}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end pe-3">
-                            <div class="btn-group">
-                                <a href="{% url 'infra_detail' item.pk %}" class="btn btn-sm btn-outline-secondary" title="View Detail">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{% url 'infra_update' item.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{% url 'infra_delete' item.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
-                            <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
-                            <p>No infrastructure items found.</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<!-- 4. Content Area (List or Map) -->
+{% if view_mode == 'map' %}
+    <!-- Map View -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <div class="card shadow mb-4">
+        <div class="card-body p-0">
+            <div id="infra-map" style="height: 600px; width: 100%; z-index: 1;"></div>
         </div>
     </div>
-</div>
 
-{% include 'includes/pagination.html' %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Indonesia Centroid Default
+            var map = L.map('infra-map').setView([-2.5489, 118.0149], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            var mapData = {{ map_data_json|safe }};
+            var markers = [];
+
+            mapData.forEach(function(item) {
+                if (item.lat && item.lng) {
+                    var markerColor = item.color; // 'red', 'green', etc.
+                    // Leaflet doesn't support colored markers natively easily without plugins or custom icons.
+                    // We will use standard blue for now, or maybe a simple custom HTMLDivIcon if needed later.
+                    // For now: Standard Blue Marker.
+                    
+                    var popupContent = `
+                        <div class="text-center">
+                            ${item.photo ? `<img src="${item.photo}" class="rounded mb-2" style="width:100px;height:60px;object-fit:cover;">` : ''}
+                            <h6 class="fw-bold mb-1">${item.name}</h6>
+                            <span class="badge bg-${item.color === 'red' ? 'danger' : 'success'} mb-2">${item.status}</span><br>
+                            <small class="text-muted">${item.type}</small><br>
+                            <a href="${item.url}" class="btn btn-sm btn-primary mt-2 text-white">View Detail</a>
+                        </div>
+                    `;
+
+                    var marker = L.marker([item.lat, item.lng]).addTo(map)
+                        .bindPopup(popupContent);
+                    markers.push(marker);
+                }
+            });
+
+            // Fit bounds if markers exist
+            if (markers.length > 0) {
+                var group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        });
+    </script>
+
+{% else %}
+    <!-- List View (Table) -->
+    <div class="card shadow mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-3">
+                                <a href="?{% param_replace sort='name' order='asc' %}" class="text-dark text-decoration-none">
+                                    Name {% if current_sort == 'name' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?{% param_replace sort='type' order='asc' %}" class="text-dark text-decoration-none">
+                                    Type {% if current_sort == 'type' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?{% param_replace sort='location' order='asc' %}" class="text-dark text-decoration-none">
+                                    Location {% if current_sort == 'location' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th>Capacity</th>
+                            <th>
+                                <a href="?{% param_replace sort='condition' order='asc' %}" class="text-dark text-decoration-none">
+                                    Condition {% if current_sort == 'condition' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?{% param_replace sort='last_maint' order='asc' %}" class="text-dark text-decoration-none">
+                                    Last Maint {% if current_sort == 'last_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?{% param_replace sort='next_maint' order='asc' %}" class="text-dark text-decoration-none">
+                                    Next Maint {% if current_sort == 'next_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th class="text-end pe-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in infra_assets %}
+                        <tr>
+                            <td class="ps-3">
+                                <div class="d-flex align-items-center">
+                                    {% if item.photo %}
+                                        <img src="{{ item.photo.url }}" class="rounded me-2" width="32" height="32" style="object-fit: cover; cursor: pointer;" title="View Image">
+                                    {% else %}
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                            <i class="fas fa-cube text-muted small"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <a href="{% url 'infra_detail' item.pk %}" class="text-dark fw-bold text-decoration-none">{{ item.name }}</a>
+                                        <div class="small text-muted">{{ item.infra_id }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ item.infra_type.name|default:item.get_type_display }}</span></td>
+                            <td>{{ item.location.name|default:"-" }}</td>
+                            <td>{{ item.capacity|default:"-" }}</td>
+                            <td>
+                                {% if item.condition == 'GOOD' or item.condition == 'EXCELLENT' %}
+                                    <span class="badge bg-success">{{ item.get_condition_display }}</span>
+                                {% elif item.condition == 'CRITICAL' or item.condition == 'POOR' %}
+                                    <span class="badge bg-danger">{{ item.get_condition_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">{{ item.get_condition_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.last_maintenance_date|date:"d M Y"|default:"-" }}</td>
+                            <td>
+                                {% if item.next_maintenance_date %}
+                                    {% if item.next_maintenance_date < today %}
+                                        <span class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>{{ item.next_maintenance_date|date:"d M Y" }}</span>
+                                    {% else %}
+                                        <span class="text-success">{{ item.next_maintenance_date|date:"d M Y" }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-3">
+                                <div class="btn-group">
+                                    <a href="{% url 'infra_detail' item.pk %}" class="btn btn-sm btn-outline-secondary" title="View Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'infra_update' item.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'infra_delete' item.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
+                                <p>No infrastructure items found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% include 'includes/pagination.html' %}
+{% endif %}
+
 {% endblock %}

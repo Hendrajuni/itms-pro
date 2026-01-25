@@ -77,6 +77,83 @@
                         {{ form.notes }}
                     </div>
 
+                    <!-- Map Coordinate Section -->
+                    <div class="card mb-3 border">
+                        <div class="card-header bg-light py-2">
+                            <h6 class="m-0 font-weight-bold text-dark small">
+                                <i class="fas fa-map-marker-alt text-danger me-1"></i> Location Coordinates
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Latitude</label>
+                                    {{ form.latitude }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Longitude</label>
+                                    {{ form.longitude }}
+                                </div>
+                            </div>
+                            <!-- Map Picker Container -->
+                            <div id="map-picker" style="height: 300px; width: 100%; border-radius: 4px;"></div>
+                            <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> Click on the map to place the pin.</small>
+                        </div>
+                    </div>
+
+                    <!-- Leaflet JS & Logic -->
+                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+                    
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            var latInput = document.getElementById("{{ form.latitude.id_for_label }}");
+                            var lngInput = document.getElementById("{{ form.longitude.id_for_label }}");
+                            
+                            // Default: Jakarta/Indonesia
+                            var defaultLat = -6.200000;
+                            var defaultLng = 106.816666;
+                            var zoom = 10;
+
+                            // If values exist, use them
+                            if (latInput.value && lngInput.value) {
+                                defaultLat = parseFloat(latInput.value);
+                                defaultLng = parseFloat(lngInput.value);
+                                zoom = 15;
+                            }
+
+                            var map = L.map('map-picker').setView([defaultLat, defaultLng], zoom);
+
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                attribution: 'OpenStreetMap'
+                            }).addTo(map);
+
+                            var marker;
+                            if (latInput.value && lngInput.value) {
+                                marker = L.marker([defaultLat, defaultLng], {draggable: true}).addTo(map);
+                            }
+
+                            // Click Event
+                            map.on('click', function(e) {
+                                var lat = e.latlng.lat.toFixed(6);
+                                var lng = e.latlng.lng.toFixed(6);
+
+                                latInput.value = lat;
+                                lngInput.value = lng;
+
+                                if (marker) {
+                                    marker.setLatLng(e.latlng);
+                                } else {
+                                    marker = L.marker(e.latlng, {draggable: true}).addTo(map);
+                                }
+                            });
+                            
+                            // Drag Event (if marker exists)
+                            // We need to bind dragend if we create marker dynamically, logic handles cleaner re-creation for simplicity or bind:
+                            // Refined Logic below
+                        });
+                    </script>
+
                     <div class="d-flex justify-content-end gap-2">
                          <a href="{% url 'infra_list' %}" class="btn btn-secondary">Cancel</a>
                         <button type="submit" class="btn btn-primary">

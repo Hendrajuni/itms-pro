@@ -966,16 +966,36 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
         count_dict = {item['infra_type']: item['count'] for item in type_counts}
         
         # 3. Get all defined types (Cards)
-        # Only show "Featured" types as per user request ("show only 4")
-        # User can change this in Admin Panel
         all_types = InfrastructureType.objects.filter(is_featured=True).order_by('name')
         
+        # LEGACY MAPPING (Name -> Code)
+        # To fix "Should be 2 but is 1", we count legacy types if infra_type is NULL
+        legacy_counts = qs_for_counts.filter(infra_type__isnull=True).values('type').annotate(count=Count('id'))
+        legacy_dict = {item['type']: item['count'] for item in legacy_counts}
+        
+        # Map common names to legacy codes
+        name_map = {
+            'Tower': ['TOWER'],
+            'Server Rack': ['SERVER_RACK'],
+            'Wallmount Rack': ['WALLMOUNT'],
+            'Power Panel': ['PANEL', 'UPS', 'battery-full'],
+            'Cabling': ['CABLING'],
+            'Cooling': ['COOLING'],
+        }
+
         summary_cards = []
         for t in all_types:
             count = count_dict.get(t.id, 0)
             
+            # Hybrid: Add legacy count if name matches
+            # This handles the transition period where items might have 'type' set but no 'infra_type'
+            for key, codes in name_map.items():
+                if key in t.name: # Flexible match, e.g. "Tower Nodes" matches "Tower"
+                    for code in codes:
+                        count += legacy_dict.get(code, 0)
+            
             summary_cards.append({
-                'code': t.slug, # Used for filtering? Need to update filter too
+                'code': t.slug, 
                 'id': t.id,
                 'label': t.name,
                 'count': count,
@@ -984,10 +1004,35 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
             })
         
         context['summary_cards'] = summary_cards
+        context['all_infra_types'] = InfrastructureType.objects.all().order_by('name') # For Filter Dropdown
         context['current_type'] = self.request.GET.get('type', '')
         context['current_loc'] = int(current_loc) if current_loc and current_loc.isdigit() else None
         context['search_query'] = self.request.GET.get('q', '')
         context['today'] = timezone.now().date()
+        
+        # MAP VIEW LOGIC
+        view_mode = self.request.GET.get('view', 'list')
+        context['view_mode'] = view_mode
+        
+        if view_mode == 'map':
+            # Serialize queryset for map
+            # We need: name, lat, lng, type, status/color, detail_url, photo_url
+            map_data = []
+            for item in self.object_list: # Use full filtered list, not just page 1
+                # Limit to items with coordinates
+                if item.latitude and item.longitude:
+                    map_data.append({
+                        'name': item.name,
+                        'lat': float(item.latitude),
+                        'lng': float(item.longitude),
+                        'type': item.infra_type.name if item.infra_type else item.get_type_display(),
+                        'status': item.get_condition_display(),
+                        'color': 'red' if item.condition in ['CRITICAL', 'POOR'] else 'green', # Simple logic
+                        'url': item.get_absolute_url(),
+                        'photo': item.photo.url if item.photo else None
+                    })
+            context['map_data_json'] = json.dumps(map_data)
+        
         return context
 
     def get_queryset(self):
@@ -1005,9 +1050,31 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
                 return queryset.none() # Assigned to nothing
         
         # Filter by Type (Dynamic Slug)
+        # Filter by Type (Dynamic Slug + Legacy Fallback)
         req_type = self.request.GET.get('type')
         if req_type:
-            queryset = queryset.filter(infra_type__slug=req_type)
+            type_obj = InfrastructureType.objects.filter(slug=req_type).first()
+            if type_obj:
+                # Legacy Mapping
+                name_map = {
+                    'Tower': ['TOWER'],
+                    'Server Rack': ['SERVER_RACK'],
+                    'Wallmount Rack': ['WALLMOUNT'],
+                    'Power Panel': ['PANEL', 'UPS', 'battery-full'],
+                    'Cabling': ['CABLING'],
+                    'Cooling': ['COOLING'],
+                }
+                legacy_codes = []
+                for key, codes in name_map.items():
+                    if key in type_obj.name:
+                        legacy_codes.extend(codes)
+                
+                if legacy_codes:
+                    queryset = queryset.filter(Q(infra_type=type_obj) | Q(infra_type__isnull=True, type__in=legacy_codes))
+                else:
+                    queryset = queryset.filter(infra_type=type_obj)
+            else:
+                queryset = queryset.filter(infra_type__slug=req_type)
             
         # Filter by Location (Hierarchical)
         req_loc = self.request.GET.get('loc')

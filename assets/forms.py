@@ -242,7 +242,7 @@ class CloudAssetForm(forms.ModelForm):
 class InfrastructureForm(forms.ModelForm):
     class Meta:
         model = Infrastructure
-        fields = ['name', 'type', 'location', 'capacity', 'photo', 'condition', 'last_maintenance_date', 'next_maintenance_date', 'notes']
+        fields = ['name', 'type', 'location', 'capacity', 'photo', 'condition', 'last_maintenance_date', 'next_maintenance_date', 'notes', 'latitude', 'longitude']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'type': forms.Select(attrs={'class': 'form-select'}),
@@ -253,6 +253,8 @@ class InfrastructureForm(forms.ModelForm):
             'last_maintenance_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'next_maintenance_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001', 'placeholder': 'Latitude (e.g. -6.200000)'}),
+            'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001', 'placeholder': 'Longitude (e.g. 106.816666)'}),
         }
 
 class LocationForm(forms.ModelForm):

@@ -147,6 +147,21 @@
                                 <th class="text-muted">Location</th>
                                 <td>{{ infrastructure.location.name|default:"-" }}</td>
                             </tr>
+                            <tr>
+                                <th class="text-muted">Coordinates</th>
+                                <td>
+                                    {% if infrastructure.latitude and infrastructure.longitude %}
+                                        <div class="d-flex align-items-center">
+                                            <span class="font-monospace me-2">{{ infrastructure.latitude }}, {{ infrastructure.longitude }}</span>
+                                            <a href="https://www.google.com/maps?q={{ infrastructure.latitude }},{{ infrastructure.longitude }}" target="_blank" class="text-primary" title="Open in Google Maps">
+                                                <i class="fas fa-map-marked-alt"></i>
+                                            </a>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
                              <tr>
                                 <th class="text-muted">Capacity/Spec</th>
                                 <td>{{ infrastructure.capacity|default:"-" }}</td>

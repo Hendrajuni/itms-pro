@@ -479,6 +479,10 @@ class Infrastructure(models.Model):
     
     notes = models.TextField(blank=True, null=True)
     
+    # Map Coordinates
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, help_text="Lat coordinate, e.g. -6.200000")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, help_text="Long coordinate, e.g. 106.816666")
+    
     def save(self, *args, **kwargs):
         if not self.infra_id:
             today = date.today()
