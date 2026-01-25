@@ -83,20 +83,35 @@
                     <tr>
                         <td class="ps-3">
                             <div class="fw-bold text-dark">{{ contract.title }}</div>
-                            <div class="small text-muted"><i class="fas fa-building me-1"></i>{{ contract.vendor.name }}</div>
+                            <div class="small text-muted mb-1"><i class="fas fa-building me-1"></i>{{ contract.vendor.name }}</div>
+                            <!-- Service Details -->
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if contract.ip_address %}
+                                <span class="badge bg-light text-secondary border font-monospace"><i class="fas fa-network-wired me-1"></i>{{ contract.ip_address }}</span>
+                                {% endif %}
+                                {% if contract.login_url %}
+                                <a href="{{ contract.login_url }}" target="_blank" class="badge bg-primary bg-opacity-10 text-primary border border-primary text-decoration-none"><i class="fas fa-external-link-alt me-1"></i>Console</a>
+                                {% endif %}
+                            </div>
                         </td>
                         <td>
-                            <span class="badge bg-light text-dark border">{{ contract.get_contract_type_display }}</span>
+                            <span class="badge bg-light text-dark border d-block mb-1">{{ contract.get_contract_type_display }}</span>
+                            <small class="text-muted">{{ contract.get_billing_cycle_display }}</small>
                         </td>
                         <td>
                             <div class="small text-dark">{{ contract.start_date|date:"M Y" }} - {{ contract.end_date|date:"M Y" }}</div>
-                            <small class="text-muted">
-                                {% if contract.days_remaining < 0 %}
-                                    Overdue by {{ contract.days_remaining|stringformat:"d"|slice:"1:" }} days
-                                {% else %}
-                                    {{ contract.days_remaining }} days left
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <small class="text-muted">
+                                    {% if contract.days_remaining < 0 %}
+                                        Overdue by {{ contract.days_remaining|stringformat:"d"|slice:"1:" }} days
+                                    {% else %}
+                                        {{ contract.days_remaining }} days left
+                                    {% endif %}
+                                </small>
+                                {% if contract.auto_renew %}
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info" title="Auto Renew On"><i class="fas fa-sync-alt small"></i> Auto</span>
                                 {% endif %}
-                            </small>
+                            </div>
                         </td>
                         <td class="fw-bold text-dark">Rp {{ contract.cost|intcomma }}</td>
                         <td>

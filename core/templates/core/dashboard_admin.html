@@ -18,6 +18,23 @@
 </div>
 {% endif %}
 
+{% if expiring_software %}
+<div class="alert alert-danger d-flex align-items-center mb-4 shadow-sm" role="alert">
+    <div class="bg-danger bg-opacity-25 rounded-circle p-2 me-3">
+         <i class="fas fa-compact-disc display-6 text-danger" style="font-size: 1.5rem;"></i>
+    </div>
+    <div class="flex-grow-1">
+        <h5 class="alert-heading fw-bold mb-1">Attention: {{ expiring_software|length }} Software Licenses Expiring Soon</h5>
+        <ul class="mb-0 small text-dark ps-3">
+            {% for sw in expiring_software %}
+            <li><strong>{{ sw.name }}</strong> ({{ sw.get_license_type_display }}) expires on {{ sw.expiry_date|date:"M d, Y" }} <span class="text-danger fw-bold">({{ sw.days_until_expiry }} days left)</span>.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <a href="{% url 'software_list' %}" class="btn btn-outline-danger btn-sm fw-bold">Check Licenses</a>
+</div>
+{% endif %}
+
 <div class="mb-4">
     <h3 class="fw-bold text-dark">
         {{ greeting }}, {{ request.user.first_name|default:request.user.username }}!
@@ -217,6 +234,111 @@
                     </div>
                     {% empty %}
                     <div class="text-center py-4 text-muted">No recent activity</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Extra Widgets: Workload & Maintenance -->
+<div class="row g-4 mb-4">
+    <!-- Technician Workload -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                 <h6 class="m-0 fw-bold"><i class="fas fa-users-cog me-2 text-info"></i>Technician Workload</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="bg-light small text-uppercase">
+                            <tr>
+                                <th class="ps-3">Technician</th>
+                                <th>Branch</th>
+                                <th>Active Tasks</th>
+                                <th>Load</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tech in tech_workload %}
+                            <tr>
+                                <td class="ps-3">
+                                    <a href="{% url 'dailylog_list' %}?executor={{ tech.id }}" class="text-decoration-none text-dark d-block">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                                <i class="fas fa-user text-primary small"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-bold d-block text-dark small">{{ tech.get_full_name|default:tech.username }}</span>
+                                                <small class="text-muted" style="font-size: 0.75rem;">{{ tech.email|truncatechars:20 }}</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if tech.location %}
+                                        <i class="fas fa-map-marker-alt me-1 text-danger small"></i>{{ tech.location.name }}
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-bold fs-5 text-dark">{{ tech.open_load }}</td>
+                                <td style="width: 35%;">
+                                    {% if tech.open_load > 5 %}
+                                        {%  widthratio tech.open_load 10 100 as pct %}
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ pct }}%"></div>
+                                        </div>
+                                        <small class="text-danger fw-bold">Heavy</small>
+                                    {% elif tech.open_load > 2 %}
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 50%"></div>
+                                        </div>
+                                        <small class="text-warning">Moderate</small>
+                                    {% else %}
+                                         <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 20%"></div>
+                                        </div>
+                                        <small class="text-success">Light</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted">No Workload Data</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Maintenance Schedule -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                 <h6 class="m-0 fw-bold"><i class="fas fa-calendar-alt me-2 text-success"></i>Maintenance (Next 7 Days)</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for m in upcoming_maintenance %}
+                    <div class="list-group-item px-4 py-3 border-bottom-0">
+                        <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0 fw-bold text-dark">{{ m.title }}</h6>
+                            <small class="badge bg-light text-dark border">{{ m.date|date:"D, M d" }}</small>
+                        </div>
+                        <p class="mb-1 text-muted small"><i class="fas fa-bullseye me-1"></i> {{ m.target }}</p>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="badge bg-{{1|random|yesno:'info,primary' }} bg-opacity-10 text-dark">{{ m.type }}</span>
+                            <small class="text-muted"><i class="fas fa-user-hard-hat me-1"></i> {{ m.technician.username|default:"Unassigned" }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-calendar-check fa-2x mb-2 opacity-50"></i>
+                        <p>No scheduled maintenance for next 7 days.</p>
+                    </div>
                     {% endfor %}
                 </div>
             </div>

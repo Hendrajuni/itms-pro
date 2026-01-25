@@ -604,6 +604,7 @@ class Software(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_license_type_display()})"
     
+    @property
     def availability_percentage(self):
         if self.seats_total == 0: return 0
         return (self.seats_used / self.seats_total) * 100
@@ -651,9 +652,18 @@ class Contract(models.Model):
         ('SERVICE', 'Service/Maintenance'),
         ('LEASE', 'Lease/Rental'),
         ('WARRANTY', 'Warranty Extension'),
-        ('DOMAIN', 'Domain/Hosting'),
-        ('ISP', 'ISP Contract'),
+        ('DOMAIN', 'Domain Name'),
+        ('HOSTING', 'Web Hosting / VPS'),
+        ('SAAS', 'SaaS Subscription'),
+        ('ISP', 'Internet Service Provider'),
+        ('SSL', 'SSL Certificate'),
         ('OTHER', 'Other'),
+    ]
+
+    BILLING_CYCLE_CHOICES = [
+        ('MONTHLY', 'Monthly'),
+        ('YEARLY', 'Yearly'),
+        ('ONE_TIME', 'One Time'),
     ]
 
     STATUS_CHOICES = [
@@ -668,9 +678,15 @@ class Contract(models.Model):
     
     start_date = models.DateField()
     end_date = models.DateField()
+    billing_cycle = models.CharField(max_length=20, choices=BILLING_CYCLE_CHOICES, default='YEARLY')
+    auto_renew = models.BooleanField(default=False)
     
     cost = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total Contract Value")
     document = models.FileField(upload_to='contracts/', blank=True, null=True, help_text="PDF/Docx Scan")
+    
+    # Cloud/Service Specific Fields
+    ip_address = models.GenericIPAddressField(blank=True, null=True, help_text="For VPS/Hosting")
+    login_url = models.URLField(blank=True, null=True, help_text="Console/Dashboard URL")
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE', editable=False)
     notes = models.TextField(blank=True, null=True)

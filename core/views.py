@@ -9,7 +9,11 @@ from django.db.models import Count, Sum
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.utils import timezone
 from datetime import timedelta
-from assets.models import Asset, Contract
+from assets.models import Asset, Contract, Software
+from maintenance.models import AssetMaintenance, InfraMaintenance
+from django.db.models import Q
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from tickets.models import Ticket
 from network.models import NetworkNode
 from governance.models import DailyLog
@@ -32,6 +36,7 @@ def get_dashboard_stats(user):
     Context helper to fetch dashboard statistics based on role.
     """
     from datetime import datetime, timedelta
+    from django.db.models import Q
     stats = {}
     
     # 1. Staff Stats
@@ -83,6 +88,59 @@ def get_dashboard_stats(user):
             end_date__lte=timezone.localdate() + timedelta(days=30),
             end_date__gte=timezone.localdate()
         ).exclude(status='CANCELLED')[:5]
+
+        # Software Subscriptions Expiring Soon (30 Days)
+        stats['expiring_software'] = Software.objects.filter(
+            expiry_date__lte=timezone.localdate() + timedelta(days=30),
+            expiry_date__gte=timezone.localdate()
+        ).exclude(license_type='PERPETUAL')[:5]
+
+        # -----------------------------------------------------
+        # NEW WIDGETS
+        # -----------------------------------------------------
+        
+        # 1. Technician Workload (Top 5 busiest)
+        # We look for users in 'IT Support' group
+        stats['tech_workload'] = User.objects.filter(groups__name='IT Support').select_related('location').annotate(
+            open_load=Count('tickets_assigned', filter=Q(tickets_assigned__status__in=['Open', 'In Progress']))
+        ).order_by('-open_load')[:5]
+        
+        # 2. Upcoming Maintenance Journey (Next 7 Days)
+        start_date = timezone.localdate()
+        end_date = start_date + timedelta(days=7)
+        
+        asset_maint = AssetMaintenance.objects.filter(
+            scheduled_date__range=[start_date, end_date], 
+            status='Scheduled'
+        ).select_related('asset')
+        
+        infra_maint = InfraMaintenance.objects.filter(
+            scheduled_date__range=[start_date, end_date], 
+            status='Scheduled'
+        ).select_related('infrastructure')
+        
+        # Combine and Sort
+        combined_maint = []
+        for m in asset_maint:
+            combined_maint.append({
+                'title': m.title,
+                'target': m.asset.name,
+                'date': m.scheduled_date,
+                'type': 'Asset',
+                'technician': m.technician
+            })
+        for m in infra_maint:
+            combined_maint.append({
+                'title': m.title,
+                'target': m.infrastructure.name,
+                'date': m.scheduled_date,
+                'type': 'Infrastructure',
+                'technician': m.technician
+            })
+            
+        # Sort by date
+        combined_maint.sort(key=lambda x: x['date'])
+        stats['upcoming_maintenance'] = combined_maint
 
     # --- Phase 42: Dynamic Greeting & Quotes ---
     # --- Phase 42: Dynamic Greeting & Quotes ---
@@ -506,76 +564,160 @@ from django.contrib.auth import get_user_model
 
 class GlobalSearchView(LoginRequiredMixin, View):
     def get(self, request):
+        user = request.user
         query = request.GET.get('q', '').strip()
         results = []
         
         if len(query) < 2:
             return JsonResponse({'results': []})
+
+        # --- Scoping Logic ---
+        # 1. Admin/Superuser/Manager -> Global Scope
+        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        
+        # 2. Branch IT -> Local Scope (Descendants of their location)
+        allowed_locations = []
+        if not is_global and hasattr(user, 'location') and user.location:
+             allowed_locations = user.location.get_descendants(include_self=True)
+             
+        # Helper filter
+        def get_scoped_filter(model_type):
+            if is_global:
+                return Q() # No filter
             
+            if not allowed_locations:
+                # If no location assigned but not global, maybe show nothing or just assigned to them?
+                # Let's default to "Assigned to Me" strictly if no location logic applies
+                if model_type == 'Asset':
+                     return Q(assigned_to=user)
+                if model_type == 'Ticket':
+                     return Q(assigned_to=user) | Q(created_by=user)
+                return Q(pk__in=[]) # Fail safe
+                
+            # Location based filter
+            loc_ids = [l.id for l in allowed_locations]
+            if model_type == 'Asset':
+                return Q(location_id__in=loc_ids)
+            if model_type == 'Ticket':
+                # Tickets in my location OR created by users in my location OR assigned to me
+                return Q(asset__location_id__in=loc_ids) | Q(created_by__location_id__in=loc_ids) | Q(assigned_to=user)
+            if model_type == 'NetworkNode':
+                return Q(location_id__in=loc_ids)
+            if model_type == 'User':
+                return Q(location_id__in=loc_ids)
+            if model_type == 'Maintenance':
+                return Q(asset__location_id__in=loc_ids) | Q(technician=user)
+            if model_type == 'InfraMaintenance':
+                return Q(infrastructure__location_id__in=loc_ids) | Q(technician=user)
+                
+            return Q()
+
         # 1. Assets
         assets = Asset.objects.filter(
-            Q(name__icontains=query) | 
+            (Q(name__icontains=query) | 
             Q(asset_code__icontains=query) |
-            Q(serial_number__icontains=query)
+            Q(serial_number__icontains=query)) &
+            get_scoped_filter('Asset')
         )[:5]
         for asset in assets:
             results.append({
                 'type': 'Asset',
                 'text': f"{asset.name} ({asset.asset_code})",
-                'url': f"/assets/{asset.id}/", # Assuming asset detail URL pattern
+                'detail': asset.location.name if asset.location else 'No Location',
+                'url': f"/assets/{asset.id}/", 
                 'icon': 'fas fa-laptop'
             })
             
         # 2. Tickets
         tickets = Ticket.objects.filter(
-            Q(title__icontains=query) |
-            Q(ticket_code__icontains=query)
+            (Q(title__icontains=query) |
+            Q(ticket_code__icontains=query)) &
+            get_scoped_filter('Ticket')
         )[:5]
         for ticket in tickets:
             results.append({
                 'type': 'Ticket',
                 'text': f"{ticket.ticket_code} {ticket.title}",
+                'detail': ticket.get_status_display(),
                 'url': f"/tickets/{ticket.id}/",
                 'icon': 'fas fa-ticket-alt'
             })
             
-        # 3. Network Nodes
-        nodes = NetworkNode.objects.filter(
-            Q(name__icontains=query) |
-            Q(ip_address__icontains=query)
+        # 3. Tasks (Maintenance)
+        from maintenance.models import AssetMaintenance, InfraMaintenance
+        
+        # Search Asset Maintenance
+        asset_maint = AssetMaintenance.objects.filter(
+            (Q(title__icontains=query) |
+            Q(maintenance_code__icontains=query)) &
+            get_scoped_filter('Maintenance')
+        )[:3]
+        for m in asset_maint:
+            results.append({
+                'type': 'Task',
+                'text': f"{m.maintenance_code} - {m.title}",
+                'detail': 'Asset Maintenance',
+                'url': f"/maintenance/", 
+                'icon': 'fas fa-tools'
+            })
+
+        # Search Infra Maintenance
+        infra_maint = InfraMaintenance.objects.filter(
+            (Q(title__icontains=query) |
+            Q(maintenance_code__icontains=query)) &
+            get_scoped_filter('InfraMaintenance')
+        )[:3]
+        for m in infra_maint:
+            results.append({
+                'type': 'Task',
+                'text': f"{m.maintenance_code} - {m.title}",
+                'detail': 'Infra Maintenance',
+                'url': f"/maintenance/", 
+                'icon': 'fas fa-server'
+            })
+            
+        # 4. Users
+        User = get_user_model()
+        users = User.objects.filter(
+            (Q(username__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query)) &
+            get_scoped_filter('User')
         )[:5]
+        for u in users:
+            results.append({
+                'type': 'User',
+                'text': u.get_full_name() or u.username,
+                'detail': u.job_title or 'Staff',
+                'url': f"/administration/users/", 
+                'icon': 'fas fa-user'
+            })
+            
+        # 5. Network Nodes
+        nodes = NetworkNode.objects.filter(
+            (Q(name__icontains=query) |
+            Q(ip_address__icontains=query)) &
+            get_scoped_filter('NetworkNode')
+        )[:3]
         for node in nodes:
             results.append({
                 'type': 'Node',
                 'text': f"{node.name} ({node.ip_address})",
-                'url': f"/network/nodes/", # No detail view yet, go to list
-                'icon': 'fas fa-server'
+                'detail': node.location.name if node.location else '-',
+                'url': f"/network/nodes/",
+                'icon': 'fas fa-network-wired'
             })
             
-        # 4. Knowledge Base
-        articles = Article.objects.filter(title__icontains=query)[:5]
+        # 6. Knowledge Base (Usually Global, but can optionally restrict)
+        # For now, let's keep it global as knowledge is shared.
+        articles = Article.objects.filter(title__icontains=query)[:3]
         for article in articles:
             results.append({
                 'type': 'Article',
                 'text': article.title,
+                'detail': 'Knowledge Base',
                 'url': f"/knowledge/article/{article.id}/",
                 'icon': 'fas fa-book'
             })
-            
-        # 5. Users
-        User = get_user_model()
-        users = User.objects.filter(
-            Q(username__icontains=query) |
-            Q(first_name__icontains=query) |
-            Q(last_name__icontains=query)
-        )[:5]
-        for user in users:
-            # Only show if user is admin/staff? Everyone can see users.
-            results.append({
-                'type': 'User',
-                'text': user.get_full_name() or user.username,
-                'url': f"#", # No public profile view other than admin
-                'icon': 'fas fa-user'
-            })
-            
+
         return JsonResponse({'results': results})

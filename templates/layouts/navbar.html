@@ -44,7 +44,6 @@
             {% endif %}
 
             <script>
-            <script>
                 {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
                 document.addEventListener('DOMContentLoaded', function() {
                     const searchInput = document.getElementById('global-search');
@@ -74,6 +73,8 @@
                             return;
                         }
 
+                        // Show loading state (optional, can add a spinner icon in input)
+
                         timeout = setTimeout(() => {
                             fetch(`/global-search/?q=${encodeURIComponent(query)}`)
                                 .then(response => response.json())
@@ -82,26 +83,57 @@
                                     if (data.results.length > 0) {
                                         resultsContainer.classList.remove('d-none');
                                         
-                                        // Group by Type (Optional, currently just list)
-                                        data.results.forEach(item => {
-                                            const el = document.createElement('a');
-                                            el.href = item.url;
-                                            el.className = 'd-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light';
-                                            el.innerHTML = `
-                                                <div class="bg-light rounded p-2 me-3 text-primary">
-                                                    <i class="${item.icon}"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="fw-bold text-dark">${item.text}</div>
-                                                    <div class="small text-muted text-uppercase">${item.type}</div>
-                                                </div>
-                                            `;
-                                            resultsContainer.appendChild(el);
+                                        // Group results by type
+                                        const grouped = data.results.reduce((acc, item) => {
+                                            if (!acc[item.type]) acc[item.type] = [];
+                                            acc[item.type].push(item);
+                                            return acc;
+                                        }, {});
+
+                                        // Render structured results
+                                        Object.keys(grouped).forEach(type => {
+                                            // Header
+                                            const header = document.createElement('div');
+                                            header.className = 'px-3 py-2 bg-light text-muted small fw-bold text-uppercase border-bottom';
+                                            header.innerText = type;
+                                            resultsContainer.appendChild(header);
+
+                                            // Items
+                                            grouped[type].forEach(item => {
+                                                const el = document.createElement('a');
+                                                el.href = item.url;
+                                                el.className = 'd-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light';
+                                                
+                                                let iconHtml = `<div class="bg-light rounded p-2 me-3 text-primary"><i class="${item.icon}"></i></div>`;
+                                                
+                                                // Avatars for Users
+                                                if (type === 'User') {
+                                                    const initial = item.text.charAt(0).toUpperCase();
+                                                    iconHtml = `<div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px;">${initial}</div>`;
+                                                }
+
+                                                el.innerHTML = `
+                                                    ${iconHtml}
+                                                    <div>
+                                                        <div class="fw-bold text-dark">${item.text}</div>
+                                                        ${item.detail ? `<div class="small text-muted">${item.detail}</div>` : ''}
+                                                    </div>
+                                                `;
+                                                resultsContainer.appendChild(el);
+                                            });
                                         });
+
                                     } else {
                                         resultsContainer.classList.remove('d-none');
-                                        resultsContainer.innerHTML = '<div class="p-3 text-center text-muted">No results found</div>';
+                                        resultsContainer.innerHTML = `
+                                            <div class="p-4 text-center text-muted">
+                                                <i class="fas fa-search fa-2x mb-2 text-secondary opacity-50"></i>
+                                                <p class="mb-0">No matches found for "${query}"</p>
+                                            </div>`;
                                     }
+                                })
+                                .catch(err => {
+                                    console.error('Search error:', err);
                                 });
                         }, 300);
                     });

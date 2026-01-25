@@ -775,7 +775,57 @@ class SoftwareListView(LoginRequiredMixin, ListView):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        return super().get_queryset().select_related('vendor', 'category')
+        qs = super().get_queryset().select_related('vendor', 'category')
+        
+        # Search
+        q = self.request.GET.get('q')
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q) | 
+                Q(license_key__icontains=q) |
+                Q(vendor__name__icontains=q)
+            )
+            
+        # Filter by Type
+        l_type = self.request.GET.get('type')
+        if l_type:
+            qs = qs.filter(license_type=l_type)
+            
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # KPI Stats
+        all_sw = self.get_queryset()
+        
+        # 1. Financials
+        context['total_spend'] = all_sw.aggregate(total=Sum('price'))['total'] or 0
+        
+        # 2. Compliance / Allocation
+        # Need to know how many licenses are fully used or over-allocated (if possible)
+        # We can sum seats_total and seats_used
+        agg = all_sw.aggregate(total_seats=Sum('seats_total'), used_seats=Sum('seats_used'))
+        total_seats = agg['total_seats'] or 0
+        used_seats = agg['used_seats'] or 0
+        
+        if total_seats > 0:
+            context['utilization_rate'] = int((used_seats / total_seats) * 100)
+        else:
+            context['utilization_rate'] = 0
+            
+        context['licenses_tracked'] = all_sw.count()
+        
+        # 3. Expiry Warning
+        today = timezone.now().date()
+        warning_date = today + timedelta(days=30)
+        context['expiring_soon'] = all_sw.filter(expiry_date__lte=warning_date, expiry_date__gte=today).count()
+        
+        # Param passing
+        context['current_type'] = self.request.GET.get('type', '')
+        context['search_query'] = self.request.GET.get('q', '')
+        
+        return context
 
 class SoftwareCreateView(LoginRequiredMixin, CreateView):
     model = Software

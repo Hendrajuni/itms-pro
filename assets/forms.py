@@ -204,11 +204,13 @@ class SoftwareForm(forms.ModelForm):
 class SoftwareAllocationForm(forms.ModelForm):
     class Meta:
         model = SoftwareAllocation
-        fields = ['software', 'assigned_date', 'notes']
+        fields = ['software', 'employee', 'asset', 'assigned_date', 'notes']
         widgets = {
-            'software': forms.Select(attrs={'class': 'form-select form-select-sm'}),
-            'assigned_date': forms.DateInput(attrs={'class': 'form-control form-control-sm', 'type': 'date'}),
-            'notes': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Notes...'}),
+            'software': forms.Select(attrs={'class': 'form-select'}),
+            'employee': forms.Select(attrs={'class': 'form-select'}),
+            'asset': forms.Select(attrs={'class': 'form-select'}),
+            'assigned_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
 SoftwareAllocationFormSet = inlineformset_factory(
@@ -267,15 +269,19 @@ class LocationForm(forms.ModelForm):
 class ContractForm(forms.ModelForm):
     class Meta:
         model = Contract
-        fields = ['title', 'vendor', 'contract_type', 'start_date', 'end_date', 'cost', 'document', 'notify_days_before', 'notes']
+        fields = ['title', 'vendor', 'contract_type', 'start_date', 'end_date', 'billing_cycle', 'cost', 'ip_address', 'login_url', 'document', 'auto_renew', 'notify_days_before', 'notes']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'vendor': forms.Select(attrs={'class': 'form-select'}),
             'contract_type': forms.Select(attrs={'class': 'form-select'}),
             'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'billing_cycle': forms.Select(attrs={'class': 'form-select'}),
             'cost': forms.NumberInput(attrs={'class': 'form-control'}),
+            'ip_address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional (for VPS/Hosting)'}),
+            'login_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'Optional (https://...)'}),
             'document': forms.FileInput(attrs={'class': 'form-control'}),
+            'auto_renew': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'notify_days_before': forms.NumberInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }

@@ -103,10 +103,13 @@
                                 <a href="{% url 'asset_list' %}" class="nav-link {% if 'assets' in request.path and not 'analytics' in request.path %}active{% endif %}">Hardware</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'software_list' %}" class="nav-link {% if 'software' in request.path %}active{% endif %}">Software</a>
+                                <a href="{% url 'software_list' %}" class="nav-link {% if 'software' in request.path %}active{% endif %}">
+                                    <span>Software & Licenses</span> 
+                                    <!-- Optional: Badge if needed, otherwise clean -->
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'contract_list' %}" class="nav-link {% if 'contracts' in request.path %}active{% endif %}">Contracts</a>
+                                <a href="{% url 'contract_list' %}" class="nav-link {% if 'contracts' in request.path %}active{% endif %}">Services & Contracts</a>
                             </li>
                         </ul>
                     </div>
@@ -124,9 +127,7 @@
                             <li class="nav-item">
                                 <a href="{% url 'infra_list' %}" class="nav-link {% if 'infrastructure' in request.path %}active{% endif %}">Physical Infra</a>
                             </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cloud_list' %}" class="nav-link {% if 'cloud' in request.path %}active{% endif %}">Cloud</a>
-                            </li>
+
                             <li class="nav-item">
                                 <a href="{% url 'network_node_list' %}" class="nav-link {% if 'nodes' in request.path %}active{% endif %}">Network Nodes</a>
                             </li>
@@ -147,15 +148,11 @@
                     </a>
                     <div class="collapse {% if 'tickets' in request.path or 'maintenance' in request.path or 'knowledge' in request.path %}show{% endif %}" id="opsSubmenu">
                         <ul class="nav-tree">
-                            <li class="nav-item">
-                                <a href="{% url 'ticket_list' %}" class="nav-link {% if 'tickets' in request.path %}active{% endif %}">Helpdesk</a>
-                            </li>
+
                             <li class="nav-item">
                                 <a href="{% url 'maintenance_dashboard' %}" class="nav-link {% if 'maintenance' in request.path %}active{% endif %}">Maintenance</a>
                             </li>
-                             <li class="nav-item">
-                                <a href="{% url 'article_list' %}" class="nav-link {% if 'knowledge' in request.path %}active{% endif %}">Knowledge Base</a>
-                            </li>
+
                         </ul>
                     </div>
                 </li>
@@ -236,6 +233,15 @@
                         <span>Site Settings</span>
                     </a>
                 </li>
+
+                {% if user.is_superuser %}
+                <li class="nav-item">
+                    <a href="{% url 'admin:index' %}" class="nav-link" target="_blank">
+                        <i class="fas fa-shield-alt icon"></i>
+                        <span>Django Admin</span>
+                    </a>
+                </li>
+                {% endif %}
             {% endif %}
 
         </ul>
