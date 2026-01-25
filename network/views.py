@@ -78,13 +78,14 @@ class AssignIpView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 # --- Device Manager (Nodes) ---
+# --- Device Manager (Nodes) ---
 class NetworkNodeListView(LoginRequiredMixin, ListView):
     model = NetworkNode
     template_name = 'network/node_list.html'
     context_object_name = 'nodes'
 
     def get_queryset(self):
-        qs = NetworkNode.objects.select_related('location').all()
+        qs = NetworkNode.objects.select_related('location', 'infrastructure', 'asset').all()
         q = self.request.GET.get('q')
         if q:
             qs = qs.filter(name__icontains=q)
@@ -105,6 +106,65 @@ class NetworkNodeListView(LoginRequiredMixin, ListView):
         context['offline_count'] = NetworkNode.objects.filter(status='Offline').count()
         context['total_count'] = NetworkNode.objects.count()
         return context
+
+from django import forms
+from assets.models import Location, Infrastructure
+
+class NetworkNodeForm(forms.ModelForm):
+    class Meta:
+        model = NetworkNode
+        fields = ['name', 'type', 'location', 'infrastructure', 'ip_address', 'mac_address', 'asset', 'notes']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['location'].queryset = Location.objects.order_by('name')
+        self.fields['infrastructure'].queryset = Infrastructure.objects.order_by('name')
+        # Optional: Filter Infrastructure by Location if location selected? (Dynamic JS needed, skipping for now)
+
+class NetworkNodeCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = NetworkNode
+    form_class = NetworkNodeForm
+    template_name = 'network/node_form.html'
+    success_url = reverse_lazy('network_node_list')
+
+    def test_func(self):
+        return self.request.user.groups.filter(name__in=['IT Support', 'Admin']).exists() or self.request.user.is_superuser
+
+    def form_valid(self, form):
+        messages.success(self.request, "Network Node added successfully.")
+        return super().form_valid(form)
+
+class NetworkNodeUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = NetworkNode
+    form_class = NetworkNodeForm
+    template_name = 'network/node_form.html'
+    success_url = reverse_lazy('network_node_list')
+
+    def test_func(self):
+        return self.request.user.groups.filter(name__in=['IT Support', 'Admin']).exists() or self.request.user.is_superuser
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Network Node updated successfully.")
+        return super().form_valid(form)
+
+class NetworkNodeDeleteView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    # Using TemplateView for a simple confirmation page or we can use DeleteView
+    # But usually DeleteView requires a template.
+    template_name = 'network/node_confirm_delete.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['node'] = get_object_or_404(NetworkNode, pk=self.kwargs['pk'])
+        return context
+        
+    def post(self, request, *args, **kwargs):
+        node = get_object_or_404(NetworkNode, pk=self.kwargs['pk'])
+        node.delete()
+        messages.success(request, "Network Node deleted.")
+        return redirect('network_node_list')
+
+    def test_func(self):
+        return self.request.user.groups.filter(name__in=['Admin']).exists() or self.request.user.is_superuser
 
 # --- API: On-Demand Ping ---
 from django.http import JsonResponse

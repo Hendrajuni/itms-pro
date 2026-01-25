@@ -7,6 +7,9 @@ urlpatterns = [
     path('downtimes/<int:pk>/resolve/', views.ResolveDowntimeView.as_view(), name='resolve_downtime'),
     
     path('nodes/', views.NetworkNodeListView.as_view(), name='network_node_list'),
+    path('nodes/add/', views.NetworkNodeCreateView.as_view(), name='network_node_create'),
+    path('nodes/<int:pk>/edit/', views.NetworkNodeUpdateView.as_view(), name='network_node_update'),
+    path('nodes/<int:pk>/delete/', views.NetworkNodeDeleteView.as_view(), name='network_node_delete'),
     path('nodes/ping/<int:pk>/', views.PingNodeView.as_view(), name='ping_node'),
     
     path('ips/', views.IPAddressListView.as_view(), name='ip_list'),

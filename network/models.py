@@ -45,6 +45,7 @@ class NetworkNode(models.Model):
     name = models.CharField(max_length=200, help_text="e.g., Core Switch Lt 2")
     type = models.CharField(max_length=50, choices=TYPE_CHOICES)
     location = models.ForeignKey(Location, on_delete=models.CASCADE)
+    infrastructure = models.ForeignKey('assets.Infrastructure', on_delete=models.SET_NULL, null=True, blank=True, related_name='network_nodes', help_text="Rack/Tower location")
     asset = models.OneToOneField(Asset, on_delete=models.SET_NULL, null=True, blank=True, related_name='network_node', help_text="Link to Asset Inventory if exists")
     
     ip_address = models.GenericIPAddressField(protocol='both', unpack_ipv4=False, null=True, blank=True, help_text="Management IP (Required for Ping)")

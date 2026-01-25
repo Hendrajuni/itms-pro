@@ -1,0 +1,100 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit Node{% else %}Add Node{% endif %} - NMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    {% if form.instance.pk %}Edit Network Node{% else %}Add Network Node{% endif %}
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">Node Name</label>
+                                {{ form.name }}
+                                <div class="form-text">e.g., Core Switch Floor 2</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                {{ form.type }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                         <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Location</label>
+                                {{ form.location }}
+                            </div>
+                        </div>
+                         <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Infrastructure</label>
+                                {{ form.infrastructure }}
+                                <div class="form-text">e.g. Rack A, Tower 1</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Linked Asset</label>
+                                {{ form.asset }}
+                                <div class="form-text">Optional: Link to Inventory</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">IP Address</label>
+                                {{ form.ip_address }}
+                                <div class="form-text">Required for Auto-Ping</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">MAC Address</label>
+                                {{ form.mac_address }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        {{ form.notes }}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'network_node_list' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Save Node
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Simple styling for form inputs if they don't have classes
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (!el.classList.contains('form-control') && !el.classList.contains('form-check-input')) {
+                el.classList.add('form-control');
+            }
+        });
+    });
+</script>
+{% endblock %}

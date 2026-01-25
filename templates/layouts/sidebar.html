@@ -129,10 +129,10 @@
                             </li>
 
                             <li class="nav-item">
-                                <a href="{% url 'network_node_list' %}" class="nav-link {% if 'nodes' in request.path %}active{% endif %}">Network Nodes</a>
+                                <a href="{% url 'network_node_list' %}" class="nav-link {% if 'nodes' in request.path %}active{% endif %}">Monitoring (NMS)</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'downtime_list' %}" class="nav-link {% if 'downtime' in request.path %}active{% endif %}">NOC Monitor</a>
+                                <a href="{% url 'downtime_list' %}" class="nav-link {% if 'downtime' in request.path %}active{% endif %}">Downtime & Incidents</a>
                             </li>
                             <li class="nav-item">
                                 <a href="{% url 'ip_list' %}" class="nav-link {% if 'ips' in request.path %}active{% endif %}">IP Address</a>
