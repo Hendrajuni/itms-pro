@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 import base64
 from django.urls import reverse
+from mptt.models import MPTTModel, TreeForeignKey
 
 class Department(models.Model):
     name = models.CharField(max_length=100)
@@ -30,7 +31,7 @@ class DepartmentHead(models.Model):
     def __str__(self):
         return f"{self.department.name} - {self.location.name} ({self.manager})"
 
-class Location(models.Model):
+class Location(MPTTModel):
     TYPE_CHOICES = [
         ('HO', 'Head Office'),
         ('PROVINCE', 'Province'),
@@ -44,8 +45,11 @@ class Location(models.Model):
     address = models.TextField(blank=True, null=True)
     
     # Hierarchy Fields
-    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children', help_text="Parent location (e.g. Province for an RO)")
+    parent = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children', help_text="Parent location (e.g. Province for an RO)")
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='OTHER')
+    
+    class MPTTMeta:
+        order_insertion_by = ['name']
 
     def __str__(self):
         return self.name

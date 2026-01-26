@@ -61,14 +61,15 @@ class IPAddressInline(admin.TabularInline):
 
 @admin.register(Subnet)
 class SubnetAdmin(admin.ModelAdmin):
-    list_display = ('name', 'cidr', 'gateway', 'vlan_id')
+    list_display = ('name', 'cidr', 'location', 'gateway', 'vlan_id')
+    list_filter = ('location',)
     search_fields = ('name', 'cidr')
     inlines = [IPAddressInline]
 
 @admin.register(IPAddress)
 class IPAddressAdmin(admin.ModelAdmin):
-    list_display = ('address', 'subnet', 'status', 'node', 'asset', 'get_assigned_user', 'updated_at')
-    list_filter = ('subnet', 'status')
+    list_display = ('address', 'subnet', 'get_location', 'status', 'node', 'asset', 'get_assigned_user', 'updated_at')
+    list_filter = ('subnet__location', 'subnet', 'status')
     search_fields = ('address', 'node__name', 'asset__name', 'description', 'asset__assigned_to__username')
     autocomplete_fields = ['node', 'subnet', 'asset']
 
@@ -77,6 +78,13 @@ class IPAddressAdmin(admin.ModelAdmin):
             return obj.asset.assigned_to.username
         return '-'
     get_assigned_user.short_description = 'User'
+
+    def get_location(self, obj):
+        if obj.subnet and obj.subnet.location:
+            return obj.subnet.location.name
+        return '-'
+    get_location.short_description = 'Location'
+    get_location.admin_order_field = 'subnet__location'
 
 from .models import DowntimeEvent
 

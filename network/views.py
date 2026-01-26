@@ -409,8 +409,91 @@ class SubnetPrintView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         context['printed_by'] = self.request.user
         return context
 
-class SubnetListView(LoginRequiredMixin, TemplateView):
-    template_name = 'core/under_construction.html'
+class SubnetListView(LoginRequiredMixin, ListView):
+    model = Subnet
+    template_name = 'network/subnet_dashboard.html'
+    context_object_name = 'subnets'
+
+    def get_queryset(self):
+        qs = Subnet.objects.select_related('location').prefetch_related('ips').all()
+        
+        # --- SCOPING LOGIC ---
+        user = self.request.user
+        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        
+        if not is_global:
+            if hasattr(user, 'location') and user.location:
+                descendants = user.location.get_descendants(include_self=True)
+                descendant_ids = [loc.id for loc in descendants]
+                # Filter Subnets owned by these locations
+                # We also might want to include "Global" subnets if location is None? 
+                # For now strict scoping: Only my branch's subnets.
+                qs = qs.filter(location_id__in=descendant_ids)
+            else:
+                qs = qs.none()
+                
+        # Order by Location Name then Subnet Name (For Regrouping)
+        return qs.order_by('location__name', 'name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Quick Stats (Based on visible subnets)
+        subnets = self.get_queryset()
+        
+        total_ips = 0
+        free_ips = 0
+        active_ips = 0
+        reserved_ips = 0
+        
+        # This might be heavy if many subnets. 
+        # Optimization: Aggregate if possible, but IPAddress is separate model.
+        # Let's count via IPAddress filtered by these subnets.
+        subnet_ids = subnets.values_list('id', flat=True)
+        from network.models import IPAddress
+        
+        # Base IP Queryset
+        ip_qs = IPAddress.objects.filter(subnet_id__in=subnet_ids)
+        
+        context['total_ips'] = ip_qs.count()
+        context['free_ips'] = ip_qs.filter(status='Free').count()
+        context['active_ips'] = ip_qs.filter(status='Active').count()
+        context['reserved_ips'] = ip_qs.filter(status='Reserved').count()
+        
+        return context
+
+from .forms import SubnetForm
+
+class SubnetCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = Subnet
+    form_class = SubnetForm
+    template_name = 'network/subnet_form.html'
+    success_url = reverse_lazy('subnet_list')
+
+    def test_func(self):
+        # Admins or IT Support (depending on policy, maybe only Managers?)
+        return self.request.user.groups.filter(name__in=['Administrator', 'Manager', 'IT Support']).exists() or self.request.user.is_superuser
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Subnet {form.instance.name} created successfully.")
+        return super().form_valid(form)
+
+class SubnetDetailView(LoginRequiredMixin, DetailView):
+    model = Subnet
+    template_name = 'network/subnet_detail.html'
+    context_object_name = 'subnet'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Prefetch related IPs to avoid N+1
+        ips = self.object.ips.select_related('node', 'asset').order_by('address')
+        context['ips'] = ips
+        context['total_count'] = ips.count()
+        context['active_count'] = ips.filter(status='Active').count()
+        context['free_count'] = ips.filter(status='Free').count()
+        context['reserved_count'] = ips.filter(status='Reserved').count()
+        context['usage_percent'] = self.object.usage_percent()
+        return context
 
 class ISPLineListView(LoginRequiredMixin, TemplateView):
     template_name = 'core/under_construction.html'

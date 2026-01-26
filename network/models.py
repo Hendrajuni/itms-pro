@@ -61,6 +61,7 @@ class NetworkNode(models.Model):
 class Subnet(models.Model):
     name = models.CharField(max_length=200, help_text="e.g., Server Farm VLAN 10")
     cidr = models.CharField(max_length=50, help_text="e.g., 192.168.10.0/24")
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True, related_name='subnets', help_text="Branch/Site owner of this subnet")
     gateway = models.GenericIPAddressField(protocol='both', unpack_ipv4=False, null=True, blank=True)
     vlan_id = models.IntegerField(null=True, blank=True)
     description = models.TextField(blank=True)
@@ -98,6 +99,7 @@ class IPAddress(models.Model):
     asset = models.ForeignKey('assets.Asset', on_delete=models.SET_NULL, null=True, blank=True, related_name='ip_allocations', help_text="Linked General Asset (e.g. Laptop/PC)")
     
     mac_address = models.CharField(max_length=50, blank=True)
+    anydesk_id = models.CharField(max_length=50, blank=True, null=True)
     description = models.CharField(max_length=200, blank=True, help_text="e.g., Reserved for New Printer")
     updated_at = models.DateTimeField(auto_now=True)
 

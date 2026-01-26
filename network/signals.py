@@ -49,9 +49,11 @@ def sync_asset_ip_to_ipam(sender, instance, created, **kwargs):
             'asset': instance.asset,
             'node': None, # Ensure we don't conflict with Node if it's an Asset
             'status': 'Assigned',
-            'description': f"Auto-synced from Asset: {instance.asset.name}"
+            'description': f"Auto-synced from Asset: {instance.asset.name} (Legacy)"
         }
     )
+
+
 
 from .models import DowntimeEvent
 from .models import DowntimeEvent
