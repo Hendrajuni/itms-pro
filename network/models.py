@@ -138,6 +138,7 @@ class DowntimeEvent(models.Model):
     title = models.CharField(max_length=200)
     node = models.ForeignKey(NetworkNode, on_delete=models.SET_NULL, null=True, blank=True, related_name='incidents')
     asset = models.ForeignKey('assets.Asset', on_delete=models.SET_NULL, null=True, blank=True, related_name='incidents')
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True, related_name='downtime_events', help_text="Affected Location")
     infrastructure = models.ForeignKey('assets.Infrastructure', on_delete=models.SET_NULL, null=True, blank=True, related_name='incidents')
     
     start_time = models.DateTimeField(default=timezone.now)

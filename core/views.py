@@ -229,9 +229,12 @@ def get_dashboard_stats(user):
              descendants = []
              
     # 1. Fetch Tickets
+    # Allow users to track tickets they Created AND tickets Assigned to them.
+    # This ensures "My Reported Issues" are visible.
+    
     if is_admin:
         tickets_q = Ticket.objects.filter(
-            Q(assigned_to=user) | Q(assigned_to__isnull=True)
+            Q(assigned_to=user) | Q(created_by=user) | Q(assigned_to__isnull=True)
         ).exclude(status='Closed')
     else:
         if descendants:
@@ -239,10 +242,12 @@ def get_dashboard_stats(user):
             loc_filter = Q(asset__location_id__in=descendant_ids) | Q(created_by__location_id__in=descendant_ids)
             
             tickets_q = Ticket.objects.filter(
-                Q(assigned_to=user) | (Q(assigned_to__isnull=True) & loc_filter)
+                Q(assigned_to=user) | Q(created_by=user) | (Q(assigned_to__isnull=True) & loc_filter)
             ).exclude(status='Closed')
         else:
-            tickets_q = Ticket.objects.filter(assigned_to=user).exclude(status='Closed')
+            tickets_q = Ticket.objects.filter(
+                Q(assigned_to=user) | Q(created_by=user)
+            ).exclude(status='Closed')
 
     for t in tickets_q.select_related('created_by', 'asset', 'asset__location'):
         scope_label = 'My Task' if t.assigned_to == user else 'Unassigned'

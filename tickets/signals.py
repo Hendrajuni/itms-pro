@@ -64,9 +64,9 @@ def notify_it_staff_on_ticket_creation(sender, instance, created, **kwargs):
             
             # Scenario C: Ticket has NO location (e.g. created by user without profile location)
             elif not ticket_location:
-                # Fallback: Notify everyone? Or only Managers?
-                # Let's notify everyone to be safe so it's not missed.
-                should_notify = True
+                # Fallback: If unknown location, ONLY notify Global Admins/Managers.
+                # Do NOT broadcast to all regional IT to avoid noise.
+                should_notify = False
                 
             if should_notify and user != instance.created_by: # Don't notify the creator
                 recipients.append(user)

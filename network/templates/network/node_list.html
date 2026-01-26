@@ -28,19 +28,37 @@
     </div>
 </div>
 
-<div class="row mb-3 align-items-center">
-    <div class="col-md-4">
-        <form method="get" class="input-group">
-            <input type="text" name="q" class="form-control" placeholder="Search nodes..." value="{{ request.GET.q|default:'' }}">
-            <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+<div class="row mb-3 align-items-center g-3">
+    <div class="col-lg-7 col-md-12">
+        <form method="get" class="d-flex gap-2">
+            <!-- Location Filter -->
+            <select name="location" class="form-select shadow-sm" style="max-width: 200px;" onchange="this.form.submit()">
+                <option value="">All Locations</option>
+                {% for loc in locations %}
+                <option value="{{ loc.id }}" {% if request.GET.location == loc.id|stringformat:"s" %}selected{% endif %}>
+                    {{ loc.name }}
+                </option>
+                {% endfor %}
+            </select>
+            
+            <!-- Search Bar -->
+            <div class="input-group shadow-sm">
+                <input type="text" name="q" class="form-control" placeholder="Search nodes..." value="{{ request.GET.q|default:'' }}">
+                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+            </div>
+            
+            {% if request.GET.view %}
+            <input type="hidden" name="view" value="{{ request.GET.view }}">
+            {% endif %}
         </form>
     </div>
-    <div class="col-md-8 text-end">
-        <div class="btn-group" role="group">
-            <a href="?view=grid{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-outline-secondary {% if view_mode == 'grid' %}active{% endif %}">
+    
+    <div class="col-lg-5 col-md-12 text-md-end text-start">
+        <div class="btn-group shadow-sm" role="group">
+            <a href="?view=grid{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.location %}&location={{ request.GET.location }}{% endif %}" class="btn btn-outline-secondary {% if view_mode == 'grid' %}active{% endif %}">
                 <i class="fas fa-th"></i> Matrix
             </a>
-            <a href="?view=list{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-outline-secondary {% if view_mode == 'list' %}active{% endif %}">
+            <a href="?view=list{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.location %}&location={{ request.GET.location }}{% endif %}" class="btn btn-outline-secondary {% if view_mode == 'list' %}active{% endif %}">
                 <i class="fas fa-list"></i> List
             </a>
         </div>

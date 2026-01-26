@@ -66,39 +66,58 @@ def log_incident_to_daily_job(sender, instance, created, **kwargs):
     """
     
     # --- Part A: Notifications ---
-    if created:
-        # New Incident: Notify Everyone
+    # --- Part A: Notifications ---
+    # We only want to notify RELEVANT users, not everyone.
+    if created or (instance.is_resolved and instance.end_time):
         from django.contrib.auth import get_user_model
         from notifications.models import Notification
+        from django.db.models import Q
         User = get_user_model()
-        all_users = User.objects.filter(is_active=True)
         
-        for user in all_users:
-            Notification.objects.create(
-                recipient=user,
-                title=f"🚨 NETWORK ALERT: {instance.title}",
-                message=f"Critical infrastructure DOWN. Impact: {instance.get_impact_display()}.",
-                link="/network/downtimes/",
-                notification_type='System'
-            )
+        target_location = instance.location or (instance.node.location if instance.node else None)
+        
+        # Recipient Logic
+        recipients = set()
+        
+        # 1. Local IT Support
+        if target_location:
+            # Notify IT Support in this location
+            # (And maybe parent locations? For now strict local avoids noise)
+            local_techs = User.objects.filter(groups__name='IT Support', location=target_location)
+            for tech in local_techs:
+                recipients.add(tech)
+                
+        # 2. Technician (if assigned)
+        if instance.technician:
+            recipients.add(instance.technician)
             
-    elif instance.is_resolved and instance.end_time:
-         # Resolved Incident: Notify Everyone
-         from django.contrib.auth import get_user_model
-         from notifications.models import Notification
-         User = get_user_model()
-         all_users = User.objects.filter(is_active=True)
-         
-         duration_str = str(instance.duration).split('.')[0] # Remove microseconds
-         
-         for user in all_users:
-            Notification.objects.create(
+        # 3. Admins (Always know)
+        admins = User.objects.filter(is_superuser=True) | User.objects.filter(groups__name='Admin')
+        for admin in admins:
+            recipients.add(admin)
+            
+        # Prepare Message
+        if created:
+             title = f"🚨 NETWORK ALERT: {instance.title}"
+             msg = f"Critical infrastructure DOWN.\nLocation: {target_location.name if target_location else 'Unknown'}\nImpact: {instance.get_impact_display()}."
+        else:
+             duration_str = str(instance.duration).split('.')[0]
+             title = f"✅ RECOVERY: {instance.title}"
+             msg = f"Incident resolved.\nLocation: {target_location.name if target_location else 'Unknown'}\nDuration: {duration_str}."
+
+        # Bulk Create
+        notifs = []
+        for user in recipients:
+            notifs.append(Notification(
                 recipient=user,
-                title=f"✅ RECOVERY: {instance.title}",
-                message=f"Incident resolved. Duration: {duration_str}.",
+                title=title,
+                message=msg,
                 link="/network/downtimes/",
                 notification_type='System'
-            )
+            ))
+        
+        if notifs:
+            Notification.objects.bulk_create(notifs)
 
     # --- Part B: Daily Log (Only if resolved and has tech) ---
     if not instance.end_time or not instance.technician:

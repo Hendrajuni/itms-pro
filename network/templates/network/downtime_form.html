@@ -1,70 +1,118 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
-{% block title %}Report Downtime - ITMS{% endblock %}
+{% block title %}Report Incident - NMS{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm border-0 border-top border-5 border-danger">
-            <div class="card-header bg-white py-3">
-                <h4 class="fw-bold text-danger mb-0">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Report Network Outage
-                </h4>
+    <div class="col-lg-8">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-danger text-white py-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                    <div>
+                        <h5 class="fw-bold mb-0">Report Network Outage</h5>
+                        <small class="opacity-75">Submit a new incident report to the NOC.</small>
+                    </div>
+                </div>
             </div>
+            
             <div class="card-body p-4">
+                <div class="alert alert-warning d-flex align-items-center mb-4 border-0 shadow-sm" role="alert">
+                    <i class="fas fa-bullhorn fa-lg me-3 text-warning"></i>
+                    <div>
+                         <strong>Broadcast Alert:</strong> This will trigger an immediate alert to:
+                         <ul class="mb-0 small ps-3 mt-1 text-dark">
+                             <li>Local IT Support at the affected branch.</li>
+                             <li>Regional Managers & Global Admins.</li>
+                         </ul>
+                    </div>
+                </div>
+
                 <form method="post">
                     {% csrf_token %}
                     
-                    <div class="alert alert-warning small">
-                        <i class="fas fa-info-circle me-1"></i> This will trigger an immediate system-wide alert to all users.
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Incident Title</label>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">Incident Title</label>
                         {{ form.title }}
-                        <div class="form-text">e.g., "Server Room Power Failure", "ISP Link Down"</div>
+                        <div class="form-text">Briefly describe the issue (e.g., "Server Room Power Failure").</div>
                     </div>
 
-                    <div class="row g-3 mb-3">
+                    <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">Impact Level</label>
+                            <label class="form-label fw-bold">Impact Level</label>
                             {{ form.impact }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Start Time</label>
+                            <label class="form-label fw-bold">Start Time</label>
                             {{ form.start_time }}
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Affected Node (Optional)</label>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Affected Location</label>
+                            {{ form.location }}
+                            <div class="form-text">Specify the branch or site where the outage is occurring.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                         <div class="col-md-6">
+                            <label class="form-label fw-bold">Affected Node (Device)</label>
                             {{ form.node }}
+                            <div class="form-text">Select the failing device if known.</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Affected Asset (Optional)</label>
+                            <label class="form-label fw-bold">Affected Asset (Optional)</label>
                             {{ form.asset }}
                         </div>
                     </div>
-                    
-                    <div class="mb-3">
-                         <label class="form-label">Root Cause (Initial Guess)</label>
+
+                    <div class="mb-4">
+                         <label class="form-label fw-bold">Root Cause (Initial Guess)</label>
                          {{ form.root_cause }}
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label">Description</label>
+                        <label class="form-label fw-bold">Detailed Description</label>
                         {{ form.description }}
+                        <div class="form-text">Provide technical details, error messages, or steps taken so far.</div>
                     </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{% url 'downtime_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
-                        <button type="submit" class="btn btn-danger px-4 fw-bold">BROADCAST ALERT</button>
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'downtime_list' %}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-danger px-4 fw-bold">
+                            <i class="fas fa-tower-broadcast me-2"></i>BROADCAST ALERT
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    // Style form inputs
+    document.addEventListener("DOMContentLoaded", function() {
+        // Add form-control class to all inputs except checkboxes
+        document.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (!el.classList.contains('form-check-input')) {
+                el.classList.add('form-control');
+            }
+             if (el.tagName === 'SELECT') {
+                el.classList.add('form-select');
+            }
+        });
+        
+        // Specific Tweaks
+        const titleInput = document.querySelector('input[name="title"]');
+        if(titleInput) titleInput.classList.add('form-control-lg');
+        
+        const descInput = document.querySelector('textarea[name="description"]');
+        if(descInput) descInput.rows = 4;
+    });
+</script>
 {% endblock %}
