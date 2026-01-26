@@ -19,4 +19,7 @@ urlpatterns = [
     path('fiscal-years/', views.FiscalDashboardView.as_view(), name='fiscal_year_list'),
     path('monthly-reports/', views.MonthlyReportListView.as_view(), name='monthly_report_list'),
     path('projects/', views.ProjectListView.as_view(), name='project_list'),
+    
+    # Disposal
+    path('disposals/', views.DisposalListView.as_view(), name='disposal_list'),
 ]

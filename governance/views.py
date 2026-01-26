@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.utils import timezone
 from .models import (
-    DailyLog, DailyLogItem, Project, ProjectTask, FiscalYear, MonthlyReport, BudgetPost
+    DailyLog, DailyLogItem, Project, ProjectTask, FiscalYear, MonthlyReport, BudgetPost, DisposalRequest
 )
 from maintenance.models import AssetMaintenance, InfraMaintenance
 from tickets.models import Ticket
@@ -486,12 +486,24 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
             context['tasks'] = ProjectTaskFormSet(instance=self.object)
         return context
 
-    def form_valid(self, form):
-        context = self.get_context_data()
-        tasks = context['tasks']
-        with transaction.atomic():
-            self.object = form.save()
-            if tasks.is_valid():
-                tasks.instance = self.object
-                tasks.save()
-        return super().form_valid(form)
+# --- DISPOSAL VIEWS ---
+class DisposalListView(LoginRequiredMixin, ListView):
+    model = DisposalRequest
+    template_name = 'governance/disposal_list.html'
+    context_object_name = 'requests'
+    ordering = ['-request_date']
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('asset', 'requested_by', 'approved_by')
+        
+        # Filter by User Role
+        if not self.request.user.is_superuser:
+            qs = qs.filter(requested_by=self.request.user)
+            
+        # Filter by Status (URL Param)
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+            
+        return qs
+

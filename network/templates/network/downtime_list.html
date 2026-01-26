@@ -22,40 +22,77 @@
 </div>
 
 <!-- FILTERS -->
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body py-3">
-        <form method="get" class="row g-3 align-items-center">
-            <div class="col-md-3">
-                <label class="form-label small text-muted mb-1">Branch / Location</label>
-                <select name="branch" class="form-select form-select-sm">
-                    <option value="">All Branches</option>
-                    {% for b in branches %}
-                    <option value="{{ b.id }}" {% if request.GET.branch|add:"0" == b.id %}selected{% endif %}>{{ b.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small text-muted mb-1">Start Date</label>
-                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request.GET.start_date }}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small text-muted mb-1">End Date</label>
-                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request.GET.end_date }}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small text-muted mb-1">&nbsp;</label>
-                <div class="d-flex">
-                     <button type="submit" class="btn btn-sm btn-primary flex-grow-1 me-2" title="Filter Records">
-                        <i class="fas fa-filter me-1"></i> Apply
-                    </button>
-                    <a href="{% url 'downtime_list' %}" class="btn btn-sm btn-light border" title="Reset Filters">
-                        <i class="fas fa-undo"></i>
-                    </a>
-                </div>
-            </div>
-        </form>
+<!-- FILTERS TOOLBAR -->
+<form method="get" id="filterForm" class="d-flex flex-wrap mb-4 gap-3 align-items-center bg-white p-3 rounded shadow-sm border">
+    <div class="fw-bold text-muted small text-uppercase me-2 d-none d-md-block">
+        <i class="fas fa-filter me-2"></i>Filters
     </div>
-</div>
+    
+    <!-- Branch Filter (Dropdown Style) -->
+    <div class="dropdown">
+        <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-light shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 200px;">
+            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+            <span class="text-truncate fw-bold text-dark" id="selectedBranchLabel" style="max-width: 160px;">
+                {% for b in branches %}
+                    {% if request.GET.branch|add:"0" == b.id %}{{ b.name }}{% endif %}
+                {% empty %}
+                    All Branches
+                {% endfor %}
+            </span>
+        </button>
+        <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 400px; overflow-y: auto;">
+            <li><a class="dropdown-item fw-bold {% if not request.GET.branch %}active{% endif %}" href="#" onclick="setFilter('branch', ''); return false;">All Branches</a></li>
+            {% for b in branches %}
+            <li><a class="dropdown-item {% if request.GET.branch|add:'0' == b.id %}active{% endif %}" href="#" onclick="setFilter('branch', '{{ b.id }}'); return false;">{{ b.name }}</a></li>
+            {% endfor %}
+        </ul>
+        <input type="hidden" name="branch" id="filter_branch" value="{{ request.GET.branch }}">
+    </div>
+
+    <!-- Date Filters -->
+    <div class="d-flex align-items-center gap-2">
+        <div class="input-group input-group-sm bg-light rounded shadow-sm border" style="padding: 4px;">
+            <span class="input-group-text bg-transparent border-0 pe-2"><i class="far fa-calendar-alt text-primary"></i></span>
+            <input type="date" name="start_date" class="form-control form-control-sm border-0 bg-transparent ps-0 fw-bold text-dark" value="{{ request.GET.start_date }}" title="Start Date" style="max-width: 130px;">
+        </div>
+        <span class="text-muted fw-bold">-</span>
+        <div class="input-group input-group-sm bg-light rounded shadow-sm border" style="padding: 4px;">
+            <span class="input-group-text bg-transparent border-0 pe-2"><i class="far fa-calendar-alt text-primary"></i></span>
+            <input type="date" name="end_date" class="form-control form-control-sm border-0 bg-transparent ps-0 fw-bold text-dark" value="{{ request.GET.end_date }}" title="End Date" style="max-width: 130px;">
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="ms-auto d-flex gap-2">
+         <button type="submit" class="btn btn-primary shadow-sm px-3">
+            <i class="fas fa-sync-alt me-2"></i>Apply
+        </button>
+        {% if request.GET.branch or request.GET.start_date or request.GET.end_date %}
+        <a href="{% url 'downtime_list' %}" class="btn btn-light border shadow-sm text-danger">
+            <i class="fas fa-times me-1"></i> Clear
+        </a>
+        {% endif %}
+    </div>
+</form>
+
+<script>
+    function setFilter(name, val) {
+        document.getElementById('filter_' + name).value = val;
+        document.getElementById('filterForm').submit();
+    }
+    
+    // Auto-update label on load if loop didn't catch it (e.g. if list is complex)
+    document.addEventListener("DOMContentLoaded", function() {
+        const branchInput = document.getElementById('filter_branch');
+        const label = document.getElementById('selectedBranchLabel');
+        if (!branchInput.value && label.innerText.trim() === "") {
+             label.innerText = "All Branches";
+        } else if (label.innerText.trim() === "") {
+             // If value exists but loop didn't match (shouldn't happen if logic is correct), default
+             label.innerText = "Selected Branch"; 
+        }
+    });
+</script>
 
 <!-- SECTION 1: ACTIVE INCIDENTS (THE RED ZONE) -->
 {% if active_incidents %}

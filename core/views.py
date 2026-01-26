@@ -143,6 +143,13 @@ def get_dashboard_stats(user):
         # Sort by date
         combined_maint.sort(key=lambda x: x['date'])
         stats['upcoming_maintenance'] = combined_maint
+        
+        # 3. Approval Center Counts
+        from governance.models import DisposalRequest
+        stats['pending_disposals'] = DisposalRequest.objects.filter(status='Pending').count()
+        stats['pending_logs'] = DailyLog.objects.filter(status='Submitted').count()
+        # Tickets pending vendor already filtered above or we re-query for specific count transparency
+        stats['pending_vendor_tickets'] = Ticket.objects.filter(status='Pending_Vendor').count()
 
     # --- Phase 42: Dynamic Greeting & Quotes ---
     # --- Phase 42: Dynamic Greeting & Quotes ---

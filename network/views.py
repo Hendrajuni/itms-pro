@@ -19,6 +19,9 @@ class DowntimeDashboardView(LoginRequiredMixin, TemplateView):
         start_date = self.request.GET.get('start_date')
         end_date = self.request.GET.get('end_date')
         
+        # Imports
+        from django.db.models import Q
+        
         # Base Querysets
         active_qs = DowntimeEvent.objects.filter(is_resolved=False).select_related('node', 'node__location', 'technician')
         history_qs = DowntimeEvent.objects.filter(is_resolved=True).select_related('node', 'node__location', 'technician')
