@@ -307,6 +307,19 @@
                 </div>
             </div>
         </div>
+
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const note = document.getElementById('admin_note');
+                if(note) {
+                    note.value = localStorage.getItem('itms_admin_note') || '';
+                    note.addEventListener('input', function() {
+                        localStorage.setItem('itms_admin_note', this.value);
+                    });
+                }
+            });
+        </script>
     </div>
 </div>
 
@@ -413,7 +426,11 @@
             </div>
         </div>
     </div>
+
+    </div>
 </div>
+
+
 
 <style>
    /* Timeline Styles */

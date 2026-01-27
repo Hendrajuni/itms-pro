@@ -63,6 +63,51 @@
         <i class="fas fa-qrcode fa-xl" style="font-size: 28px;"></i>
     </a>
 
+    <!-- GLOBAL SIDE TAB NOTEPAD -->
+    <button class="btn btn-warning shadow-lg d-flex align-items-center justify-content-center p-0" 
+            type="button" 
+            data-bs-toggle="offcanvas" 
+            data-bs-target="#globalNotesCanvas" 
+            aria-controls="globalNotesCanvas"
+            title="My Notes"
+            style="position: fixed; top: 150px; right: 0; width: 40px; height: 50px; z-index: 1030; border-top-left-radius: 25px; border-bottom-left-radius: 25px; border-top-right-radius: 0; border-bottom-right-radius: 0; padding-left: 5px !important;">
+        <i class="fas fa-chevron-left text-dark small"></i>
+    </button>
+
+    <div class="offcanvas offcanvas-end border-0 shadow-lg" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="globalNotesCanvas" aria-labelledby="globalNotesLabel" 
+         style="width: 320px; height: 50vh !important; top: 25% !important; border-top-left-radius: 15px; border-bottom-left-radius: 15px; right: 0;">
+        <div class="offcanvas-header bg-warning bg-opacity-10 border-bottom">
+            <h6 class="offcanvas-title fw-bold text-dark" id="globalNotesLabel">
+                <i class="fas fa-sticky-note me-2 text-warning"></i>My Notes
+            </h6>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-0 d-flex flex-column bg-warning bg-opacity-10">
+            <div class="p-3 flex-grow-1">
+                 <textarea id="global_note" class="form-control border-0 bg-transparent h-100 fs-6" 
+                           placeholder="Type your quick notes here..." 
+                           style="resize: none; box-shadow: none; outline: none;"></textarea>
+            </div>
+            <div class="p-3 border-top bg-white bg-opacity-50 text-end">
+                <button class="btn btn-sm btn-outline-danger" onclick="document.getElementById('global_note').value=''; localStorage.removeItem('itms_global_note');">
+                    <i class="fas fa-trash me-1"></i> Clear
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const note = document.getElementById('global_note');
+            if(note) {
+                note.value = localStorage.getItem('itms_global_note') || '';
+                note.addEventListener('input', function() {
+                    localStorage.setItem('itms_global_note', this.value);
+                });
+            }
+        });
+    </script>
+
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <!-- Bootstrap 5 JS -->
