@@ -92,7 +92,7 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-sm bg-light text-primary rounded-circle me-2 d-none d-md-flex align-items-center justify-content-center" style="width:32px; height:32px;">
-                                            <i class="fas {% if task.type == 'Ticket' %}fa-ticket-alt{% else %}fa-tools{% endif %} small"></i>
+                                            <i class="{{ task.icon }} small"></i>
                                         </div>
                                         <div>
                                             <a href="{{ task.url }}" class="fw-bold text-dark text-decoration-none d-block text-truncate" style="max-width: 200px;">{{ task.title }}</a>

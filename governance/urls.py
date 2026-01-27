@@ -7,6 +7,7 @@ urlpatterns = [
     path('logs/events-json/', views.DailyLogEventsJSON.as_view(), name='dailylog_events_json'),
     path('logs/create/', views.DailyLogCreateView.as_view(), name='dailylog_create'),
     path('logs/<int:pk>/', views.DailyLogDetailView.as_view(), name='dailylog_detail'),
+    path('logs/<int:pk>/print/', views.DailyLogPrintView.as_view(), name='dailylog_print'),
     path('logs/<int:pk>/edit/', views.DailyLogUpdateView.as_view(), name='dailylog_update'),
     path('logs/bulk-approve/', views.DailyLogBulkApproveView.as_view(), name='dailylog_bulk_approve'),
     
@@ -20,6 +21,8 @@ urlpatterns = [
     path('fiscal-years/', views.FiscalDashboardView.as_view(), name='fiscal_year_list'),
     path('monthly-reports/', views.MonthlyReportListView.as_view(), name='monthly_report_list'),
     path('projects/', views.ProjectListView.as_view(), name='project_list'),
+    path('projects/create/', views.ProjectCreateView.as_view(), name='project_create'),
+    path('projects/<int:pk>/delete/', views.ProjectDeleteView.as_view(), name='project_delete'),
     
     # Disposal
     path('disposals/', views.DisposalListView.as_view(), name='disposal_list'),

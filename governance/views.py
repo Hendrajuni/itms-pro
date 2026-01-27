@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django import forms
 from django.db import transaction
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.views import View
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.urls import reverse_lazy
@@ -18,6 +19,8 @@ from maintenance.models import AssetMaintenance, InfraMaintenance
 from tickets.models import Ticket
 
 # --- Helper for Visibility Scope ---
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required, permission_required
 def get_visible_daily_logs(user):
     """
     Returns a QuerySet of DailyLogs visible to the user based on Role/Location.
@@ -73,9 +76,11 @@ class DailyLogListView(LoginRequiredMixin, ListView):
                 Q(items__related_infra__isnull=False) |
                 Q(items__content_type__model__in=['assetmaintenance', 'inframaintenance'])
             ),
+            project_count=Count('items', filter=Q(items__category='Development')),
             general_count=Count('items', filter=
                 ~Q(items__content_type__model='ticket') & 
                 ~Q(items__content_type__model__in=['assetmaintenance', 'inframaintenance']) &
+                ~Q(items__category='Development') &
                 Q(items__related_asset__isnull=True) & 
                 Q(items__related_infra__isnull=True)
             )
@@ -348,6 +353,9 @@ class DailyLogDetailView(LoginRequiredMixin, DetailView):
         
         return context
 
+class DailyLogPrintView(DailyLogDetailView):
+    template_name = 'governance/dailylog_print.html'
+
 class DailyLogItemCreateView(LoginRequiredMixin, CreateView):
     model = DailyLogItem
     form_class = DailyLogItemForm
@@ -471,16 +479,43 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        tasks = self.object.tasks.all()
-        context['all_tasks'] = tasks
-        context['my_tasks'] = tasks.filter(assigned_to=self.request.user).exclude(status='Completed')
-        context['completed_tasks'] = tasks.filter(status='Completed')
+        project = self.object
+        tasks = project.tasks.select_related('assigned_to').all()
         
+        # 1. Kanban Buckets
+        context['tasks_pending'] = tasks.filter(status='Pending')
+        context['tasks_progress'] = tasks.filter(status='In Progress')
+        context['tasks_completed'] = tasks.filter(status='Completed')
+        
+        # 2. My Active Tasks (for quick action)
+        context['my_tasks'] = tasks.filter(assigned_to=self.request.user).exclude(status='Completed')
+        
+        # 3. Team Members (Distinct assignees)
+        # Using a set comprehension to get unique users, excluding None
+        team_members = {t.assigned_to for t in tasks if t.assigned_to}
+        # Add manager if not already in list
+        if project.manager:
+            team_members.add(project.manager)
+        context['team_members'] = team_members
+        
+        # 4. Progress & Timeline
         total = tasks.count()
-        completed = context['completed_tasks'].count()
+        completed = context['tasks_completed'].count()
         context['progress_percent'] = int((completed / total) * 100) if total > 0 else 0
+        
+        today = timezone.now().date()
+        if project.end_date and project.end_date >= today:
+            context['days_remaining'] = (project.end_date - today).days
+        else:
+            context['days_remaining'] = 0
+            
+        # 5. Financials (Placeholder for now, using BudgetPost if linked)
+        context['budget_allocated'] = project.budget.allocated_amount if project.budget else 0
+        # Future: Calculate actual expenses
+        
         return context
 
+@method_decorator(transaction.atomic, name='dispatch')
 class CompleteProjectTaskView(LoginRequiredMixin, View):
     def post(self, request, pk):
         task = get_object_or_404(ProjectTask, pk=pk)
@@ -495,11 +530,8 @@ class CompleteProjectTaskView(LoginRequiredMixin, View):
         task.save()
 
         # 2. Update Project Progress
-        project = task.project
-        total = project.tasks.count()
-        done = project.tasks.filter(status='Completed').count()
-        project.progress = int((done / total) * 100) if total > 0 else 0
-        project.save()
+        # Logic handled by ProjectTask.save() signal/override now.
+        # project.update_progress() # triggered automatically
 
         # 3. AUTO-LOG LOGIC
         # Find/Create Log
@@ -518,15 +550,24 @@ class CompleteProjectTaskView(LoginRequiredMixin, View):
             start_time=timezone.now().time(), # Approximation
             end_time=timezone.now().time(),
             status='Completed',
-            note=f"Completed task for project: {project.name}. {task.description[:50]}"
+            note=f"Completed task for project: {task.project.name}. {task.description[:50]}"
         )
 
-        return redirect('project_detail', pk=project.pk)
-class ProjectUpdateView(LoginRequiredMixin, UpdateView):
+        return redirect('project_detail', pk=task.project.pk)
+class ProjectUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Project
-    fields = ['name', 'description', 'manager', 'start_date', 'end_date', 'status', 'progress']
+    fields = ['name', 'category', 'description', 'manager', 'start_date', 'end_date', 'status', 'budget'] # Removed progress (auto-calculated)
     template_name = 'governance/project_form.html'
     success_url = reverse_lazy('project_list')
+
+    def test_func(self):
+        user = self.request.user
+        # Strict: Only Admin, Superuser, or the Manager assigned to the project can edit the project details.
+        # Regular IT Staff cannot edit project details.
+        if user.is_superuser: return True
+        if user.groups.filter(name__in=['Admin', 'Manager']).exists(): return True
+        if self.get_object().manager == user: return True
+        return False
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -537,6 +578,16 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
         else:
             context['tasks'] = ProjectTaskFormSet(instance=self.object)
         return context
+    
+    def form_valid(self, form):
+        context = self.get_context_data()
+        tasks = context['tasks']
+        with transaction.atomic():
+            self.object = form.save()
+            if tasks.is_valid():
+                tasks.instance = self.object
+                tasks.save()
+        return super().form_valid(form)
 
 # --- DISPOSAL VIEWS ---
 class DisposalListView(LoginRequiredMixin, ListView):
@@ -559,3 +610,51 @@ class DisposalListView(LoginRequiredMixin, ListView):
             
         return qs
 
+@method_decorator(login_required, name='dispatch')
+class ProjectCreateView(LoginRequiredMixin, CreateView):
+    model = Project
+    fields = ['name', 'category', 'description', 'manager', 'start_date', 'end_date', 'status', 'budget']
+    template_name = 'governance/project_form.html'
+    success_url = reverse_lazy('project_list')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Use HTML5 date input widgets
+        form.fields['start_date'].widget = forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        form.fields['end_date'].widget = forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Create New Project'
+        from .forms import ProjectTaskFormSet
+        if self.request.POST:
+            context['tasks'] = ProjectTaskFormSet(self.request.POST)
+        else:
+            context['tasks'] = ProjectTaskFormSet()
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        tasks = context['tasks']
+        with transaction.atomic():
+            self.object = form.save()
+            if tasks.is_valid():
+                tasks.instance = self.object
+                tasks.save()
+        return super().form_valid(form)
+
+@method_decorator(login_required, name='dispatch')
+class ProjectDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Project
+    template_name = 'governance/project_confirm_delete.html'
+    success_url = reverse_lazy('project_list')
+    context_object_name = 'project'
+
+    def test_func(self):
+        # Only Allow Admin or Superuser
+        return self.request.user.is_superuser or self.request.user.groups.filter(name='Admin').exists()
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to delete projects.")
+        return redirect('project_list')

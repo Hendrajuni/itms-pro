@@ -14,6 +14,7 @@
                         {% csrf_token %}
                         <div class="row">
                             <div class="col-md-12">
+                                {{ form.category|as_crispy_field }}
                                 {{ form.name|as_crispy_field }}
                             </div>
                         </div>
@@ -30,7 +31,7 @@
                         </div>
 
                          <div class="row">
-                            <div class="col-md-12">{{ form.progress|as_crispy_field }}</div>
+                            <div class="col-md-12">{{ form.budget|as_crispy_field }}</div>
                         </div>
 
                         <hr class="my-4">
@@ -41,11 +42,12 @@
                             <table class="table table-bordered table-sm">
                                 <thead class="bg-light">
                                     <tr>
-                                        <th style="width: 30%;">Task Name</th>
-                                        <th style="width: 20%;">Assigned To</th>
-                                        <th style="width: 15%;">Status</th>
+                                        <th style="width: 25%;">Task Name</th>
+                                        <th style="width: 25%;">Description</th>
+                                        <th style="width: 15%;">Assigned To</th>
+                                        <th style="width: 10%;">Status</th>
                                         <th style="width: 15%;">Due Date</th>
-                                        <th>Delete?</th>
+                                        <th style="width: 10%;">Delete?</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -55,6 +57,7 @@
                                             {{ hidden }}
                                         {% endfor %}
                                         <td>{{ task_form.name }}</td>
+                                        <td>{{ task_form.description }}</td>
                                         <td>{{ task_form.assigned_to }}</td>
                                         <td>{{ task_form.status }}</td>
                                         <td>{{ task_form.due_date }}</td>

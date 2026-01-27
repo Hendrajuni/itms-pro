@@ -150,12 +150,17 @@
                                             <i class="fas fa-tools me-1 text-warning"></i> {{ log.maintenance_count }} Maint
                                         </span>
                                     {% endif %}
+                                    {% if log.project_count > 0 %}
+                                        <span class="badge bg-light text-dark border" title="Project Development">
+                                            <i class="fas fa-code me-1 text-primary"></i> {{ log.project_count }} Dev
+                                        </span>
+                                    {% endif %}
                                     {% if log.ticket_count > 0 %}
                                         <span class="badge bg-light text-dark border" title="Tickets Resolved">
                                             <i class="fas fa-ticket-alt me-1 text-danger"></i> {{ log.ticket_count }} Tix
                                         </span>
                                     {% endif %}
-                                    {% if log.general_count == 0 and log.maintenance_count == 0 and log.ticket_count == 0 %}
+                                    {% if log.general_count == 0 and log.maintenance_count == 0 and log.ticket_count == 0 and log.project_count == 0 %}
                                         <span class="text-muted small">-</span>
                                     {% endif %}
                                 </div>

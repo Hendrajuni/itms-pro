@@ -118,6 +118,7 @@
                              <th class="text-start ps-3">Branch</th>
                              <th>Health</th>
                              <th>Maint.</th>
+                             <th>Projects</th>
                              <th>Tickets</th>
                              <th>Assets</th>
                         </tr>
@@ -140,6 +141,14 @@
                              <td class="text-center">
                                 {% if branch.asset_maint > 0 or branch.infra_maint > 0 %}
                                     <span class="badge bg-warning text-dark">{{ branch.asset_maint|add:branch.infra_maint }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if branch.project_tasks > 0 %}
+                                    <span class="badge bg-primary text-white">{{ branch.project_tasks }}</span>
                                 {% else %}
                                     <span class="text-muted small">-</span>
                                 {% endif %}

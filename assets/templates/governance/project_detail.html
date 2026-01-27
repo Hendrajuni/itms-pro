@@ -1,149 +1,378 @@
 {% extends 'layouts/base.html' %}
 {% load static humanize %}
 
-{% block title %}{{ project.name }} - Project Details{% endblock %}
+{% block title %}{{ project.name }} - Workspace{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="h3 mb-0 text-gray-800">Project Workspace</h1>
+<!-- Header & Actions -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">{{ project.name }}</h1>
+        <div class="mt-1">
+            <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% else %}bg-secondary{% endif %} rounded-pill px-3">
+                {{ project.status }}
+            </span>
+            <span class="text-muted small ms-2"><i class="far fa-calendar-alt me-1"></i> {{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</span>
+        </div>
+    </div>
+    
+    <div>
+        {% if user.is_superuser or user == project.manager or user.groups.all.0.name == 'Manager' or user.groups.all.0.name == 'Admin' %}
+            <a href="{% url 'project_update' project.pk %}" class="btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-edit fa-sm text-white-50 me-2"></i>Edit Project
+            </a>
+        {% endif %}
     </div>
 </div>
 
-<div class="row">
-    <!-- Project Overview -->
-    <div class="col-xl-8 col-lg-7">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Project Details</h6>
-                <div class="dropdown no-arrow">
-                    <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% else %}bg-secondary{% endif %}">
-                        {{ project.status }}
-                    </span>
-                </div>
-            </div>
+<!-- Key Metrics Row -->
+<div class="row mb-4">
+    <!-- Progress -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-start-primary shadow h-100 py-2">
             <div class="card-body">
-                <h4 class="font-weight-bold">{{ project.name }}</h4>
-                <p class="text-muted mb-4">{{ project.description }}</p>
-                
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <small class="text-uppercase text-secondary fw-bold">Manager</small>
-                        <div class="d-flex align-items-center mt-1">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                {{ project.manager.first_name.0|default:"M" }}
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Overall Progress</div>
+                        <div class="row no-gutters align-items-center">
+                            <div class="col-auto">
+                                <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ progress_percent }}%</div>
                             </div>
-                            <div>
-                                <div class="fw-bold text-dark">{{ project.manager.first_name|default:"Unassigned" }}</div>
+                            <div class="col">
+                                <div class="progress progress-sm mr-2">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress_percent }}%"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <small class="text-uppercase text-secondary fw-bold">Timeline</small>
-                        <div class="mt-1">
-                            <i class="far fa-calendar-alt me-1 text-muted"></i> {{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}
-                        </div>
-                    </div>
-                     <div class="col-md-4">
-                        <small class="text-uppercase text-secondary fw-bold">Overall Progress</small>
-                        <div class="d-flex align-items-center mt-1">
-                            <div class="progress flex-grow-1 me-2" style="height: 10px;">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ progress_percent }}%"></div>
-                            </div>
-                            <span class="fw-bold">{{ progress_percent }}%</span>
-                        </div>
+                    <div class="col-auto">
+                        <i class="fas fa-tasks fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Timeline / Days Left -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-start-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Time Remaining</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% if days_remaining > 0 %}
+                                {{ days_remaining }} Days
+                            {% else %}
+                                <span class="text-danger">Ending Soon / Overdue</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-start-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Budget Allocated</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                           {% if budget_allocated %}
+                                Rp {{ budget_allocated|intcomma }}
+                           {% else %}
+                                <span class="text-muted small">Not Set</span>
+                           {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-coins fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Size -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-start-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Team Members</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ team_members|length }} People</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Scope & Objectives -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow border-left-primary">
+             <div class="card-header bg-white py-3">
+                 <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-file-alt me-2"></i>Project Scope & Objectives</h6>
+            </div>
+            <div class="card-body text-dark" style="font-size: 1.05rem; line-height: 1.6;">
+                {{ project.description|linebreaks }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="row">
+    
+    <!-- LEFT: Kanban Board (Work) -->
+    <div class="col-xl-8 col-lg-7">
         
-        <!-- My Tasks -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 bg-gradient-primary text-white">
-                <h6 class="m-0 font-weight-bold"><i class="fas fa-tasks me-2"></i>My Assigned Tasks</h6>
+        {% if my_tasks %}
+        <!-- My Action Items (Priority) -->
+        <div class="card shadow mb-4 border-bottom-danger">
+            <div class="card-header py-3 bg-white">
+                <h6 class="m-0 font-weight-bold text-danger"><i class="fas fa-fire me-2"></i>My Pending Tasks</h6>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4">Task Name</th>
-                                <th>Due Date</th>
-                                <th>Status</th>
-                                <th class="text-end pe-4">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                         <tbody>
                             {% for task in my_tasks %}
                             <tr>
                                 <td class="ps-4">
                                     <div class="fw-bold">{{ task.name }}</div>
-                                    {% if task.description %}<small class="text-muted">{{ task.description|truncatechars:50 }}</small>{% endif %}
-                                </td>
-                                <td>
-                                    {% if task.is_past_due %}
-                                        <span class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>{{ task.due_date|date:"d M" }}</span>
-                                    {% else %}
-                                        {{ task.due_date|date:"d M Y" }}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge bg-warning text-dark">{{ task.status }}</span>
+                                    <small class="text-muted">Due: {{ task.due_date|date:"d M" }}</small>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <form action="{% url 'complete_project_task' task.pk %}" method="POST" class="d-inline">
+                                    <form action="{% url 'complete_project_task' task.pk %}" method="POST">
                                         {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-success shadow-sm">
-                                            <i class="fas fa-check me-1"></i> Mark Done
-                                        </button>
+                                        <button class="btn btn-sm btn-success rounded-pill px-3">Mark Done</button>
                                     </form>
                                 </td>
                             </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">
-                                    <i class="fas fa-check-circle fa-2x mb-2 text-gray-300"></i>
-                                    <p class="mb-0">You have no pending tasks in this project!</p>
-                                </td>
-                            </tr>
                             {% endfor %}
-                        </tbody>
+                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- KANBAN BOARD -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Task Board</h6>
+                <!-- Only Manager can add tasks -->
+                {% if user.is_superuser or user == project.manager %}
+                    <!-- Ideally link to a create task modal or page -->
+                    <a href="{% url 'project_update' project.pk %}#tasks" class="btn btn-sm btn-outline-primary">Manage Tasks</a>
+                {% endif %}
+            </div>
+            <div class="card-body bg-light">
+                <div class="row">
+                    <!-- Column: Pending -->
+                    <div class="col-md-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="font-weight-bold text-secondary text-uppercase small">Pending</h6>
+                            <span class="badge bg-secondary rounded-pill">{{ tasks_pending|length }}</span>
+                        </div>
+                        <div class="kanban-col">
+                            {% for task in tasks_pending %}
+                                {% include 'governance/partials/kanban_card.html' with task=task color="secondary" %}
+                            {% empty %}
+                                <div class="text-center text-muted small py-4 border rounded border-dashed">No tasks</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Column: In Progress -->
+                    <div class="col-md-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="font-weight-bold text-primary text-uppercase small">In Progress</h6>
+                            <span class="badge bg-primary rounded-pill">{{ tasks_progress|length }}</span>
+                        </div>
+                        <div class="kanban-col">
+                            {% for task in tasks_progress %}
+                                {% include 'governance/partials/kanban_card.html' with task=task color="primary" %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Column: Completed -->
+                    <div class="col-md-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="font-weight-bold text-success text-uppercase small">Completed</h6>
+                            <span class="badge bg-success rounded-pill">{{ tasks_completed|length }}</span>
+                        </div>
+                        <div class="kanban-col">
+                            {% for task in tasks_completed %}
+                                {% include 'governance/partials/kanban_card.html' with task=task color="success" %}
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Sidebar / All Tasks -->
+    <!-- RIGHT: Info & Team -->
     <div class="col-xl-4 col-lg-5">
+        
+        <!-- About Project -->
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">All Tasks</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Project Team</h6>
             </div>
             <div class="card-body">
-                <div class="small">
-                    {% for task in all_tasks %}
-                    <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
-                         <div class="d-flex align-items-center">
-                            <i class="fas {% if task.status == 'Completed' %}fa-check-circle text-success{% else %}fa-circle text-secondary{% endif %} me-2"></i>
-                            <div>
-                                <div class="fw-bold {% if task.status == 'Completed' %}text-decoration-line-through text-muted{% endif %}">{{ task.name }}</div>
-                                <div class="text-muted" style="font-size: 0.8rem;">
-                                    {{ task.assigned_to.first_name|default:"Unassigned" }} 
-                                    {% if task.completed_at %} • Done {{ task.completed_at|date:"d M" }}{% endif %}
-                                </div>
+                
+                <h6 class="small font-weight-bold text-uppercase text-muted mb-2">Manager</h6>
+                <div class="d-flex align-items-center mb-4">
+                     <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        {{ project.manager.first_name.0|default:"M" }}
+                    </div>
+                    <div>
+                        <div class="fw-bold">{{ project.manager.first_name|default:"Unassigned" }} {{ project.manager.last_name }}</div>
+                        <div class="small text-muted">Project Lead</div>
+                    </div>
+                </div>
+
+                <h6 class="small font-weight-bold text-uppercase text-muted mb-2">Team ({{ team_members|length }})</h6>
+                <div class="d-flex flex-wrap">
+                    {% for member in team_members %}
+                        {% if member != project.manager %}
+                        <div class="me-2 mb-2 text-center" title="{{ member.first_name }}">
+                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                {{ member.first_name.0 }}
                             </div>
                         </div>
-                        {% if task.status == 'Completed' %}
-                            <span class="badge bg-light text-success border">Done</span>
-                        {% else %}
-                             <span class="badge bg-light text-secondary border">{{ task.status }}</span>
                         {% endif %}
-                    </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
+
+        {% if project.budget %}
+        <!-- Financial Snapshot -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-success">Financials</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="small text-muted text-uppercase">Budget Source</div>
+                    <div class="fw-bold">{{ project.budget.name }}</div>
+                </div>
+                
+                <!-- Simple bar for illustration -->
+                <div class="small text-muted text-uppercase mb-1">Utilization</div>
+                <div class="progress mb-2" style="height: 10px;">
+                    <!-- Placeholder: assuming 0 spent for now, or maybe project tasks have cost? -->
+                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-success fw-bold">0% Used</span>
+                    <span class="text-muted">Max: {{ project.budget.allocated_amount|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </div>
+
+<style>
+    .kanban-col {
+        min-height: 200px;
+    }
+    a.stretched-link {
+        position: static; /* Prevent conflict with dropdown */
+    }
+    /* Only stretch if not clicking dropdown */
+    .card-body {
+        position: relative;
+    }
+    /* Custom stretched link logic to avoid covering dropdown */
+    /* Handled by JS or specific z-index if needed */
+</style>
+
+<!-- Task Detail Modal -->
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="taskDetailTitle">Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="small text-muted text-uppercase fw-bold">Status</label>
+                    <div id="taskDetailStatus"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted text-uppercase fw-bold">Description / Scope</label>
+                    <p id="taskDetailDesc" class="text-dark border p-3 rounded bg-light"></p>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <label class="small text-muted text-uppercase fw-bold">Assigned To</label>
+                        <div id="taskDetailAssignee" class="fw-bold"></div>
+                    </div>
+                    <div class="col-6">
+                         <label class="small text-muted text-uppercase fw-bold">Due Date</label>
+                        <div id="taskDetailDue" class="fw-bold"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var taskModal = document.getElementById('taskDetailModal');
+        taskModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            
+            // Extract info from data-* attributes
+            var name = button.getAttribute('data-task-name');
+            var desc = button.getAttribute('data-task-desc');
+            var due = button.getAttribute('data-task-due');
+            var status = button.getAttribute('data-task-status');
+            var assignee = button.getAttribute('data-task-assignee');
+            
+            // Update Modal Content
+            var modalTitle = taskModal.querySelector('#taskDetailTitle');
+            var modalDesc = taskModal.querySelector('#taskDetailDesc');
+            var modalDue = taskModal.querySelector('#taskDetailDue');
+            var modalStatus = taskModal.querySelector('#taskDetailStatus');
+            var modalAssignee = taskModal.querySelector('#taskDetailAssignee');
+            
+            modalTitle.textContent = name;
+             // Handle Description line breaks simple way
+            modalDesc.innerHTML = desc.replace(/\n/g, '<br>');
+            modalDue.textContent = due;
+            modalAssignee.textContent = assignee;
+            
+            // Status Badge Logic
+            let badgeClass = 'bg-secondary';
+            if(status === 'In Progress') badgeClass = 'bg-primary';
+            else if(status === 'Completed') badgeClass = 'bg-success';
+            
+            modalStatus.innerHTML = `<span class="badge ${badgeClass} rounded-pill px-3">${status}</span>`;
+        });
+    });
+</script>
 {% endblock %}

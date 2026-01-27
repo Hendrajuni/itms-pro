@@ -5,7 +5,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, F
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.utils import timezone
 from datetime import timedelta
@@ -104,7 +104,10 @@ def get_dashboard_stats(user):
         # 1. Technician Workload (Top 5 busiest)
         # We look for users in 'IT Support' group
         stats['tech_workload'] = User.objects.filter(groups__name='IT Support').select_related('location').annotate(
-            open_load=Count('tickets_assigned', filter=Q(tickets_assigned__status__in=['Open', 'In Progress']))
+            ticket_load=Count('tickets_assigned', filter=Q(tickets_assigned__status__in=['Open', 'In Progress'])),
+            project_load=Count('projecttask', filter=~Q(projecttask__status='Completed'))
+        ).annotate(
+            open_load=F('ticket_load') + F('project_load')
         ).order_by('-open_load')[:5]
         
         # 2. Upcoming Maintenance Journey (Next 7 Days)
@@ -382,8 +385,40 @@ def get_dashboard_stats(user):
             'location': m.infrastructure.location.name if m.infrastructure and m.infrastructure.location else "-",
             'created_at': m.scheduled_date, 
             'icon': 'fas fa-server',
-            'color': 'dark',
             'status': m.status,
+            'status_color': status_color
+        })
+
+    # 4. Fetch Project Tasks
+    from governance.models import ProjectTask
+    project_tasks_q = ProjectTask.objects.filter(
+        assigned_to=user
+    ).exclude(status='Completed')
+
+    for pt in project_tasks_q.select_related('project'):
+        # Deadline helper
+        deadline_dt = None
+        if pt.due_date:
+            deadline_dt = datetime.combine(pt.due_date, datetime.min.time())
+
+        # Status Color
+        status_color = 'primary'
+        if pt.is_past_due: status_color = 'danger'
+        elif pt.status == 'In Progress': status_color = 'warning'
+        
+        work_queue.append({
+            'type': 'Project Task',
+            'id': f"PRJ-{pt.project.id}", # ID using Project ID to keep it short
+            'title': f"{pt.name} ({pt.project.name})", # Title includes Project Name
+            'priority': 'Medium',
+            'url': f"/governance/projects/{pt.project.id}/", 
+            'deadline': deadline_dt,
+            'scope_label': 'My Task',
+            'location': '-', # Project tasks are usually generic/HO? 
+            'created_at': pt.project.start_date, # Use project start as proxy or None
+            'icon': 'fas fa-tasks',
+            'color': 'primary',
+            'status': pt.status,
             'status_color': status_color
         })
         
@@ -435,8 +470,15 @@ def get_dashboard_stats(user):
                 status__in=['Scheduled', 'In Progress']
             ).count()
 
+            # Project Tasks (By Assignee Location)
+            # Find users in this branch subtree
+            branch_users = User.objects.filter(location_id__in=subtree_ids)
+            project_task_count = ProjectTask.objects.filter(
+                assigned_to__in=branch_users
+            ).exclude(status='Completed').count()
+
             # Simple Health Score
-            score = 100 - (tickets_critical * 20) - (tickets_open * 2) - (infra_maint_count * 5)
+            score = 100 - (tickets_critical * 20) - (tickets_open * 2) - (infra_maint_count * 5) - (project_task_count * 1)
             score = max(0, score)
             
             status = 'Healthy'
@@ -455,6 +497,7 @@ def get_dashboard_stats(user):
                 'critical_tickets': tickets_critical,
                 'asset_maint': asset_maint_count,
                 'infra_maint': infra_maint_count,
+                'project_tasks': project_task_count,
                 'health_score': score,
                 'status': status,
                 'color': color

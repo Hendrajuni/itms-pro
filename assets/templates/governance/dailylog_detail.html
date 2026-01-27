@@ -10,9 +10,9 @@
         <a href="{% url 'dailylog_list' %}" class="btn btn-light btn-sm"><i class="fas fa-arrow-left me-2"></i>Back to List</a>
     </div>
     <div class="col-md-4 text-end">
-        <button onclick="window.print()" class="btn btn-secondary me-2">
+        <a href="{% url 'dailylog_print' log.pk %}" class="btn btn-secondary me-2">
             <i class="fas fa-print me-2"></i>Print Report
-        </button>
+        </a>
         <a href="{% url 'dailylog_item_create' log.pk %}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Add Activity
         </a>

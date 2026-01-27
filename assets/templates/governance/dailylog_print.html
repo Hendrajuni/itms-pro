@@ -1,0 +1,226 @@
+{% extends 'layouts/print_base.html' %}
+{% load static humanize %}
+
+{% block title %}Daily Log - {{ log.date|date:"Y-m-d" }}{% endblock %}
+
+{% block report_title %}Daily Activity Report{% endblock %}
+{% block report_subtitle %}{{ log.date|date:"l, d F Y" }}{% endblock %}
+
+
+{% block content %}
+    <style>
+    .watermark-approved {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 5rem;
+        font-weight: 900;
+        color: rgba(25, 135, 84, 0.15) !important;
+        border: 8px solid rgba(25, 135, 84, 0.15) !important;
+        padding: 5px 30px;
+        transform: rotate(-20deg);
+        z-index: 1000;
+        pointer-events: none;
+        text-transform: uppercase;
+        font-family: 'Arial Black', sans-serif;
+        letter-spacing: 5px;
+        text-align: center;
+        line-height: 1;
+        opacity: 0.4 !important;
+        -webkit-print-color-adjust: exact;
+    }
+    .watermark-meta {
+        font-size: 1rem;
+        letter-spacing: 1px;
+        margin-top: 5px;
+        font-weight: 700;
+        font-family: sans-serif;
+        color: rgba(25, 135, 84, 0.25) !important;
+    }
+    .info-card { position: relative; overflow: hidden; }
+    </style>
+
+    {% if log.status == 'Approved' %}
+        <div class="watermark-approved">
+            APPROVED
+            <div class="watermark-meta">VERIFIED BY ADMIN</div>
+        </div>
+    {% endif %}
+
+    <!-- Info Grid -->
+    <div class="info-card">
+        <div class="row g-3">
+            <div class="col-3">
+                <div class="info-label">Executor Name</div>
+                <div class="info-value">{{ log.executor.get_full_name|default:log.executor.username }}</div>
+            </div>
+            <div class="col-3">
+                <div class="info-label">Shift</div>
+                <div class="info-value">{{ log.shift }}</div>
+            </div>
+            <div class="col-3">
+                <div class="info-label">Work Location</div>
+                <div class="info-value">{{ log.get_work_location_display }}</div>
+            </div>
+            <div class="col-3">
+                <div class="info-label">Status</div>
+                <div class="info-value text-uppercase fw-bold">{{ log.status }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- I. GENERAL ACTIVITIES -->
+    <h6 class="fw-bold text-uppercase mt-4 mb-2" style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px;">I. General Activities</h6>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 15%">Time</th>
+                <th style="width: 15%">Category</th>
+                <th style="width: 15%">Location</th>
+                <th>Description / Task</th>
+                <th style="width: 15%">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in manual_items %}
+            <tr>
+                <td class="text-center">
+                    {% if item.start_time %}
+                        {{ item.start_time|time:"H:i" }} - {{ item.end_time|time:"H:i" }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td><span class="status-badge bg-light">{{ item.category }}</span></td>
+                <td>
+                    {% if item.related_asset and item.related_asset.location %}
+                        <small>{{ item.related_asset.location.name }}</small>
+                    {% elif item.related_infra and item.related_infra.location %}
+                        <small>{{ item.related_infra.location.name }}</small>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="fw-bold">{{ item.task_name }}</div>
+                    {% if item.note %}<div class="small text-muted fst-italic">{{ item.note }}</div>{% endif %}
+                    {% if item.related_asset or item.related_infra %}
+                        <div class="mt-1 small text-muted">
+                            Ref: {{ item.related_asset.name }}{{ item.related_infra.name }}
+                        </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.status == 'Completed' %}
+                        <span class="status-badge" style="background: #e6fffa; color: #00bf8e; border-color: #b2f5ea;">Completed</span>
+                    {% else %}
+                        <span class="status-badge">{{ item.status }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-3 fst-italic text-muted">No manual activities recorded.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- II. MAINTENANCE -->
+    <h6 class="fw-bold text-uppercase mt-4 mb-2" style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px;">II. Technical Maintenance</h6>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%">Asset / Infra</th>
+                <th style="width: 15%">Type</th>
+                <th style="width: 15%">Vendor</th>
+                <th>Activity / Result</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in asset_work %}
+            <tr>
+                <td><strong>{{ item.asset.name }}</strong></td>
+                <td>{{ item.maintenance_type }}</td>
+                <td>{{ item.vendor.name|default:"-" }}</td>
+                <td>
+                    {{ item.title }}
+                    <div class="mt-1">
+                        <span class="status-badge bg-light text-dark">{{ item.status }}</span>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            {% for item in infra_work %}
+            <tr>
+                <td><strong>{{ item.infrastructure.name }}</strong></td>
+                <td>{{ item.maintenance_type }}</td>
+                <td>{{ item.vendor.name|default:"-" }}</td>
+                <td>
+                    {{ item.title }}
+                    <div class="mt-1">
+                        <span class="status-badge bg-light text-dark">{{ item.status }}</span>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+
+            {% if not asset_work and not infra_work %}
+            <tr>
+                <td colspan="4" class="text-center py-3 fst-italic text-muted">No technical maintenance recorded.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- III. TICKETS -->
+    <h6 class="fw-bold text-uppercase mt-4 mb-2" style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px;">III. Ticket Resolutions</h6>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 15%">Ticket ID</th>
+                <th>Subject</th>
+                <th style="width: 15%">User</th>
+                <th style="width: 15%">Category</th>
+                <th style="width: 15%">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tickets %}
+            <tr>
+                <td class="font-monospace fw-bold">{{ t.ticket_code }}</td>
+                <td>{{ t.title }}</td>
+                <td>{{ t.created_by.first_name }}</td>
+                <td>{{ t.category }}</td>
+                <td><span class="status-badge" style="background: #e6fffa; color: #00bf8e; border-color: #b2f5ea;">Resolved</span></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-3 fst-italic text-muted">No resolved tickets.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- SUMMARY -->
+    {% if log.note %}
+    <div class="mt-4 p-3 bg-light border rounded">
+        <strong>Closing Summary:</strong><br>
+        {{ log.note|linebreaksbr }}
+    </div>
+    {% endif %}
+
+    <!-- SIGNATURES -->
+    <div class="row mt-5 pt-3">
+        <div class="col-6 text-center">
+            <div class="mb-5">Prepared By,</div>
+            <div class="fw-bold text-uppercase mt-4 text-decoration-underline">{{ log.executor.get_full_name|default:log.executor.username }}</div>
+            <div class="small text-muted">IT Staff</div>
+        </div>
+        <div class="col-6 text-center">
+             <div class="mb-5">Acknowledged By,</div>
+            <div class="fw-bold text-uppercase mt-4">_______________________</div>
+            <div class="small text-muted">IT Manager</div>
+        </div>
+    </div>
+{% endblock %}

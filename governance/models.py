@@ -46,13 +46,37 @@ class Project(models.Model):
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'),
     ]
+    CATEGORY_CHOICES = [
+        ('Software Development', 'Software Development'),
+        ('Infrastructure & Network', 'Infrastructure & Network'),
+        ('Cybersecurity', 'Cybersecurity'),
+        ('System Information / Data', 'System Information / Data'),
+        ('Other', 'Other'),
+    ]
     name = models.CharField(max_length=200)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Software Development')
     description = models.TextField()
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_projects')
+    budget = models.ForeignKey('BudgetPost', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects', help_text="Funding Source")
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(default=timezone.now)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Planning')
     progress = models.IntegerField(default=0, help_text="0-100%")
+
+    def update_progress(self):
+        total_tasks = self.tasks.count()
+        if total_tasks > 0:
+            completed_tasks = self.tasks.filter(status='Completed').count()
+            self.progress = int((completed_tasks / total_tasks) * 100)
+        else:
+            self.progress = 0
+        
+        # Auto-update status based on progress
+        # Only auto-start the project, do not auto-complete (requires manual sign-off)
+        if self.progress > 0 and self.status == 'Planning':
+            self.status = 'In Progress'
+            
+        self.save()
 
     def __str__(self):
         return self.name
@@ -75,6 +99,15 @@ class ProjectTask(models.Model):
     @property
     def is_past_due(self):
         return self.status != 'Completed' and self.due_date and self.due_date < timezone.now().date()
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.project.update_progress()
+
+    def delete(self, *args, **kwargs):
+        project = self.project
+        super().delete(*args, **kwargs)
+        project.update_progress()
 
     def __str__(self):
         return f"{self.project.name} - {self.name}"
