@@ -8,6 +8,7 @@ urlpatterns = [
     path('logs/create/', views.DailyLogCreateView.as_view(), name='dailylog_create'),
     path('logs/<int:pk>/', views.DailyLogDetailView.as_view(), name='dailylog_detail'),
     path('logs/<int:pk>/edit/', views.DailyLogUpdateView.as_view(), name='dailylog_update'),
+    path('logs/bulk-approve/', views.DailyLogBulkApproveView.as_view(), name='dailylog_bulk_approve'),
     
     # Projects
     path('projects/<int:pk>/', views.ProjectDetailView.as_view(), name='project_detail'),

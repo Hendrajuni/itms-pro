@@ -4,7 +4,8 @@ from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib import messages
 from django.urls import reverse_lazy
 from django.utils import timezone
 from .models import (
@@ -185,6 +186,28 @@ class DailyLogUpdateView(LoginRequiredMixin, UpdateView):
             return redirect(self.success_url)
         else:
             return self.render_to_response(self.get_context_data(form=form))
+
+class DailyLogBulkApproveView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        return self.request.user.is_superuser or self.request.user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        
+    def post(self, request, *args, **kwargs):
+        log_ids = request.POST.getlist('log_ids')
+        if log_ids:
+            with transaction.atomic():
+                logs = DailyLog.objects.filter(id__in=log_ids).exclude(status='Approved')
+                count = logs.count()
+                logs.update(
+                    status='Approved'
+                )
+            if count > 0:
+                messages.success(request, f"Successfully approved {count} daily logs.")
+            else:
+                 messages.info(request, "No eligible logs were selected for approval.")
+        else:
+            messages.warning(request, "No logs selected.")
+            
+        return redirect('dailylog_list')
 
 class DailyLogEventsJSON(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):

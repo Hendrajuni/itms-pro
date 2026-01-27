@@ -44,132 +44,165 @@
             {% endif %}
         </div>
         
-        <form method="get" class="m-0 d-flex gap-2">
-            <!-- Year Filter -->
-            <select name="year" class="form-select form-select-sm bg-light border-0" style="width: auto; cursor: pointer; font-weight: 500;" onchange="this.form.submit()">
-                <option value="">Year</option>
-                {% for y in years %}
-                    <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
-                {% endfor %}
-            </select>
+        <div class="d-flex align-items-center gap-2">
+            {% if user.is_superuser %}
+            <button type="submit" form="bulk-approve-form" class="btn btn-sm btn-success shadow-sm" onclick="return confirm('Approve selected logs?')">
+                <i class="fas fa-check-double me-1"></i> Approve Selected
+            </button>
+            <div class="vr mx-1"></div>
+            {% endif %}
 
-            <!-- Month Filter -->
-            <select name="month" class="form-select form-select-sm bg-light border-0" style="width: auto; cursor: pointer; font-weight: 500;" onchange="this.form.submit()">
-                <option value="">Month</option>
-                {% for m_num, m_name in months %}
-                    <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>{{ m_name }}</option>
-                {% endfor %}
-            </select>
+            <form method="get" class="m-0 d-flex gap-2">
+                <!-- Year Filter -->
+                <select name="year" class="form-select form-select-sm bg-light border-0" style="width: auto; cursor: pointer; font-weight: 500;" onchange="this.form.submit()">
+                    <option value="">Year</option>
+                    {% for y in years %}
+                        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
 
-            <!-- Executor Filter -->
-            <select name="executor" class="form-select form-select-sm bg-light border-0" style="max-width: 200px; cursor: pointer; font-weight: 500;" onchange="this.form.submit()">
-                <option value="">All Executors</option>
-                {% for user in executors %}
-                    <option value="{{ user.id }}" {% if selected_executor == user.id|stringformat:"s" %}selected{% endif %}>
-                        {{ user.get_full_name|default:user.username }}
-                    </option>
-                {% endfor %}
-            </select>
-        </form>
+                <!-- Month Filter -->
+                <select name="month" class="form-select form-select-sm bg-light border-0" style="width: auto; cursor: pointer; font-weight: 500;" onchange="this.form.submit()">
+                    <option value="">Month</option>
+                    {% for m_num, m_name in months %}
+                        <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>{{ m_name }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Executor Filter -->
+                <select name="executor" class="form-select form-select-sm bg-light border-0" style="max-width: 200px; cursor: pointer; font-weight: 500;" onchange="this.form.submit()">
+                    <option value="">All Executors</option>
+                    {% for user in executors %}
+                        <option value="{{ user.id }}" {% if selected_executor == user.id|stringformat:"s" %}selected{% endif %}>
+                            {{ user.get_full_name|default:user.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
     </div>
 
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-uppercase text-muted small">
-                    <tr>
-                        <th class="ps-4">Date</th>
-                        <th>User / Executor</th>
-                        <th>Shift</th>
-                        <th>Work Summary</th>
-                        <th>Status</th>
-                        <th class="text-end pe-4">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in logs %}
-                    <tr>
-                        <td class="ps-4 fw-bold text-dark">
-                            <a href="{% url 'dailylog_detail' log.pk %}" class="text-decoration-none text-dark">
-                                {{ log.date|date:"l, d M Y" }}
-                            </a>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-xs bg-soft-primary rounded-circle text-primary me-2 d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+        <form method="post" action="{% url 'dailylog_bulk_approve' %}" id="bulk-approve-form">
+            {% csrf_token %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-uppercase text-muted small">
+                        <tr>
+                            {% if user.is_superuser %}
+                            <th class="ps-4" style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="select-all">
+                            </th>
+                            <th>Date</th>
+                            {% else %}
+                            <th class="ps-4">Date</th>
+                            {% endif %}
+                            <th>User / Executor</th>
+                            <th>Shift</th>
+                            <th>Work Summary</th>
+                            <th>Status</th>
+                            <th class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            {% if user.is_superuser %}
+                            <td class="ps-4">
+                                <input type="checkbox" name="log_ids" value="{{ log.pk }}" class="form-check-input log-checkbox">
+                            </td>
+                            <td class="fw-bold text-dark">
+                            {% else %}
+                            <td class="ps-4 fw-bold text-dark">
+                            {% endif %}
+                                <a href="{% url 'dailylog_detail' log.pk %}" class="text-decoration-none text-dark">
+                                    {{ log.date|date:"l, d M Y" }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-xs bg-soft-primary rounded-circle text-primary me-2 d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+                                        {% if log.executor %}
+                                            {{ log.executor.username|first|upper }}
+                                        {% else %}
+                                            <i class="fas fa-question small"></i>
+                                        {% endif %}
+                                    </div>
                                     {% if log.executor %}
-                                        {{ log.executor.username|first|upper }}
+                                        <span class="fw-medium">{{ log.executor.get_full_name|default:log.executor.username }}</span>
                                     {% else %}
-                                        <i class="fas fa-question small"></i>
+                                        <span class="text-muted fst-italic ms-1">Unknown User</span>
                                     {% endif %}
                                 </div>
-                                {% if log.executor %}
-                                    <span class="fw-medium">{{ log.executor.get_full_name|default:log.executor.username }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-white text-secondary border shadow-sm small fw-normal">{{ log.shift }}</span>
+                            </td>
+                            <td>
+                                 <div class="d-flex gap-2">
+                                    {% if log.general_count > 0 %}
+                                        <span class="badge bg-light text-dark border" title="General Activities">
+                                            <i class="fas fa-tasks me-1 text-secondary"></i> {{ log.general_count }} Ops
+                                        </span>
+                                    {% endif %}
+                                    {% if log.maintenance_count > 0 %}
+                                        <span class="badge bg-light text-dark border" title="Maintenance Tasks">
+                                            <i class="fas fa-tools me-1 text-warning"></i> {{ log.maintenance_count }} Maint
+                                        </span>
+                                    {% endif %}
+                                    {% if log.ticket_count > 0 %}
+                                        <span class="badge bg-light text-dark border" title="Tickets Resolved">
+                                            <i class="fas fa-ticket-alt me-1 text-danger"></i> {{ log.ticket_count }} Tix
+                                        </span>
+                                    {% endif %}
+                                    {% if log.general_count == 0 and log.maintenance_count == 0 and log.ticket_count == 0 %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if log.status == 'Approved' %}
+                                    <span class="badge badge-soft-success">Approved</span>
+                                {% elif log.status == 'Submitted' %}
+                                    <span class="badge badge-soft-info">Submitted</span>
                                 {% else %}
-                                    <span class="text-muted fst-italic ms-1">Unknown User</span>
+                                    <span class="badge badge-soft-secondary">Draft</span>
                                 {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge bg-white text-secondary border shadow-sm small fw-normal">{{ log.shift }}</span>
-                        </td>
-                        <td>
-                             <div class="d-flex gap-2">
-                                {% if log.general_count > 0 %}
-                                    <span class="badge bg-light text-dark border" title="General Activities">
-                                        <i class="fas fa-tasks me-1 text-secondary"></i> {{ log.general_count }} Ops
-                                    </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                {% if user.is_superuser or log.executor == user %}
+                                    <a href="{% url 'dailylog_update' log.pk %}" class="btn btn-sm btn-light text-warning me-1" title="Edit Log">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
                                 {% endif %}
-                                {% if log.maintenance_count > 0 %}
-                                    <span class="badge bg-light text-dark border" title="Maintenance Tasks">
-                                        <i class="fas fa-tools me-1 text-warning"></i> {{ log.maintenance_count }} Maint
-                                    </span>
-                                {% endif %}
-                                {% if log.ticket_count > 0 %}
-                                    <span class="badge bg-light text-dark border" title="Tickets Resolved">
-                                        <i class="fas fa-ticket-alt me-1 text-danger"></i> {{ log.ticket_count }} Tix
-                                    </span>
-                                {% endif %}
-                                {% if log.general_count == 0 and log.maintenance_count == 0 and log.ticket_count == 0 %}
-                                    <span class="text-muted small">-</span>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            {% if log.status == 'Approved' %}
-                                <span class="badge badge-soft-success">Approved</span>
-                            {% elif log.status == 'Submitted' %}
-                                <span class="badge badge-soft-info">Submitted</span>
-                            {% else %}
-                                <span class="badge badge-soft-secondary">Draft</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end pe-4">
-                            {% if user.is_superuser or log.executor == user %}
-                                <a href="{% url 'dailylog_update' log.pk %}" class="btn btn-sm btn-light text-warning me-1" title="Edit Log">
-                                    <i class="fas fa-edit"></i>
+                                <a href="{% url 'dailylog_detail' log.pk %}" class="btn btn-sm btn-light text-primary" title="View Report">
+                                    View Report <i class="fas fa-arrow-right ms-1"></i>
                                 </a>
-                            {% endif %}
-                            <a href="{% url 'dailylog_detail' log.pk %}" class="btn btn-sm btn-light text-primary" title="View Report">
-                                View Report <i class="fas fa-arrow-right ms-1"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            <i class="fas fa-clipboard-list fa-3x mb-3 opacity-25"></i>
-                            <p>No daily logs found. Start by creating one!</p>
-                             {% if selected_executor %}
-                            <p class="small text-danger">No logs found for selected executor.</p>
-                            <a href="{% url 'dailylog_list' %}" class="btn btn-sm btn-outline-secondary">Reset Filter</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-clipboard-list fa-3x mb-3 opacity-25"></i>
+                                <p>No daily logs found. Start by creating one!</p>
+                                 {% if selected_executor %}
+                                <p class="small text-danger">No logs found for selected executor.</p>
+                                <a href="{% url 'dailylog_list' %}" class="btn btn-sm btn-outline-secondary">Reset Filter</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
     </div>
+
+<script>
+    document.getElementById('select-all')?.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.log-checkbox');
+        checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+    });
+</script>
 </div>
 {% endblock %}

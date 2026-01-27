@@ -20,7 +20,14 @@
 </div>
 
 <div class="card border-0 shadow-sm print-card">
-    <div class="card-body p-4 p-print-0">
+    <div class="card-body p-4 p-print-0 position-relative overthrow">
+        {% if log.status == 'Approved' %}
+            <div class="watermark-approved">
+                APPROVED
+                <div class="watermark-meta">VERIFIED BY ADMIN</div>
+            </div>
+        {% endif %}
+
         <!-- HEADER (Print Visible) -->
         <div class="row mb-4 align-items-center">
             <div class="col-6">
@@ -245,6 +252,36 @@
 </div>
 
 <style>
+.watermark-approved {
+    position: absolute;
+    top: 50px;
+    right: 50px;
+    font-size: 6rem;
+    font-weight: 900;
+    color: rgba(25, 135, 84, 0.15); /* Bootstrap success with opacity */
+    border: 8px solid rgba(25, 135, 84, 0.15);
+    padding: 10px 40px;
+    transform: rotate(-25deg);
+    z-index: 0;
+    pointer-events: none;
+    text-transform: uppercase;
+    font-family: 'Arial Black', sans-serif;
+    letter-spacing: 10px;
+    text-align: center;
+    line-height: 1;
+}
+
+.watermark-meta {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    margin-top: 10px;
+    font-weight: 700;
+    font-family: sans-serif;
+    color: rgba(25, 135, 84, 0.25);
+}
+
+.overthrow { z-index: 1; }
+
 @media print {
     body { background-color: white !important; }
     .sidebar, .navbar, .d-print-none, .btn { display: none !important; }
@@ -259,6 +296,13 @@
     .text-muted { color: #555 !important; }
     .bg-light { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
     .p-print-0 { padding: 0 !important; }
+    
+    .watermark-approved {
+        opacity: 0.3 !important; /* Ensure visibility in print */
+        color: #198754 !important;
+        border-color: #198754 !important;
+        -webkit-print-color-adjust: exact;
+    }
 }
 </style>
 {% endblock %}

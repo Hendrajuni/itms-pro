@@ -130,6 +130,9 @@ class NavigationHistoryMiddleware:
                 elif 'project' in url_name:
                     label = 'Projects'
                     icon = 'fas fa-tasks'
+                elif 'dailylog' in url_name:
+                    label = 'Daily Logs'
+                    icon = 'fas fa-clipboard-list'
                 elif 'location' in url_name:
                     label = 'Locations'
                     icon = 'fas fa-map-marker-alt'
