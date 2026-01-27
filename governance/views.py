@@ -17,6 +17,37 @@ from .forms import DailyLogForm, DailyLogItemForm, DailyLogItemFormSet
 from maintenance.models import AssetMaintenance, InfraMaintenance
 from tickets.models import Ticket
 
+# --- Helper for Visibility Scope ---
+def get_visible_daily_logs(user):
+    """
+    Returns a QuerySet of DailyLogs visible to the user based on Role/Location.
+    Policy:
+    1. Superuser / Head IT: All logs.
+    2. Manager: Logs from own location AND descendants (hierarchical).
+    3. Staff: Logs from own location ONLY (collaborative).
+    """
+    qs = DailyLog.objects.all().select_related('executor', 'executor__location').order_by('-date', 'executor')
+    
+    # 1. Global Viewers
+    if user.is_superuser or user.groups.filter(name__in=['Head IT', 'Director']).exists():
+        return qs
+
+    # Check User Location
+    if not hasattr(user, 'location') or not user.location:
+        # Fallback: If no location assigned, strict to own logs only
+        return qs.filter(executor=user)
+
+    # 2. Managers (Hierarchical)
+    if user.groups.filter(name='Manager').exists():
+        # Get location subtree
+        user_loc = user.location
+        subtree = user_loc.get_descendants(include_self=True)
+        return qs.filter(executor__location__in=subtree)
+
+    # 3. Standard Staff (Collaborative - Same Branch)
+    # Filter logs where executor is in the SAME location as the user
+    return qs.filter(executor__location=user.location)
+
 # --- Daily Log Views ---
 
 class DailyLogListView(LoginRequiredMixin, ListView):
@@ -31,7 +62,8 @@ class DailyLogListView(LoginRequiredMixin, ListView):
         return super().get_template_names()
 
     def get_queryset(self):
-        queryset = DailyLog.objects.all().select_related('executor').order_by('-date', 'executor')
+        # Use Helper for Base Scope
+        queryset = get_visible_daily_logs(self.request.user)
         
         # Annotate counts for Work Summary
         queryset = queryset.annotate(
@@ -48,10 +80,6 @@ class DailyLogListView(LoginRequiredMixin, ListView):
                 Q(items__related_infra__isnull=True)
             )
         )
-
-        # RESTRICTION: Non-superusers (IT Staff) only see their own logs
-        if not self.request.user.is_superuser:
-            queryset = queryset.filter(executor=self.request.user)
 
         # Date Filtering (Month/Year)
         month = self.request.GET.get('month')
@@ -71,16 +99,16 @@ class DailyLogListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get list of users who have logs for the filter dropdown
-        # Avoiding circular import if possible, or use string reference if needed, 
-        # but importing get_user_model is best practice.
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        # Get distinct executors from actual logs to keep list clean
-        # or just all users if preferred. Let's do users with logs.
-        executor_ids = DailyLog.objects.values_list('executor', flat=True).distinct()
-        # Get available years from data
+        # Filter Dropdown: Only show executors present in the visible QuerySet
+        # This prevents seeing users from other regions in the dropdown
+        visible_logs = get_visible_daily_logs(self.request.user)
+        visible_executor_ids = visible_logs.values_list('executor', flat=True).distinct()
+        
+        context['executors'] = User.objects.filter(id__in=visible_executor_ids).order_by('username')
+        
         from django.db.models.functions import ExtractYear
         available_years = DailyLog.objects.annotate(year=ExtractYear('date')).values_list('year', flat=True).distinct().order_by('-year')
         
@@ -93,8 +121,6 @@ class DailyLogListView(LoginRequiredMixin, ListView):
         
         context['selected_month'] = int(self.request.GET.get('month')) if self.request.GET.get('month') else ''
         context['selected_year'] = int(self.request.GET.get('year')) if self.request.GET.get('year') else ''
-        
-        context['executors'] = User.objects.filter(id__in=executor_ids).order_by('username')
         context['selected_executor'] = self.request.GET.get('executor', '')
         return context
 
@@ -203,7 +229,7 @@ class DailyLogBulkApproveView(LoginRequiredMixin, UserPassesTestMixin, View):
             if count > 0:
                 messages.success(request, f"Successfully approved {count} daily logs.")
             else:
-                 messages.info(request, "No eligible logs were selected for approval.")
+                messages.info(request, "No eligible logs were selected for approval.")
         else:
             messages.warning(request, "No logs selected.")
             
@@ -211,8 +237,11 @@ class DailyLogBulkApproveView(LoginRequiredMixin, UserPassesTestMixin, View):
 
 class DailyLogEventsJSON(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        # Return ALL logs for team visibility
-        logs = DailyLog.objects.all().select_related('executor').annotate(
+        # CORRECTED: Use Helper to enforce Location Permissions
+        logs = get_visible_daily_logs(request.user)
+        
+        # Annotate counts for summary logic
+        logs = logs.annotate(
             ticket_count=Count('items', filter=Q(items__content_type__model='ticket')),
             maintenance_count=Count('items', filter=
                 Q(items__related_asset__isnull=False) | 

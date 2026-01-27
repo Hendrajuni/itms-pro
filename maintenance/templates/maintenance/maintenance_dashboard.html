@@ -114,8 +114,8 @@
     <!-- LEFT: WORKSPACE -->
     <div class="col-lg-9">
         <div class="card shadow border-0" style="min-height: 600px;">
-            <div class="card-header bg-white border-bottom-0 pb-0 d-flex justify-content-between align-items-center">
-                <ul class="nav nav-tabs card-header-tabs" id="viewTabs" role="tablist">
+            <div class="card-header bg-white border-bottom-0 pb-0 position-relative">
+                <ul class="nav nav-tabs card-header-tabs d-flex flex-row w-100" id="viewTabs" role="tablist" style="flex-direction: row !important;">
                     <li class="nav-item">
                         <a class="nav-link active fw-bold" id="kanban-tab" data-bs-toggle="tab" href="#kanban" role="tab">
                             <i class="fas fa-columns me-2"></i>Kanban
@@ -133,8 +133,8 @@
                     </li>
                 </ul>
                 
-                <!-- Bulk Actions Toolbar (Visible only on List Tab via simple CSS/JS toggle ideally, but placement here is global) -->
-                <div id="bulkActions" class="d-none">
+                <!-- Bulk Actions Toolbar -->
+                <div id="bulkActions" class="d-none position-absolute top-0 end-0 mt-2 me-3">
                      <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-secondary">Assign</button>
                         <button class="btn btn-outline-success">Complete</button>
@@ -148,15 +148,15 @@
                     
                     <!-- KANBAN VIEW (Optimized) -->
                     <div class="tab-pane fade show active" id="kanban" role="tabpanel">
-                        <div class="row g-3 flex-nowrap overflow-auto pb-3" style="min-height: 500px;">
+                        <div class="row g-3 pb-3"> <!-- Removed flex-nowrap and fixed heights -->
                             <!-- COL 1: SCHEDULED -->
-                            <div class="col-md-3" style="min-width: 280px;">
+                            <div class="col-lg-3 col-md-6"> <!-- Optimized Grid -->
                                 <div class="card border-0 h-100 bg-transparent">
                                     <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
                                         <span class="fw-bold text-secondary text-uppercase small">Scheduled</span>
                                         <span class="badge bg-light text-dark">{{ kanban_scheduled|length }}</span>
                                     </div>
-                                    <div class="card-body p-0 pt-2 h-100 overflow-auto">
+                                    <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 500px;">
                                         {% for item in kanban_scheduled %}
                                             {% include 'maintenance/partials/kanban_card.html' with item=item %}
                                         {% empty %}
@@ -166,13 +166,13 @@
                                 </div>
                             </div>
                             <!-- COL 2: IN PROGRESS -->
-                            <div class="col-md-3" style="min-width: 280px;">
+                            <div class="col-lg-3 col-md-6">
                                 <div class="card border-0 h-100 bg-transparent">
                                     <div class="card-header bg-white border-bottom border-warning border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
                                         <span class="fw-bold text-warning text-uppercase small">In Progress</span>
                                         <span class="badge bg-warning text-white">{{ kanban_progress|length }}</span>
                                     </div>
-                                    <div class="card-body p-0 pt-2 h-100 overflow-auto">
+                                    <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 500px;">
                                         {% for item in kanban_progress %}
                                             {% include 'maintenance/partials/kanban_card.html' with item=item %}
                                         {% empty %}
@@ -182,13 +182,13 @@
                                 </div>
                             </div>
                             <!-- COL 3: WAITING / HOLD -->
-                            <div class="col-md-3" style="min-width: 280px;">
+                            <div class="col-lg-3 col-md-6">
                                 <div class="card border-0 h-100 bg-transparent">
                                     <div class="card-header bg-white border-bottom border-danger border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
                                         <span class="fw-bold text-danger text-uppercase small">Overdue / Hold</span>
                                         <span class="badge bg-danger text-white">{{ kanban_hold|length }}</span>
                                     </div>
-                                    <div class="card-body p-0 pt-2 h-100 overflow-auto">
+                                    <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 500px;">
                                         {% for item in kanban_hold %}
                                             {% include 'maintenance/partials/kanban_card.html' with item=item %}
                                         {% empty %}
@@ -198,13 +198,13 @@
                                 </div>
                             </div>
                             <!-- COL 4: COMPLETED -->
-                            <div class="col-md-3" style="min-width: 280px;">
+                            <div class="col-lg-3 col-md-6">
                                 <div class="card border-0 h-100 bg-transparent">
                                     <div class="card-header bg-white border-bottom border-success border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
                                         <span class="fw-bold text-success text-uppercase small">Completed</span>
                                         <span class="badge bg-success text-white">{{ kanban_completed|length }}</span>
                                     </div>
-                                    <div class="card-body p-0 pt-2 h-100 overflow-auto">
+                                    <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 500px;">
                                         {% for item in kanban_completed %}
                                              {% include 'maintenance/partials/kanban_card.html' with item=item completed=True %}
                                         {% empty %}

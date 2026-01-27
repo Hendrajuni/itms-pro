@@ -166,7 +166,7 @@ h6 {
   margin: 0;
 }
 
-.nav-item {
+.sidebar-nav .nav-item {
   width: 100%;
   margin-bottom: 0.25rem;
 }
@@ -756,32 +756,33 @@ table {
 .tab-status-dot {
   display: none;
 }
+
 /* --- Modern Pill Dropdown --- */
 .form-select-pill {
-    background-color: #F3F4F6 !important;
-    border: 1px solid transparent !important;
-    border-radius: 20px !important;
-    padding-left: 1rem !important;
-    padding-right: 2rem !important;
-    font-size: 0.85rem !important;
-    font-weight: 500 !important;
-    color: #4B5563 !important;
-    box-shadow: none !important;
-    transition: all 0.2s ease;
-    cursor: pointer;
+  background-color: #F3F4F6 !important;
+  border: 1px solid transparent !important;
+  border-radius: 20px !important;
+  padding-left: 1rem !important;
+  padding-right: 2rem !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  color: #4B5563 !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.form-select-pill:hover, .form-select-pill:focus {
-    background-color: #E5E7EB !important;
-    color: #1F2937 !important;
+.form-select-pill:hover,
+.form-select-pill:focus {
+  background-color: #E5E7EB !important;
+  color: #1F2937 !important;
 }
 
 [data-theme='dark'] .form-select-pill {
-    background-color: rgba(255,255,255,0.1) !important;
-    color: #E2E8F0 !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #E2E8F0 !important;
 }
 
 [data-theme='dark'] .form-select-pill:hover {
-    background-color: rgba(255,255,255,0.15) !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
 }
-
