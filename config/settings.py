@@ -90,6 +90,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'assets.context_processors.notification_ctx',
                 'core.context_processors.site_branding',
+                'maintenance.context_processors.maintenance_status',
             ],
         },
     },

@@ -156,7 +156,12 @@
                         <ul class="nav-tree">
 
                             <li class="nav-item">
-                                <a href="{% url 'maintenance_dashboard' %}" class="nav-link {% if 'maintenance' in request.path %}active{% endif %}">Maintenance</a>
+                                <a href="{% url 'maintenance_dashboard' %}" class="nav-link {% if 'maintenance' in request.path %}active{% endif %}">
+                                    Maintenance
+                                    {% if global_overdue_count > 0 %}
+                                        <span class="badge bg-danger ms-2 rounded-pill">{{ global_overdue_count }}</span>
+                                    {% endif %}
+                                </a>
                             </li>
 
                         </ul>

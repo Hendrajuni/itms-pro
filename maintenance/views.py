@@ -72,16 +72,17 @@ class MaintenanceDashboardView(LoginRequiredMixin, ListView):
             if s == 'Completed':
                 task.status_color = 'success'
                 completed.append(task)
+            elif task.scheduled_date < today:
+                # CRITICAL: If strictly overdue, move to Overdue/Hold regardless of "In Progress" or "Scheduled"
+                # This ensures the "Critical/Overdue" KPI matches the Kanban column count.
+                task.status_color = 'danger'
+                hold.append(task)
             elif s == 'In Progress':
                 task.status_color = 'warning'
                 progress.append(task)
             elif s == 'Scheduled':
-                if task.scheduled_date < today:
-                    task.status_color = 'danger' # Overdue
-                    hold.append(task) # Put overdue in "Hold/Attention" col
-                else:
-                    task.status_color = 'primary'
-                    scheduled.append(task)
+                task.status_color = 'primary'
+                scheduled.append(task)
             else:
                 task.status_color = 'secondary'
                 hold.append(task) # Cancelled etc
