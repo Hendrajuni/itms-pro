@@ -348,11 +348,11 @@ class AssetCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         if self.request.POST:
-            data['network_interfaces'] = NetworkInterfaceFormSet(self.request.POST)
+            data['network_interfaces'] = NetworkInterfaceFormSet(self.request.POST, form_kwargs={'user': self.request.user})
             data['storage_formset'] = AssetStorageFormSet(self.request.POST)
             data['software_formset'] = SoftwareAllocationFormSet(self.request.POST)
         else:
-            data['network_interfaces'] = NetworkInterfaceFormSet()
+            data['network_interfaces'] = NetworkInterfaceFormSet(form_kwargs={'user': self.request.user})
             data['storage_formset'] = AssetStorageFormSet()
             data['software_formset'] = SoftwareAllocationFormSet()
         return data
@@ -393,11 +393,11 @@ class AssetUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         if self.request.POST:
-             data['network_interfaces'] = NetworkInterfaceFormSet(self.request.POST, instance=self.object)
+             data['network_interfaces'] = NetworkInterfaceFormSet(self.request.POST, instance=self.object, form_kwargs={'user': self.request.user})
              data['storage_formset'] = AssetStorageFormSet(self.request.POST, instance=self.object)
              data['software_formset'] = SoftwareAllocationFormSet(self.request.POST, instance=self.object)
         else:
-             data['network_interfaces'] = NetworkInterfaceFormSet(instance=self.object)
+             data['network_interfaces'] = NetworkInterfaceFormSet(instance=self.object, form_kwargs={'user': self.request.user})
              data['storage_formset'] = AssetStorageFormSet(instance=self.object)
              data['software_formset'] = SoftwareAllocationFormSet(instance=self.object)
         return data

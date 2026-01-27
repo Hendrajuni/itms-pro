@@ -75,8 +75,13 @@ class Subnet(models.Model):
                 total_ips = 1 # Prevent division by zero
                 
             used_ips = self.ips.exclude(status='Free').count()
-            percent = int((used_ips / total_ips) * 100)
-            return min(percent, 100) # Cap at 100
+            percent = (used_ips / total_ips) * 100
+            
+            # Show at least 1% if there are used IPs but ratio is small
+            if used_ips > 0 and percent < 1:
+                return 1
+                
+            return int(min(percent, 100)) # Cap at 100
         except ValueError:
             return 0
 

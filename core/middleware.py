@@ -111,7 +111,7 @@ class NavigationHistoryMiddleware:
                 elif 'downtime' in url_name or 'monitor' in url_name:
                     label = 'NOC Monitor'
                     icon = 'fas fa-heartbeat'
-                elif 'ip' in url_name and 'address' in url_name: # checking url_name for ip_list usually
+                elif ('ip' in url_name and 'address' in url_name) or 'subnet' in url_name:
                     label = 'IP Address'
                     icon = 'fas fa-network-wired'
 

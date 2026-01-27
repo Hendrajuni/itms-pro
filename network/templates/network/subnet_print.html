@@ -1,118 +1,86 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IP Allocation Report - {{ subnet.name }}</title>
-    <!-- Use Bootstrap for styling -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body { font-size: 12px; background-color: white; }
-        .table th { background-color: #f8f9fa !important; -webkit-print-color-adjust: exact; }
-        @media print {
-            .no-print { display: none; }
-            a { text-decoration: none; color: black; }
-        }
-    </style>
-</head>
-<body class="p-4">
+{% extends 'layouts/print_base.html' %}
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-3">
-        <div>
-            <h2 class="mb-1 fw-bold">IP Allocation Report</h2>
-            <h4 class="text-muted">{{ subnet.name }} - {{ subnet.cidr }}</h4>
-        </div>
-        <div class="text-end">
-            <p class="mb-1"><strong>VLAN:</strong> {{ subnet.vlan_id|default:"-" }} | <strong>Gateway:</strong> {{ subnet.gateway|default:"-" }}</p>
-            <small class="text-muted">Generated on {{ print_date|date:"d M Y H:i" }} by {{ printed_by.get_full_name|default:printed_by.username }}</small>
-        </div>
-    </div>
+{% block title %}Print Subnet - {{ subnet.name }}{% endblock %}
 
-    <!-- Summary -->
-    <div class="mb-4">
-        <div class="row text-center">
+{% block report_title %}Subnet Utilization Report{% endblock %}
+{% block report_subtitle %}{{ subnet.name }}{% endblock %}
+
+{% block content %}
+    <!-- Info Grid -->
+    <div class="info-card">
+        <div class="row g-3">
             <div class="col-3">
-                <div class="border rounded p-2">
-                    <h5 class="mb-0 fw-bold">{{ subnet.ips.count }}</h5>
-                    <small>Total IPs Configured</small>
-                </div>
+                <div class="info-label">Network Scope (CIDR)</div>
+                <div class="info-value font-monospace">{{ subnet.cidr }}</div>
             </div>
             <div class="col-3">
-                <div class="border rounded p-2 bg-light">
-                    <h5 class="mb-0 fw-bold">{{ subnet.usage_percent }}%</h5>
-                    <small>Usage</small>
-                </div>
+                <div class="info-label">Location (Site)</div>
+                <div class="info-value">{{ subnet.location.name|default:"-" }}</div>
+            </div>
+            <div class="col-2">
+                <div class="info-label">VLAN ID</div>
+                <div class="info-value">{{ subnet.vlan_id|default:"-" }}</div>
+            </div>
+            <div class="col-2">
+                <div class="info-label">Gateway IP</div>
+                <div class="info-value font-monospace">{{ subnet.gateway|default:"-" }}</div>
+            </div>
+            <div class="col-2">
+                <div class="info-label">Total Usage</div>
+                <div class="info-value">{{ subnet.usage_percent }}%</div>
             </div>
         </div>
     </div>
 
     <!-- Table -->
-    <table class="table table-bordered table-sm table-striped">
+    <table>
         <thead>
             <tr>
+                <th style="width: 5%;">#</th>
                 <th style="width: 15%;">IP Address</th>
                 <th style="width: 10%;">Status</th>
-                <th style="width: 25%;">Used By</th>
-                <th style="width: 20%;">User</th>
-                <th style="width: 20%;">MAC Address</th>
+                <th style="width: 20%;">Device / Asset</th>
+                <th style="width: 15%;">Assigned To</th>
+                <th style="width: 15%;">MAC Address</th>
+                <th style="width: 20%;">Description</th>
             </tr>
         </thead>
         <tbody>
             {% for ip in ip_addresses %}
             <tr>
-                <td class="fw-bold font-monospace">{{ ip.address }}</td>
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td class="font-monospace fw-bold">{{ ip.address }}</td>
                 <td>
-                    {% if ip.status == 'Free' %}
-                        <span class="text-success">Free</span>
-                    {% elif ip.status == 'Active' %}
-                        <span class="text-primary fw-bold">Active</span>
-                    {% elif ip.status == 'Reserved' %}
-                        <span class="text-info">Reserved</span>
+                    <span class="status-badge" style="
+                        {% if ip.status == 'Active' %}background: #ffecec; color: #dc3545; border-color: #f5c6cb;
+                        {% elif ip.status == 'Free' %}background: #e6fffa; color: #00bf8e; border-color: #b2f5ea;
+                        {% else %}background: #e2e3e5; color: #383d41; border-color: #d6d8db;{% endif %}
+                    ">{{ ip.status }}</span>
+                </td>
+                <td>
+                    {% if ip.node %}
+                            <i class="fas fa-server me-1 opacity-50"></i> {{ ip.node.name }}
+                    {% elif ip.asset %}
+                            <i class="fas fa-desktop me-1 opacity-50"></i> {{ ip.asset.name }}
                     {% else %}
-                        {{ ip.status }}
+                            -
                     {% endif %}
                 </td>
                 <td>
-                    {% if ip.asset %}
-                        <i class="fas fa-laptop me-1"></i> {{ ip.asset.name }}
-                    {% elif ip.node %}
-                        <i class="fas fa-server me-1"></i> {{ ip.node.name }}
+                    {% if ip.asset and ip.asset.assigned_to %}
+                        {{ ip.asset.assigned_to.get_full_name|default:ip.asset.assigned_to.username }}
                     {% else %}
                         -
                     {% endif %}
                 </td>
-                <td>
-                     {% if ip.asset and ip.asset.assigned_to %}
-                        <i class="fas fa-user me-1 text-muted"></i> {{ ip.asset.assigned_to.get_full_name|default:ip.asset.assigned_to.username }}
-                     {% else %}
-                        -
-                     {% endif %}
-                </td>
-                <td class="font-monospace">{{ ip.mac_address|default:"" }}</td>
+                <td class="font-monospace small">{{ ip.mac_address|default:"-" }}</td>
+                <td>{{ ip.description|default:""|truncatechars:50 }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" class="text-center py-3 text-muted">No IP addresses found in this subnet.</td>
+                <td colspan="7" class="text-center py-4 fst-italic text-muted">No IP addresses recorded in this subnet.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-
-    <div class="text-center mt-5 no-print">
-        <button onclick="window.print()" class="btn btn-primary"><i class="fas fa-print me-2"></i>Print Report</button>
-        <button onclick="window.close()" class="btn btn-light border ms-2">Close</button>
-    </div>
-
-    <script>
-        // Auto-print only if not opener logic checks? Or just let user click. 
-        // User requested: "Auto-Print: Add <script>window.onload = function() { window.print(); }</script>"
-        window.onload = function() {
-            setTimeout(function() { window.print(); }, 500);
-        }
-    </script>
-</body>
-</html>
+{% endblock %}

@@ -114,6 +114,8 @@ class AssetForm(forms.ModelForm):
             
         return asset
 
+from network.models import Subnet
+
 class NetworkInterfaceForm(forms.ModelForm):
     class Meta:
         model = NetworkInterface
@@ -126,6 +128,19 @@ class NetworkInterfaceForm(forms.ModelForm):
              'vlan_id': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'placeholder': '10'}),
              'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Scoped Subnet dropdown for IT Support
+        if self.user and not (self.user.is_superuser or self.user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+             if self.user.groups.filter(name='IT Support').exists() and hasattr(self.user, 'location') and self.user.location:
+                  # Filter subnets by user's location (including descendants)
+                  descendants = self.user.location.get_descendants(include_self=True)
+                  # descendants is a list, extract IDs
+                  descendant_ids = [loc.id for loc in descendants]
+                  self.fields['subnet'].queryset = Subnet.objects.filter(location_id__in=descendant_ids).order_by('name')
 
 NetworkInterfaceFormSet = inlineformset_factory(
     Asset, NetworkInterface,

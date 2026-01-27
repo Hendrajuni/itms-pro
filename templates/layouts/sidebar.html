@@ -141,7 +141,7 @@
                                 <a href="{% url 'downtime_list' %}" class="nav-link {% if 'downtime' in request.path %}active{% endif %}">Downtime & Incidents</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'ip_list' %}" class="nav-link {% if 'ips' in request.path %}active{% endif %}">IP Address</a>
+                                <a href="{% url 'subnet_list' %}" class="nav-link {% if 'subnets' in request.path %}active{% endif %}">IP Address</a>
                             </li>
                         </ul>
                     </div>
@@ -219,25 +219,30 @@
 
             <!-- CONFIGURATION -->
             {% if user.is_superuser or user|has_group:"Admin" %}
-                <li class="sidebar-header">Configuration</li>
+                <li class="sidebar-header">Administration</li>
                 
                 <li class="nav-item">
-                    <a href="{% url 'integrations:settings' %}" class="nav-link {% if 'integrations' in request.path %}active{% endif %}">
-                        <i class="fas fa-plug icon"></i>
-                        <span>Integrations</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'site_settings' %}" class="nav-link {% if 'site-settings' in request.path %}active{% endif %}">
+                    <a class="nav-link collapsed" href="#configSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'integrations' in request.path or 'site-settings' in request.path or 'audit-log' in request.path or 'admin' in request.path %}true{% else %}false{% endif %}">
                         <i class="fas fa-cogs icon"></i>
-                        <span>Site Settings</span>
+                        <span>System</span>
+                        <i class="fas fa-chevron-right chevron"></i>
                     </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/admin/" target="_blank" class="nav-link">
-                        <i class="fas fa-user-shield icon"></i>
-                        <span>Django Admin</span>
-                    </a>
+                    <div class="collapse {% if 'integrations' in request.path or 'site-settings' in request.path or 'audit-log' in request.path or 'admin' in request.path %}show{% endif %}" id="configSubmenu">
+                        <ul class="nav-tree">
+                            <li class="nav-item">
+                                <a href="{% url 'integrations:settings' %}" class="nav-link {% if 'integrations' in request.path %}active{% endif %}">Integrations</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'site_settings' %}" class="nav-link {% if 'site-settings' in request.path %}active{% endif %}">Site Settings</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'audit_log_list' %}" class="nav-link {% if 'audit-log' in request.path %}active{% endif %}">Activity Log</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/admin/" target="_blank" class="nav-link">Django Admin</a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
 
 

@@ -462,7 +462,7 @@ class SubnetListView(LoginRequiredMixin, ListView):
         
         return context
 
-from .forms import SubnetForm
+from .forms import SubnetForm, IPAddressForm
 
 class SubnetCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Subnet
@@ -474,9 +474,52 @@ class SubnetCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         # Admins or IT Support (depending on policy, maybe only Managers?)
         return self.request.user.groups.filter(name__in=['Administrator', 'Manager', 'IT Support']).exists() or self.request.user.is_superuser
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        location_id = self.request.GET.get('location')
+        if location_id:
+             initial['location'] = location_id
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if 'location' in self.request.GET:
+             from assets.models import Location
+             context['locked_location'] = Location.objects.filter(pk=self.request.GET['location']).first()
+        return context
+
     def form_valid(self, form):
-        messages.success(self.request, f"Subnet {form.instance.name} created successfully.")
+        # Auto-Generate Name: [Location] - VLAN [ID] ([CIDR])
+        location = form.cleaned_data.get('location')
+        vlan = form.cleaned_data.get('vlan_id')
+        cidr = form.cleaned_data.get('cidr') 
+        
+        parts = []
+        if location:
+            parts.append(location.name)
+        if vlan:
+             parts.append(f"VLAN {vlan}")
+             
+        # Always include CIDR for uniqueness
+        parts.append(f"({cidr})")
+            
+        generated_name = " - ".join(parts)
+        form.instance.name = generated_name
+        
+        # Check uniqueness manually since we bypassed form clean
+        if Subnet.objects.filter(name=generated_name).exists():
+             form.add_error(None, f"A subnet with the auto-generated name '{generated_name}' already exists.")
+             return self.form_invalid(form)
+             
+        messages.success(self.request, f"Subnet '{generated_name}' created successfully.")
         return super().form_valid(form)
+
+
 
 class SubnetDetailView(LoginRequiredMixin, DetailView):
     model = Subnet
@@ -497,3 +540,124 @@ class SubnetDetailView(LoginRequiredMixin, DetailView):
 
 class ISPLineListView(LoginRequiredMixin, TemplateView):
     template_name = 'core/under_construction.html'
+
+class IPAddressCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = IPAddress
+    form_class = IPAddressForm
+    template_name = 'network/ip_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('subnet_detail', kwargs={'pk': self.kwargs['subnet_id']})
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.subnet = get_object_or_404(Subnet, pk=self.kwargs['subnet_id'])
+        kwargs['subnet'] = self.subnet
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['subnet'] = self.subnet
+        return context
+
+    def form_valid(self, form):
+        form.instance.subnet = self.subnet
+        messages.success(self.request, f"IP Address {form.instance.address} added successfully.")
+        return super().form_valid(form)
+
+    def test_func(self):
+        return self.request.user.groups.filter(name__in=['Administrator', 'Manager', 'IT Support']).exists() or self.request.user.is_superuser
+
+class IPAddressUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = IPAddress
+    form_class = IPAddressForm
+    template_name = 'network/ip_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('subnet_detail', kwargs={'pk': self.object.subnet.id})
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['subnet'] = self.object.subnet
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['subnet'] = self.object.subnet
+        context['editing'] = True
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, f"IP Address {form.instance.address} updated successfully.")
+        return super().form_valid(form)
+
+    def test_func(self):
+        return self.request.user.groups.filter(name__in=['Administrator', 'Manager', 'IT Support']).exists() or self.request.user.is_superuser
+
+# --- New IPAM Tree View Dashboard ---
+from assets.models import Location 
+
+class SubnetTreeDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'network/subnet_tree_dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # Sidebar: Root Locations
+        # Apply scope filtering similar to Org Chart
+        location_roots = Location.objects.filter(parent__isnull=True).prefetch_related('children')
+        
+        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+             if user.groups.filter(name='IT Support').exists() and hasattr(user, 'location') and user.location:
+                  root = user.location.get_root()
+                  location_roots = location_roots.filter(id=root.id)
+        
+        context['location_roots'] = location_roots
+        context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        
+        # Also auto-select location if passed in GET or user default
+        loc_id = self.request.GET.get('loc')
+        if not loc_id and not context['is_manager'] and hasattr(user, 'location') and user.location:
+             loc_id = user.location.id # Or root node
+             
+        if loc_id:
+             context['selected_location_id'] = loc_id
+             
+        return context
+
+class SubnetListAjaxView(LoginRequiredMixin, TemplateView):
+    template_name = 'network/partials/subnet_list_partial.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        loc_id = self.kwargs.get('pk')
+        
+        # 1. Location Info
+        location = get_object_or_404(Location, pk=loc_id)
+        context['location'] = location
+        
+        # 2. Filter Subnets (Self + Descendants)
+        # Note: Location.get_descendants returns a list (custom override), we need IDs
+        descendants_list = location.get_descendants(include_self=True)
+        descendant_ids = [d.id for d in descendants_list]
+        
+        subnets = Subnet.objects.filter(location_id__in=descendant_ids).order_by('location__name', 'name')
+        
+        # 3. Stats logic (reused from ListView but tailored)
+        total_ips = 0
+        free_ips = 0
+        active_ips = 0
+        reserved_ips = 0
+        
+        # Aggregate IP Counts efficiently
+        subnet_ids = subnets.values_list('id', flat=True)
+        ip_qs = IPAddress.objects.filter(subnet_id__in=subnet_ids)
+        
+        context['total_ips'] = ip_qs.count()
+        context['free_ips'] = ip_qs.filter(status='Free').count()
+        context['active_ips'] = ip_qs.filter(status='Active').count()
+        context['reserved_ips'] = ip_qs.filter(status='Reserved').count()
+        context['subnets'] = subnets
+        
+        return context
