@@ -1,0 +1,121 @@
+{% extends 'layouts/print_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Berita Acara Penghapusan Aset{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <h3 class="fw-bold mb-1">BERITA ACARA PENGHAPUSAN ASET</h3>
+        <h5 class="text-secondary">(Asset Disposal Request Form)</h5>
+        <div class="text-muted small mt-2">No. Ref: DISPOSAL/{{ disposal.id|stringformat:"04d" }}/{{ disposal.request_date|date:"Y" }}</div>
+    </div>
+
+    <!-- Intro -->
+    <p class="mb-4">
+        Pada hari ini, <strong>{{ current_date|date:"l" }}</strong>, tanggal <strong>{{ current_date|date:"d F Y" }}</strong>, kami yang bertanda tangan di bawah ini mengajukan permohonan penghapusan aset perusahaan dengan rincian sebagai berikut:
+    </p>
+
+    <!-- Asset Detail Table -->
+    <table class="table table-bordered mb-4 align-middle">
+        <thead class="bg-light">
+            <tr>
+                <th colspan="2" class="text-uppercase text-center">Detail Aset (Asset Details)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="fw-bold bg-light" style="width: 30%;">Kode Aset</td>
+                <td>{{ disposal.asset.asset_code }}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold bg-light">Nama Aset</td>
+                <td>{{ disposal.asset.name }}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold bg-light">Merk / Model</td>
+                <td>{{ disposal.asset.brand }} / {{ disposal.asset.model }}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold bg-light">Serial Number</td>
+                <td>{{ disposal.asset.serial_number|default:"-" }}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold bg-light">Tanggal Perolehan</td>
+                <td>{{ disposal.asset.purchase_date|date:"d F Y" }}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold bg-light">Nilai Perolehan</td>
+                <td>Rp {{ disposal.asset.purchase_price|intcomma }}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold bg-light">Lokasi Terakhir</td>
+                <td>{{ disposal.asset.location.name }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Disposal Justification -->
+    <table class="table table-bordered mb-5 align-middle">
+        <thead class="bg-light">
+            <tr>
+                <th colspan="2" class="text-uppercase text-center">Justifikasi Penghapusan (Justification)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="fw-bold bg-light" style="width: 30%;">Alasan Penghapusan</td>
+                <td>{{ disposal.reason }}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold bg-light">Metode Penghapusan</td>
+                <td>
+                    <span class="badge border border-dark text-dark">{{ disposal.method }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="fw-bold bg-light">Deskripsi Kondisi</td>
+                <td>{{ disposal.condition_description }}</td>
+            </tr>
+             <tr>
+                <td class="fw-bold bg-light">Status Pengajuan</td>
+                <td>
+                    {% if disposal.status == 'Pending' %}
+                        Pending Approval
+                    {% else %}
+                        {{ disposal.status }}
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Declaration -->
+    <p class="mb-5 text-justify">
+        Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya. Aset tersebut dinyatakan sudah tidak dapat digunakan lagi untuk operasional perusahaan atau sudah tidak bernilai ekonomis.
+    </p>
+
+    <!-- Signatures -->
+    <div class="row text-center mt-5">
+        <div class="col-4">
+            <p class="mb-5">Diajukan Oleh (Staff IT),</p>
+            <div class="mt-5 border-bottom border-dark d-inline-block px-4 pb-1 fw-bold">{{ disposal.requested_by.get_full_name|default:disposal.requested_by.username }}</div>
+            <div class="small text-muted mt-1">Tanggal: {{ disposal.request_date|date:"d/m/Y" }}</div>
+        </div>
+        
+        <div class="col-4">
+            <p class="mb-5">Mengetahui (IT Manager),</p>
+             <div class="mt-5 border-bottom border-dark d-inline-block px-4 pb-1 fw-bold" style="min-width: 150px;">&nbsp;</div>
+            <div class="small text-muted mt-1">Tanggal: ......................</div>
+        </div>
+
+        <div class="col-4">
+            <p class="mb-5">Disetujui Oleh (General Manager),</p>
+            <div class="mt-5 border-bottom border-dark d-inline-block px-4 pb-1 fw-bold" style="min-width: 150px;">&nbsp;</div>
+            <div class="small text-muted mt-1">Tanggal: ......................</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

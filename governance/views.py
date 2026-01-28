@@ -705,3 +705,14 @@ class ProjectDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to delete projects.")
         return redirect('project_list')
+
+# Disposal Request Print View
+class DisposalRequestPrintView(LoginRequiredMixin, DetailView):
+    model = DisposalRequest
+    template_name = 'governance/print_disposal.html'
+    context_object_name = 'disposal'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['current_date'] = timezone.now().date()
+        return context

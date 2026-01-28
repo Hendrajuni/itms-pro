@@ -1,0 +1,31 @@
+<li class="mb-1" style="list-style: none;">
+    <div class="d-flex align-items-center">
+        <!-- Expand/Collapse Icon if children exist -->
+        {% if node.get_children %}
+            <i class="fas fa-caret-right toggle-icon text-muted me-2" style="cursor: pointer; width: 10px;" data-bs-target="#tree-{{ node.id }}" data-bs-toggle="collapse" role="button" aria-expanded="{% if selected_location.id == node.id or selected_location.root_node.id == node.id %}true{% else %}false{% endif %}" onclick="this.classList.toggle('fa-caret-down'); this.classList.toggle('fa-caret-right');"></i>
+        {% else %}
+            <span style="width: 18px;" class="me-2"></span>
+        {% endif %}
+
+        <!-- Link -->
+        <a href="?loc={{ node.id }}" class="text-decoration-none d-block py-1 px-2 rounded w-100 text-truncate {% if selected_location.id == node.id %}bg-primary text-white fw-bold{% else %}text-dark hover-bg-light{% endif %}" title="{{ node.name }}">
+            {% if node.type == 'HO' %}<i class="fas fa-building text-secondary me-1 small"></i>{% endif %}
+            {% if node.type == 'PROVINCE' %}<i class="fas fa-map text-secondary me-1 small"></i>{% endif %}
+            {% if node.type == 'ESTATE' or node.type == 'MILL' %}<i class="fas fa-leaf text-success me-1 small"></i>{% endif %}
+            {{ node.name }}
+        </a>
+    </div>
+
+    <!-- Children -->
+    {% if node.get_children %}
+        <ul class="list-unstyled ms-3 collapse {% if node.id == selected_location.id or node in selected_location.get_ancestors %}show{% endif %}" id="tree-{{ node.id }}">
+            {% for child in node.get_children %}
+                {% include "assets/partials/location_tree_item.html" with node=child %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>
+
+<style>
+    .hover-bg-light:hover { background-color: #f0f2f5; }
+</style>

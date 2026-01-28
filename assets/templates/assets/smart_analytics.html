@@ -1,0 +1,332 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Smart Asset Intelligence - ITMS{% endblock %}
+
+{% block content %}
+<div class="row h-100 g-0">
+    <!-- SIDEBAR: Location Tree -->
+    <div class="col-md-3 col-lg-2 bg-white border-end h-100 d-none d-md-block overflow-auto shadow-sm" style="min-height: 80vh;">
+        <div class="p-3 border-bottom">
+            <h6 class="fw-bold text-uppercase text-muted mb-0 small">
+                <i class="fas fa-sitemap me-2"></i>Location Tree
+            </h6>
+        </div>
+        <div class="p-2">
+            <div class="tree-menu">
+                <ul class="list-unstyled mb-0">
+                    <!-- Global Link -->
+                    <li class="mb-1">
+                        <a href="?loc=" class="d-flex align-items-center rounded px-2 py-1 text-decoration-none {% if not selected_location %}bg-primary text-white fw-bold{% else %}text-dark hover-bg-light{% endif %}">
+                            <i class="fas fa-globe me-2"></i> Global / All
+                        </a>
+                    </li>
+
+                    {% for root in location_roots %}
+                        {% include "assets/partials/location_tree_item.html" with node=root %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div class="col-md-9 col-lg-10 h-100 overflow-auto bg-light">
+        <div class="p-4">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold text-dark mb-1">
+                        {% if selected_location %}
+                            <i class="fas fa-map-marker-alt text-primary me-2"></i>{{ selected_location.name }}
+                        {% else %}
+                            <i class="fas fa-globe text-primary me-2"></i>Global Assets
+                        {% endif %}
+                    </h4>
+                    <span class="text-muted small">Smart Intelligence Dashboard</span>
+                </div>
+                <div>
+                    <!-- Actions -->
+                    <button class="btn btn-white border shadow-sm btn-sm me-2"><i class="fas fa-print me-1"></i> Print</button>
+                    <a href="{% url 'asset_export' %}?loc={{ selected_location.id|default:'' }}" class="btn btn-success btn-sm shadow-sm"><i class="fas fa-file-excel me-1"></i> Export Data</a>
+                </div>
+            </div>
+
+            <!-- SMART TABS -->
+            <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="pills-overview-tab" data-bs-toggle="pill" data-bs-target="#pills-overview" type="button" role="tab">
+                        <i class="fas fa-chart-pie me-2"></i>Overview
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="pills-financial-tab" data-bs-toggle="pill" data-bs-target="#pills-financial" type="button" role="tab">
+                        <i class="fas fa-wallet me-2"></i>Financials
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="pills-optimization-tab" data-bs-toggle="pill" data-bs-target="#pills-optimization" type="button" role="tab">
+                        <i class="fas fa-balance-scale me-2"></i>Optimization
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="pills-tabContent">
+                
+                <!-- TAB 1: OVERVIEW -->
+                <div class="tab-pane fade show active" id="pills-overview" role="tabpanel">
+                    <!-- KPI Cards -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                                <div class="card-body">
+                                    <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Assets</div>
+                                    <div class="h3 mb-0 fw-bold text-gray-800">{{ total_assets|intcomma }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                                <div class="card-body">
+                                    <div class="text-xs fw-bold text-success text-uppercase mb-1">Asset Value</div>
+                                    <div class="h3 mb-0 fw-bold text-gray-800">Rp {{ total_value|intcomma }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                                <div class="card-body">
+                                    <div class="text-xs fw-bold text-warning text-uppercase mb-1">Utilization Rate</div>
+                                    <div class="h3 mb-0 fw-bold text-gray-800">{{ utilization_rate }}%</div>
+                                    <small class="text-muted">Active / Total</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                                <div class="card-body">
+                                    <div class="text-xs fw-bold text-danger text-uppercase mb-1">Needs Attention</div>
+                                    <div class="h3 mb-0 fw-bold text-gray-800">{{ assets_broken }}</div>
+                                    <small class="text-muted">Broken Status</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white py-3 border-0">
+                                    <h6 class="m-0 fw-bold text-primary">Asset Composition (Category)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="categoryChart" style="max-height: 300px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white py-3 border-0">
+                                    <h6 class="m-0 fw-bold text-primary">Regional Distribution (Audit)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="regionChart" style="max-height: 300px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: FINANCIALS -->
+                <div class="tab-pane fade" id="pills-financial" role="tabpanel">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-0 h-100">
+                                <i class="fas fa-coins fa-2x me-3 opacity-50"></i>
+                                <div>
+                                    <div class="small fw-bold text-uppercase opacity-75">Cur. Depreciated Value (Est.)</div>
+                                    <div class="h3 fw-bold mb-0">Rp {{ financial_total_depreciated_value|intcomma }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-0 h-100">
+                                <i class="fas fa-calendar-times fa-2x me-3 opacity-50"></i>
+                                <div>
+                                    <div class="small fw-bold text-uppercase opacity-75">Budget Plan: End of Life (>4 Years)</div>
+                                    <div class="h3 fw-bold mb-0">{{ eol_candidates_count }} Units</div>
+                                    <small>Est. Replacement Cost: Rp {{ eol_candidates_value|intcomma }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold text-primary mb-0">Top 20 High Value Assets (Current Value)</h6>
+                        </div>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-uppercase small text-muted">
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Purchased</th>
+                                    <th class="text-end">Original Price</th>
+                                    <th class="text-end">Current Value (Est.)</th>
+                                    <th class="text-center">Health</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asset in financial_top_assets %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ asset.name }}</div>
+                                        <div class="small text-muted">{{ asset.asset_code }}</div>
+                                    </td>
+                                    <td>{{ asset.purchase_date|date:"Y-m-d" }}</td>
+                                    <td class="text-end">Rp {{ asset.purchase_price|intcomma }}</td>
+                                    <td class="text-end fw-bold text-success">Rp {{ asset.cached_current_value|intcomma }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{% if asset.status == 'In Use' %}success{% elif asset.status == 'BROKEN' %}danger{% else %}secondary{% endif %} bg-opacity-10 text-{% if asset.status == 'In Use' %}success{% elif asset.status == 'BROKEN' %}danger{% else %}secondary{% endif %}">
+                                            {{ asset.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center py-4 text-muted">No financial data available.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 3: OPTIMIZATION -->
+                <div class="tab-pane fade" id="pills-optimization" role="tabpanel">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted text-uppercase mb-3">Efficiency Matrix</h6>
+                                    <div class="row">
+                                        <div class="col-6 border-end">
+                                            <div class="display-4 fw-bold text-success">{{ stock_active }}</div>
+                                            <div class="text-muted small">In Use (Active)</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="display-4 fw-bold {% if stock_idle > 5 %}text-danger{% else %}text-muted{% endif %}">{{ stock_idle }}</div>
+                                            <div class="text-muted small">In Stock (Idle)</div>
+                                        </div>
+                                    </div>
+                                    {% if stock_idle > 5 %}
+                                        <div class="alert alert-danger mt-3 mb-0 small py-2">
+                                            <i class="fas fa-exclamation-circle me-1"></i> Consider redistributing idle stock!
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-success mt-3 mb-0 small py-2">
+                                            <i class="fas fa-check-circle me-1"></i> Stock levels are healthy.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Disposal Pipeline -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                                <div class="card-body">
+                                    <h6 class="text-danger text-uppercase fw-bold mb-3">Disposal Pipeline (Pending)</h6>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <div class="display-5 fw-bold text-dark">{{ disposal_pending_count }}</div>
+                                            <div class="text-muted small">Items Pending Approval</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="h4 fw-bold text-secondary mb-0">Rp {{ disposal_pending_value|intcomma }}</div>
+                                            <div class="text-muted small">Total Asset Value</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <hr>
+                                    
+                                    <h6 class="text-muted small text-uppercase mb-2">Recent Requests</h6>
+                                    <div class="list-group list-group-flush">
+                                        {% for req in disposal_recent_list %}
+                                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="fw-bold text-dark small">{{ req.asset.name }}</div>
+                                                <div class="text-muted text-xs">{{ req.reason }} ({{ req.method }})</div>
+                                            </div>
+                                            <a href="{% url 'disposal_print' req.id %}" target="_blank" class="btn btn-xs btn-outline-danger" title="Print Surat Pengajuan">
+                                                <i class="fas fa-print"></i>
+                                            </a>
+                                        </div>
+                                        {% empty %}
+                                        <div class="text-muted small text-center py-2">No pending disposals.</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 1. Category Chart (Doughnut)
+    const catCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_category_labels|safe }},
+            datasets: [{
+                data: {{ chart_category_data|safe }},
+                backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
+            },
+            cutout: '70%',
+        }
+    });
+
+    // 2. Region Chart (Bar)
+    const regionCtx = document.getElementById('regionChart').getContext('2d');
+    new Chart(regionCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_region_labels|safe }},
+            datasets: [{
+                label: 'Asset Count',
+                data: {{ chart_region_count|safe }},
+                backgroundColor: '#36b9cc',
+                borderRadius: 5,
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+</script>
+
+<style>
+    .hover-bg-light:hover { background-color: #f8f9fa; }
+    .tree-menu .toggle-icon { cursor: pointer; width: 20px; text-align: center; }
+</style>
+{% endblock %}

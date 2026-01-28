@@ -689,39 +689,142 @@ class AssetStorageDeleteView(LoginRequiredMixin, DeleteView):
         context['title'] = "Delete Storage Device"
         return context
 
-class AssetAnalyticsView(LoginRequiredMixin, TemplateView):
-    template_name = 'assets/asset_analytics.html'
+class AssetSmartAnalyticsView(LoginRequiredMixin, TemplateView):
+    template_name = 'assets/smart_analytics.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user = self.request.user
         
-        # 1. KPI Cards
-        context['total_assets'] = Asset.objects.count()
-        context['total_value'] = Asset.objects.aggregate(total=Sum('purchase_price'))['total'] or 0
-        context['total_maintenance_cost'] = AssetMaintenance.objects.aggregate(total=Sum('cost'))['total'] or 0
-        context['assets_broken'] = Asset.objects.filter(status='BROKEN').count()
+        # --- 1. Location Scope Logic (Tree Sidebar) ---
+        # Get Root Locations for Sidebar
+        location_roots = Location.objects.filter(parent__isnull=True).prefetch_related('children').order_by('name')
         
-        # 2. Charts Data
+        # Filter Roots based on User Role
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        if not is_manager and hasattr(user, 'location') and user.location:
+             # If restricted IT Support, only show their branch root
+             my_root = user.location.get_root()
+             location_roots = location_roots.filter(id=my_root.id)
+             
+        context['location_roots'] = location_roots
         
-        # A. By Category
-        cat_data = Asset.objects.values('category__name').annotate(count=Count('id')).order_by('-count')
+        # Determine Current Active Location Filter
+        selected_location_id = self.request.GET.get('loc')
+        selected_location = None
+        filter_q = Q() # Default: All Assets
+        
+        if selected_location_id:
+            try:
+                selected_location = Location.objects.get(pk=selected_location_id)
+                # Filter Logic: Include Descendants
+                descendants = selected_location.get_descendants(include_self=True)
+                subtree_ids = [d.id for d in descendants]
+                filter_q = Q(location__in=descendants)
+            except Location.DoesNotExist:
+                pass
+        elif not is_manager and hasattr(user, 'location') and user.location:
+            # Default to user's location if not specified and restricted
+            selected_location = user.location
+            descendants = selected_location.get_descendants(include_self=True)
+            filter_q = Q(location__in=descendants)
+            subtree_ids = [d.id for d in descendants]
+        else:
+            subtree_ids = None
+
+        context['selected_location'] = selected_location
+
+        # --- Base Querysets ---
+        base_assets = Asset.objects.filter(filter_q)
+        financial_assets = base_assets.exclude(status='DISPOSED').filter(purchase_price__isnull=False, purchase_date__isnull=False)
+        maintenance_logs = AssetMaintenance.objects.filter(asset__in=base_assets)
+        
+        # --- TAB 1: OVERVIEW (KPIs & Health) ---
+        context['total_assets'] = base_assets.count()
+        context['total_value'] = base_assets.aggregate(total=Sum('purchase_price'))['total'] or 0
+        context['assets_broken'] = base_assets.filter(status='BROKEN').count()
+        context['assets_disposed'] = base_assets.filter(status='DISPOSED').count()
+        
+        # Composition Chart (Category)
+        cat_data = base_assets.values('category__name').annotate(count=Count('id')).order_by('-count')
         context['chart_category_labels'] = json.dumps([item['category__name'] for item in cat_data])
         context['chart_category_data'] = json.dumps([item['count'] for item in cat_data])
+
+        # --- TAB 2: FINANCIALS (Depreciation & Budget) ---
+        # Depreciation Logic (Top 50 Value)
+        depreciation_list = []
+        today = timezone.now().date()
+        useful_life_days = 4 * 365
         
-        # B. By Location (Top 10)
-        loc_data = Asset.objects.values('location__name').annotate(count=Count('id')).order_by('-count')[:10]
-        context['chart_location_labels'] = json.dumps([item['location__name'] for item in loc_data])
-        context['chart_location_data'] = json.dumps([item['count'] for item in loc_data])
+        for asset in financial_assets: # Limit if too many?
+            age_days = (today - asset.purchase_date).days
+            if age_days >= useful_life_days:
+                current_value = 0
+            else:
+                depreciation = float(asset.purchase_price) * (age_days / useful_life_days)
+                current_value = float(asset.purchase_price) - depreciation
+            
+            asset.cached_current_value = max(int(current_value), 0)
+            depreciation_list.append(asset)
+            
+        depreciation_list.sort(key=lambda x: x.cached_current_value, reverse=True)
+        context['financial_top_assets'] = depreciation_list[:20]
+        context['financial_total_depreciated_value'] = sum([a.cached_current_value for a in depreciation_list])
         
-        # C. Purchase Trends (By Year)
-        trend_data = Asset.objects.annotate(year=ExtractYear('purchase_date')).values('year').annotate(count=Count('id')).order_by('year')
-        # Filter out None years if any
-        trend_data = [item for item in trend_data if item['year'] is not None]
-        context['chart_trend_labels'] = json.dumps([item['year'] for item in trend_data])
-        context['chart_trend_data'] = json.dumps([item['count'] for item in trend_data])
+        # Replacement Forecast (Exceeds Useful Life in next 1 year)
+        # Actually, let's show assets OLDER than 4 years (End of Life)
+        eol_threshold = today - timedelta(days=useful_life_days)
+        context['eol_candidates_count'] = financial_assets.filter(purchase_date__lt=eol_threshold).count()
+        context['eol_candidates_value'] = financial_assets.filter(purchase_date__lt=eol_threshold).aggregate(Sum('purchase_price'))['purchase_price__sum'] or 0
         
-        # 3. Tables
-        context['recent_purchases'] = Asset.objects.order_by('-purchase_date')[:5]
+        # --- TAB 3: OPTIMIZATION (Stock & Distribution) ---
+        # Active vs Idle: Idle = 'In Stock'
+        active_count = base_assets.exclude(status__in=['In Stock', 'BROKEN', 'DISPOSED']).count()
+        idle_count = base_assets.filter(status='In Stock').count()
+        
+        context['stock_active'] = active_count
+        context['stock_idle'] = idle_count
+        context['utilization_rate'] = int((active_count / context['total_assets'] * 100)) if context['total_assets'] > 0 else 0
+        
+        
+        # --- TAB 3 (Continued): DISPOSAL PIPELINE ---
+        from governance.models import DisposalRequest
+        
+        # Filter disposals by location scope
+        # We need assets belonging to the scope
+        disposal_qs = DisposalRequest.objects.filter(status='Pending')
+        if subtree_ids:
+            disposal_qs = disposal_qs.filter(asset__location_id__in=subtree_ids)
+            
+        context['disposal_pending_count'] = disposal_qs.count()
+        context['disposal_pending_value'] = disposal_qs.aggregate(Sum('asset__purchase_price'))['asset__purchase_price__sum'] or 0
+        context['disposal_recent_list'] = disposal_qs.select_related('asset', 'requested_by').order_by('-request_date')[:5]
+
+        # Regional Distribution (Bar Chart) - Only relevant if showing multiple locs
+        # Group by immediate children of selected location (or roots if None)
+        if selected_location:
+             sub_locs = selected_location.get_children()
+        else:
+             sub_locs = Location.objects.filter(parent__isnull=True)
+             
+        regional_labels = []
+        regional_data_count = []
+        regional_data_value = []
+        
+        for loc in sub_locs:
+            # Custom get_descendants returns a list, so we can't use values_list
+            desc_nodes = loc.get_descendants(include_self=True)
+            desc_ids = [n.id for n in desc_nodes]
+            cnt = Asset.objects.filter(location_id__in=desc_ids).count()
+            val = Asset.objects.filter(location_id__in=desc_ids).aggregate(Sum('purchase_price'))['purchase_price__sum'] or 0
+            
+            regional_labels.append(loc.name)
+            regional_data_count.append(cnt)
+            regional_data_value.append(float(val))
+            
+        context['chart_region_labels'] = json.dumps(regional_labels)
+        context['chart_region_count'] = json.dumps(regional_data_count)
+        context['chart_region_value'] = json.dumps(regional_data_value)
         
         return context
 

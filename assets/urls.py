@@ -23,7 +23,7 @@ urlpatterns = [
     path('loan/<int:pk>/receipt/', views.AssetLoanReceiptView.as_view(), name='asset_loan_receipt'),
     
     path('<int:pk>/note/update/', views.AssetNoteUpdateView.as_view(), name='asset_note_update'),
-    path('analytics/', views.AssetAnalyticsView.as_view(), name='asset_analytics'),
+    path('analytics/', views.AssetSmartAnalyticsView.as_view(), name='asset_analytics'),
     path('reports/financials/', views.AssetFinancialView.as_view(), name='asset_financials'),
     path('export/', views.AssetExportView.as_view(), name='asset_export'),
     path('print-list/', views.AssetPrintListView.as_view(), name='asset_print_list'),
