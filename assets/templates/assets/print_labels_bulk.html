@@ -4,128 +4,257 @@
 <head>
     <meta charset="UTF-8">
     <title>Bulk QR Labels - {{ print_date|date:"Y-m-d" }}</title>
-    <!-- FontAwesome -->
+    <!-- Fonts & Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        @media print {
-            @page { size: A4; margin: 5mm; }
-            body { -webkit-print-color-adjust: exact; font-family: sans-serif; }
-            .no-print { display: none; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #f0f2f5; 
+            font-family: 'Inter', sans-serif;
         }
-        body { margin: 0; padding: 0; background: #eee; }
+
+        /* Toolbar (Screen Only) */
+        .toolbar {
+            text-align: center;
+            padding: 15px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        .btn {
+            background: #0d6efd;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #0b5ed7; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5c636a; }
+        .summary-text { font-size: 14px; color: #555; }
+
+        /* Print Layout */
         .page-container {
             width: 210mm;
             min-height: 297mm;
-            margin: 10mm auto;
+            margin: 0 auto;
             background: white;
-            padding: 5mm;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 10mm; /* Margin for printer */
+            box-sizing: border-box;
         }
+
         .label-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(3, 1fr); /* 3 Columns */
+            gap: 4mm; /* Spacing between labels */
+            align-content: flex-start;
         }
+
+        /* Label Design */
         .asset-label {
-            border: 2px solid #333;
+            border: 1px solid #ced4da;
+            border-radius: 8px; /* Rounded corners */
             padding: 8px;
             display: flex;
-            align-items: center;
-            height: 140px; /* Fixed height for consistency */
-            page-break-inside: avoid;
-            overflow: hidden;
+            flex-direction: column; /* Vertical Layout */
+            height: 130px; /* Slight increase for header/footer */
             background: white;
+            page-break-inside: avoid;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Subtle shadow for screen */
+        }
+
+        .label-header {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .asset-code {
+            font-size: 14px;
+            font-weight: 800;
+            color: #000;
+            font-family: 'Courier New', monospace; /* Monospace for codes */
+            display: block;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .label-body {
+            display: flex;
+            flex-grow: 1;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+
+        .qr-section {
+            width: 70px; /* Adjusted size */
+            height: 70px;
+            flex-shrink: 0;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 2px;
         }
         .qr-code {
-            width: 90px;
-            height: 90px;
-            margin-right: 15px;
-            flex-shrink: 0;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
         }
-        .label-details {
-            font-size: 11px;
-            line-height: 1.4;
+
+        .details-section {
             flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             overflow: hidden;
         }
-        .label-tag { 
-            font-size: 14px; 
-            font-weight: bold; 
-            display: block; 
-            margin-bottom: 2px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 2px;
-        }
-        .label-name { 
-            font-weight: 600; 
+
+        .asset-name {
             font-size: 12px;
-            display: block;
+            font-weight: 700;
+            color: #0d6efd; /* Brand Color */
+            margin-bottom: 6px;
+            line-height: 1.2;
+            max-height: 2.4em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .meta-row {
+            display: flex;
+            align-items: center;
+            font-size: 9px;
+            color: #555;
             margin-bottom: 2px;
             white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
         }
-        .label-meta { color: #555; }
-        .label-meta i { width: 15px; text-align: center; }
-        
-        .toolbar {
+        .meta-row i {
+            width: 14px;
             text-align: center;
-            padding: 20px;
-            background: #333;
-            color: white;
-            margin-bottom: 20px;
+            color: #adb5bd;
+            margin-right: 4px;
         }
-        .btn {
-            background: #4e73df;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            text-decoration: none;
+
+        .label-footer {
+            width: 100%;
+            text-align: center;
+            font-size: 8px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: auto; /* Push to bottom */
+            font-weight: 600;
         }
-        .btn:hover { background: #2e59d9; }
-        .btn-secondary { background: #858796; }
+        
+        /* Print Media Query */
+        @media print {
+            @page { 
+                size: A4; 
+                margin: 0mm; 
+            }
+            body { 
+                background: white; 
+                -webkit-print-color-adjust: exact; 
+            }
+            .page-container {
+                margin: 0;
+                padding: 10mm;
+                box-shadow: none;
+            }
+            .toolbar, .no-print { 
+                display: none !important; 
+            }
+            .asset-label {
+                box-shadow: none;
+                border: 1px solid #000;
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body>
 
     <div class="toolbar no-print">
-        <h3 style="margin-top: 0;">Bulk QR Label Printing</h3>
-        <p>{{ assets.count }} Labels Generated</p>
+        <div>
+            <strong>Bulk QR Printing</strong>
+            <span class="summary-text">• {{ assets.count }} Labels Generated</span>
+        </div>
         <button onclick="window.print()" class="btn"><i class="fas fa-print"></i> Print Labels</button>
         <button onclick="window.close()" class="btn btn-secondary"><i class="fas fa-times"></i> Close</button>
     </div>
 
     <div class="page-container">
+        <label class="no-print" style="display:block; margin-bottom:10px; font-size:12px; color:#666;">
+            *Ensure "Margins" are set to "None" or "Default" in print settings for best fit.
+        </label>
+        
         <div class="label-grid">
             {% for asset in assets %}
             <div class="asset-label">
-                {% if asset.qr_code_image %}
-                    <img src="{{ asset.qr_code_image.url }}" class="qr-code" alt="QR">
-                {% else %}
-                    <div class="qr-code" style="background:#eee; display:flex; align-items:center; justify-content:center;">No QR</div>
-                {% endif %}
-                
-                <div class="label-details">
-                    <span class="label-tag">{{ asset.asset_code }}</span>
-                    <span class="label-name" title="{{ asset.name }}">{{ asset.name|truncatechars:25 }}</span>
-                    
-                    <div class="label-meta">
-                        <div><i class="fas fa-map-marker-alt"></i> {{ asset.location.name|default:"-"|truncatechars:18 }}</div>
-                        <div>
-                            <i class="fas fa-user"></i> 
-                            {% if asset.assigned_to %}
-                                {{ asset.assigned_to.get_full_name|default:asset.assigned_to.username|truncatechars:18 }}
-                            {% else %}
-                                Unassigned
-                            {% endif %}
+                <!-- Top: Asset Code -->
+                <div class="label-header">
+                    <span class="asset-code">{{ asset.asset_code }}</span>
+                </div>
+
+                <!-- Middle: QR + Details -->
+                <div class="label-body">
+                    <div class="qr-section">
+                        {% if asset.qr_code_image %}
+                            <img src="{{ asset.qr_code_image.url }}" class="qr-code" alt="QR">
+                        {% else %}
+                            <span style="font-size:9px; color:#ccc;">No QR</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="details-section">
+                        <span class="asset-name">{{ asset.name }}</span>
+                        
+                        <div class="meta-row">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            <span>{{ asset.location.name|default:"-"|truncatechars:18 }}</span>
                         </div>
-                        <div><i class="fas fa-calendar-alt"></i> {{ asset.purchase_date|date:"d M Y" }}</div>
+                        <div class="meta-row">
+                            <i class="fas fa-user-circle"></i> 
+                            <span>{{ asset.assigned_to.get_full_name|default:"Unassigned"|truncatechars:18 }}</span>
+                        </div>
+                        <div class="meta-row">
+                            <i class="fas fa-calendar-alt"></i> 
+                            <span>{{ asset.purchase_date|date:"d M Y"|default:"-" }}</span>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Bottom: Footer -->
+                <div class="label-footer">IT PROPERTY</div>
             </div>
             {% endfor %}
         </div>

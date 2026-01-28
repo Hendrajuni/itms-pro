@@ -6,8 +6,45 @@
 
 {% block content %}
 <div class="container py-4">
+    <style>
+        .stamp {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            border: 5px solid #d00;
+            color: #d00;
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            padding: 10px 20px;
+            transform: rotate(-15deg);
+            opacity: 0.8;
+            z-index: 1000;
+            border-radius: 10px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .stamp.approved {
+            border-color: #0a0;
+            color: #0a0;
+        }
+    </style>
+
     <!-- Header -->
-    <div class="text-center mb-5">
+    <div class="text-center mb-5 position-relative">
+        {% if disposal.status == 'Approved' %}
+            <div class="stamp approved">
+                APPROVED<br>
+                <div style="font-size: 0.8rem; font-weight: normal; margin-top: 5px;">
+                    {{ disposal.approval_date|date:"d M Y" }}<br>
+                    By: {{ disposal.approved_by.username|default:"Manager" }}
+                </div>
+            </div>
+        {% elif disposal.status == 'Rejected' %}
+            <div class="stamp">
+                REJECTED
+            </div>
+        {% endif %}
+
         <h3 class="fw-bold mb-1">BERITA ACARA PENGHAPUSAN ASET</h3>
         <h5 class="text-secondary">(Asset Disposal Request Form)</h5>
         <div class="text-muted small mt-2">No. Ref: DISPOSAL/{{ disposal.id|stringformat:"04d" }}/{{ disposal.request_date|date:"Y" }}</div>

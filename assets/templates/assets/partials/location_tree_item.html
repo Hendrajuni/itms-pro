@@ -1,31 +1,59 @@
-<li class="mb-1" style="list-style: none;">
+<li class="mb-2">
     <div class="d-flex align-items-center">
         <!-- Expand/Collapse Icon if children exist -->
         {% if node.get_children %}
-            <i class="fas fa-caret-right toggle-icon text-muted me-2" style="cursor: pointer; width: 10px;" data-bs-target="#tree-{{ node.id }}" data-bs-toggle="collapse" role="button" aria-expanded="{% if selected_location.id == node.id or selected_location.root_node.id == node.id %}true{% else %}false{% endif %}" onclick="this.classList.toggle('fa-caret-down'); this.classList.toggle('fa-caret-right');"></i>
+            <a class="me-2 text-decoration-none text-secondary toggle-icon" data-bs-toggle="collapse" href="#tree-{{ node.id }}" role="button" aria-expanded="{% if node.id in expanded_location_ids %}true{% else %}false{% endif %}">
+                {% if node.id in expanded_location_ids %}
+                    <i class="fas fa-caret-down"></i>
+                {% else %}
+                    <i class="fas fa-caret-right"></i>
+                {% endif %}
+            </a>
         {% else %}
-            <span style="width: 18px;" class="me-2"></span>
+            <span style="width: 12px; display: inline-block;" class="me-2"></span>
         {% endif %}
 
         <!-- Link -->
-        <a href="?loc={{ node.id }}" class="text-decoration-none d-block py-1 px-2 rounded w-100 text-truncate {% if selected_location.id == node.id %}bg-primary text-white fw-bold{% else %}text-dark hover-bg-light{% endif %}" title="{{ node.name }}">
-            {% if node.type == 'HO' %}<i class="fas fa-building text-secondary me-1 small"></i>{% endif %}
-            {% if node.type == 'PROVINCE' %}<i class="fas fa-map text-secondary me-1 small"></i>{% endif %}
-            {% if node.type == 'ESTATE' or node.type == 'MILL' %}<i class="fas fa-leaf text-success me-1 small"></i>{% endif %}
+        <a href="?loc={{ node.id }}" class="text-decoration-none d-block py-1 px-2 rounded w-100 text-truncate {% if selected_location.id == node.id %}bg-primary text-white fw-bold{% else %}text-dark location-link{% endif %}" title="{{ node.name }}">
+            {% if node.type == 'HO' %} <i class="fas fa-building {% if selected_location.id == node.id %}text-white{% else %}text-danger{% endif %} me-1"></i>
+            {% elif node.type == 'PROVINCE' %} <i class="fas fa-map {% if selected_location.id == node.id %}text-white{% else %}text-warning{% endif %} me-1"></i>
+            {% elif node.type == 'RO' %} <i class="fas fa-city {% if selected_location.id == node.id %}text-white{% else %}text-info{% endif %} me-1"></i>
+            {% elif node.type == 'ESTATE' %} <i class="fas fa-tree {% if selected_location.id == node.id %}text-white{% else %}text-success{% endif %} me-1"></i>
+            {% elif node.type == 'MILL' %} <i class="fas fa-industry {% if selected_location.id == node.id %}text-white{% else %}text-secondary{% endif %} me-1"></i>
+            {% else %} <i class="fas fa-map-marker-alt {% if selected_location.id == node.id %}text-white{% else %}text-muted{% endif %} me-1"></i>
+            {% endif %}
             {{ node.name }}
         </a>
     </div>
 
     <!-- Children -->
     {% if node.get_children %}
-        <ul class="list-unstyled ms-3 collapse {% if node.id == selected_location.id or node in selected_location.get_ancestors %}show{% endif %}" id="tree-{{ node.id }}">
-            {% for child in node.get_children %}
-                {% include "assets/partials/location_tree_item.html" with node=child %}
-            {% endfor %}
-        </ul>
+        <div class="collapse {% if node.id in expanded_location_ids %}show{% endif %} ms-3 border-start ps-2" id="tree-{{ node.id }}">
+            <ul class="list-unstyled mt-1">
+                {% for child in node.get_children %}
+                    {% include "assets/partials/location_tree_item.html" with node=child %}
+                {% endfor %}
+            </ul>
+        </div>
     {% endif %}
 </li>
 
 <style>
-    .hover-bg-light:hover { background-color: #f0f2f5; }
+    .location-link:hover { background-color: #f8f9fa; }
+    /* Ensure caret rotates if using CSS ONLY, but we use font-awesome class swap logic or static check */
 </style>
+<script>
+    // Optional: Add simple JS to toggle caret icon on click if not using bootstrap's built-in event handling for icon rotation
+    document.querySelectorAll('.toggle-icon').forEach(item => {
+        item.addEventListener('click', event => {
+            const icon = item.querySelector('i');
+            if (icon.classList.contains('fa-caret-right')) {
+                icon.classList.remove('fa-caret-right');
+                icon.classList.add('fa-caret-down');
+            } else {
+                icon.classList.remove('fa-caret-down');
+                icon.classList.add('fa-caret-right');
+            }
+        });
+    });
+</script>

@@ -53,6 +53,15 @@ class AssetListView(LoginRequiredMixin, ListView):
             # Standard User: See ONLY assigned assets
             queryset = queryset.filter(assigned_to=user)
         
+        # View Mode Logic
+        view_mode = self.request.GET.get('mode', 'operational')
+        
+        if view_mode == 'disposed':
+            queryset = queryset.filter(status='DISPOSED')
+        else:
+            # Default: operational, financial, lifecycle -> Exclude DISPOSED
+            queryset = queryset.exclude(status='DISPOSED')
+
         # Filter: Location (Recursive: Include children)
         loc = self.request.GET.get('loc')
         if loc:
@@ -65,7 +74,6 @@ class AssetListView(LoginRequiredMixin, ListView):
                 pass
             
         # Filter: Department
-
         dept = self.request.GET.get('dept')
         if dept:
             queryset = queryset.filter(department_id=dept)
@@ -123,6 +131,10 @@ class AssetListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
+        
+        # Pass view mode to template
+        context['view_mode'] = self.request.GET.get('mode', 'operational')
+        
         is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
         is_it_support = user.groups.filter(name='IT Support').exists()
 
@@ -733,8 +745,14 @@ class AssetSmartAnalyticsView(LoginRequiredMixin, TemplateView):
             subtree_ids = None
 
         context['selected_location'] = selected_location
-
-        # --- Base Querysets ---
+        
+        # Determine nodes to expand (Selected location + all ancestors)
+        expanded_ids = []
+        if selected_location:
+            # Using MPTT's get_ancestors
+            ancestors = selected_location.get_ancestors(include_self=True)
+            expanded_ids = [loc.id for loc in ancestors]
+        context['expanded_location_ids'] = expanded_ids
         base_assets = Asset.objects.filter(filter_q)
         financial_assets = base_assets.exclude(status='DISPOSED').filter(purchase_price__isnull=False, purchase_date__isnull=False)
         maintenance_logs = AssetMaintenance.objects.filter(asset__in=base_assets)

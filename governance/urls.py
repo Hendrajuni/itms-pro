@@ -26,5 +26,7 @@ urlpatterns = [
     
     # Disposal
     path('disposals/', views.DisposalListView.as_view(), name='disposal_list'),
+    path('disposals/<int:pk>/', views.DisposalRequestDetailView.as_view(), name='disposal_detail'),
+    path('disposals/request/<int:asset_pk>/', views.DisposalRequestCreateView.as_view(), name='disposal_request_create'),
     path('disposals/<int:pk>/print/', views.DisposalRequestPrintView.as_view(), name='disposal_print'),
 ]

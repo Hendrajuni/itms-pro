@@ -19,8 +19,11 @@
         <a href="{% url 'asset_detail_print' asset.pk %}" target="_blank" class="btn btn-outline-dark me-2">
             <i class="fas fa-print me-1"></i> Print Report
         </a>
-        <a href="{% url 'asset_update' asset.pk %}" class="btn btn-outline-primary">
+        <a href="{% url 'asset_update' asset.pk %}" class="btn btn-outline-primary me-2">
             <i class="fas fa-edit me-1"></i> Edit Asset
+        </a>
+        <a href="{% url 'disposal_request_create' asset.pk %}" class="btn btn-outline-danger">
+            <i class="fas fa-trash-alt me-1"></i> Disposal
         </a>
         {% endif %}
     </div>

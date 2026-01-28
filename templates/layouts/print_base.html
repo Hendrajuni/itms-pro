@@ -150,10 +150,10 @@
         <!-- Footer -->
         <div class="footer d-flex justify-content-between">
             <div>
-                Generated on: {% now "D, d M Y H:i" %} | {% if user.is_authenticated %}By: {{ user.get_full_name|default:user.username }}{% endif %}
+                Dibuat pada: {% now "d M Y H:i" %} | {% if user.is_authenticated %}Oleh: {{ user.get_full_name|default:user.username }}{% endif %}
             </div>
             <div>
-                Page <span class="page-number">1</span>
+                Halaman <span class="page-number">1</span>
             </div>
         </div>
     </div>

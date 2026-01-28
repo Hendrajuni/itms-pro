@@ -22,7 +22,9 @@
                         
                         <div class="row">
                             <div class="col-md-6">{{ form.manager|as_crispy_field }}</div>
+                            {% if 'status' in form.fields %}
                             <div class="col-md-6">{{ form.status|as_crispy_field }}</div>
+                            {% endif %}
                         </div>
 
                         <div class="row">

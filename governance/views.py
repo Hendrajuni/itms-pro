@@ -716,3 +716,71 @@ class DisposalRequestPrintView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['current_date'] = timezone.now().date()
         return context
+
+from .forms import DisposalRequestForm
+from assets.models import Asset
+
+class DisposalRequestCreateView(LoginRequiredMixin, CreateView):
+    model = DisposalRequest
+    form_class = DisposalRequestForm
+    template_name = 'governance/disposal_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.asset = get_object_or_404(Asset, pk=self.kwargs['asset_pk'])
+        # Optional: Check if already has pending request or disposed
+        if hasattr(self.asset, 'disposalrequest'):
+             pending = self.asset.disposalrequest
+             if pending.status == 'Pending':
+                  messages.warning(request, f"This asset already has a pending disposal request.")
+                  return redirect('asset_detail', pk=self.asset.pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.asset = self.asset
+        form.instance.requested_by = self.request.user
+        messages.success(self.request, "Disposal request submitted successfully.")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('asset_detail', kwargs={'pk': self.asset.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['asset'] = self.asset
+        context['page_title'] = f"Request Disposal: {self.asset.asset_code}"
+        return context
+
+class DisposalRequestDetailView(LoginRequiredMixin, DetailView):
+    model = DisposalRequest
+    template_name = 'governance/disposal_detail.html'
+    context_object_name = 'request'
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        # Permission Check
+        if not (request.user.is_superuser or request.user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+             messages.error(request, "You do not have permission to approve/reject requests.")
+             return redirect('disposal_list')
+
+        action = request.POST.get('action')
+        if action == 'approve':
+            with transaction.atomic():
+                self.object.status = 'Approved'
+                self.object.approved_by = request.user
+                self.object.approval_date = timezone.now()
+                self.object.save()
+                
+                # Update Asset Status
+                asset = self.object.asset
+                asset.status = 'DISPOSED'
+                asset.save()
+                
+            messages.success(request, f"Disposal request for {asset.name} APPROVED. Asset status updated to Disposed.")
+            
+        elif action == 'reject':
+            self.object.status = 'Rejected'
+            # self.object.rejection_reason = ... (if we had a field)
+            self.object.save()
+            messages.warning(request, "Disposal request rejected.")
+            
+        return redirect('disposal_list')

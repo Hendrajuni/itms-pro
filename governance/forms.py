@@ -74,3 +74,16 @@ ProjectTaskFormSet = inlineformset_factory(
     extra=1,
     can_delete=True
 )
+
+from .models import DisposalRequest
+
+class DisposalRequestForm(forms.ModelForm):
+    class Meta:
+        model = DisposalRequest
+        fields = ['reason', 'method', 'condition_description', 'disposal_proof']
+        widgets = {
+            'reason': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Broken, Obsolete, Sold'}),
+            'method': forms.Select(attrs={'class': 'form-select'}),
+            'condition_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Describe current condition...'}),
+            'disposal_proof': forms.FileInput(attrs={'class': 'form-control'}),
+        }

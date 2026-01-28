@@ -64,7 +64,12 @@
                         </td>
                         <td class="text-end pe-4">
                             <!-- Helper Actions (Placeholder) -->
-                            <button class="btn btn-sm btn-light border" title="View Detail"><i class="fas fa-eye"></i></button>
+                            <a href="{% url 'disposal_print' req.pk %}" target="_blank" class="btn btn-sm btn-light border text-dark me-1" title="Print Berita Acara">
+                                <i class="fas fa-print"></i>
+                            </a>
+                            <a href="{% url 'disposal_detail' req.pk %}" class="btn btn-sm btn-light border text-primary" title="View Detail">
+                                <i class="fas fa-eye"></i>
+                            </a>
                         </td>
                     </tr>
                     {% empty %}

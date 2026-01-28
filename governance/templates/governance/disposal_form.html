@@ -1,0 +1,52 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-trash-alt me-2"></i> Request Asset Disposal</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    You are requesting disposal for: <strong>{{ asset.name }} ({{ asset.asset_code }})</strong>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Reason for Disposal</label>
+                        {{ form.reason }}
+                        <small class="text-muted">{{ form.reason.help_text }}</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Suggested Method</label>
+                        {{ form.method }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Current Condition</label>
+                        {{ form.condition_description }}
+                    </div>
+                    
+                    <div class="mb-3">
+                         <label class="form-label fw-bold">Evidence / Photo (Optional)</label>
+                         {{ form.disposal_proof }}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-paper-plane me-1"></i> Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
