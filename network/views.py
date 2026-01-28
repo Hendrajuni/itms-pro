@@ -80,7 +80,7 @@ class DowntimeDashboardView(LoginRequiredMixin, TemplateView):
 
 class ReportDowntimeView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = DowntimeEvent
-    fields = ['title', 'impact', 'location', 'node', 'asset', 'root_cause', 'description', 'start_time']
+    fields = ['title', 'impact', 'location', 'node', 'asset', 'root_cause', 'description', 'start_time', 'notify_everyone']
     template_name = 'network/downtime_form.html'
     success_url = reverse_lazy('downtime_list')
     

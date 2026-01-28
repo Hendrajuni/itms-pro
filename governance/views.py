@@ -463,12 +463,34 @@ class ProjectListView(LoginRequiredMixin, ListView):
     context_object_name = 'projects'
     ordering = ['-start_date']
 
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('location', 'vendor', 'manager')
+        year = self.request.GET.get('year')
+        if year and year != 'all':
+             queryset = queryset.filter(start_date__year=year)
+        
+        location_id = self.request.GET.get('location')
+        if location_id and location_id != 'all':
+            queryset = queryset.filter(location_id=location_id)
+            
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Add quick stats
         context['planning_count'] = Project.objects.filter(status='Planning').count()
         context['progress_count'] = Project.objects.filter(status='In Progress').count()
         context['completed_count'] = Project.objects.filter(status='Completed').count()
+        
+        # Years for filter
+        from assets.models import Location
+        context['years'] = Project.objects.dates('start_date', 'year', order='DESC')
+        context['selected_year'] = self.request.GET.get('year', 'all')
+        
+        # Location filter
+        context['location_list'] = Location.objects.all()
+        context['selected_location'] = self.request.GET.get('location', 'all')
+        
         return context
 
 # --- PROJECT VIEWS ---
@@ -527,6 +549,12 @@ class CompleteProjectTaskView(LoginRequiredMixin, View):
         # 1. Update Task
         task.status = 'Completed'
         task.completed_at = timezone.now()
+        
+        # Capture Feedback Data
+        task.actual_hours = request.POST.get('actual_hours') or None
+        task.completion_difficulty = request.POST.get('completion_difficulty')
+        task.completion_note = request.POST.get('completion_note', '')
+        
         task.save()
 
         # 2. Update Project Progress
@@ -550,13 +578,43 @@ class CompleteProjectTaskView(LoginRequiredMixin, View):
             start_time=timezone.now().time(), # Approximation
             end_time=timezone.now().time(),
             status='Completed',
-            note=f"Completed task for project: {task.project.name}. {task.description[:50]}"
+            note=f"Completed task: {task.name}. {task.completion_note[:200]}"
         )
 
         return redirect('project_detail', pk=task.project.pk)
+class ProjectCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = Project
+    fields = ['name', 'category', 'description', 'manager', 'location', 'vendor', 'start_date', 'end_date', 'budget']
+    template_name = 'governance/project_form.html'
+    success_url = reverse_lazy('project_list')
+
+    def test_func(self):
+        # Allow Admin, Manager, and IT Staff (custom group check) to create projects
+        # Usually project creation is restricted.
+        return self.request.user.is_superuser or self.request.user.groups.filter(name__in=['Admin', 'Manager']).exists()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'New Project'
+        from .forms import ProjectTaskFormSet
+        if self.request.POST:
+            context['tasks'] = ProjectTaskFormSet(self.request.POST)
+        else:
+            context['tasks'] = ProjectTaskFormSet()
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        tasks = context['tasks']
+        self.object = form.save()
+        if tasks.is_valid():
+            tasks.instance = self.object
+            tasks.save()
+        return super().form_valid(form)
+
 class ProjectUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Project
-    fields = ['name', 'category', 'description', 'manager', 'start_date', 'end_date', 'status', 'budget'] # Removed progress (auto-calculated)
+    fields = ['name', 'category', 'description', 'manager', 'location', 'vendor', 'start_date', 'end_date', 'status', 'budget'] # Removed progress (auto-calculated)
     template_name = 'governance/project_form.html'
     success_url = reverse_lazy('project_list')
 
@@ -609,17 +667,6 @@ class DisposalListView(LoginRequiredMixin, ListView):
             qs = qs.filter(status=status)
             
         return qs
-
-@method_decorator(login_required, name='dispatch')
-class ProjectCreateView(LoginRequiredMixin, CreateView):
-    model = Project
-    fields = ['name', 'category', 'description', 'manager', 'start_date', 'end_date', 'status', 'budget']
-    template_name = 'governance/project_form.html'
-    success_url = reverse_lazy('project_list')
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Use HTML5 date input widgets
         form.fields['start_date'].widget = forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
         form.fields['end_date'].widget = forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
         return form

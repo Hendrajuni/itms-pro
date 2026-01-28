@@ -10,9 +10,47 @@
             <h1 class="h3 mb-0 text-gray-800">IT Projects</h1>
             <p class="text-muted small mb-0">Manage development, infrastructure rollouts, and strategic initiatives.</p>
         </div>
-        <a href="{% url 'project_create' %}" class="btn btn-primary shadow-sm">
-            <i class="fas fa-plus fa-sm text-white-50 me-2"></i>New Project
-        </a>
+        <div class="d-flex align-items-center">
+            <div class="btn-group me-3 shadow-sm" role="group">
+                <a href="?view=grid{% if selected_year != 'all' %}&year={{ selected_year }}{% endif %}" class="btn btn-sm {% if request.GET.view != 'list' %}btn-primary{% else %}btn-outline-primary{% endif %}" title="Grid View">
+                    <i class="fas fa-th-large"></i>
+                </a>
+                <a href="?view=list{% if selected_year != 'all' %}&year={{ selected_year }}{% endif %}" class="btn btn-sm {% if request.GET.view == 'list' %}btn-primary{% else %}btn-outline-primary{% endif %}" title="List View">
+                    <i class="fas fa-list"></i>
+                </a>
+            </div>
+            
+            <form method="get" class="me-3 d-flex align-items-center">
+                {% if request.GET.view == 'list' %}<input type="hidden" name="view" value="list">{% endif %}
+                
+                <select name="location" class="form-select form-select-sm shadow-sm me-2" style="width: auto; min-width: 150px; max-width: 250px;" onchange="this.form.submit()">
+                    <option value="all" {% if selected_location == 'all' %}selected{% endif %}>All Locations</option>
+                    {% for loc in location_list %}
+                        <option value="{{ loc.id }}" {% if selected_location|stringformat:"i" == loc.id|stringformat:"i" %}selected{% endif %}>
+                            {{ loc.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <select name="year" class="form-select form-select-sm shadow-sm me-2" style="width: auto; min-width: 100px;" onchange="this.form.submit()">
+                    <option value="all" {% if selected_year == 'all' %}selected{% endif %}>All Years</option>
+                    {% for dt in years %}
+                        <option value="{{ dt|date:'Y' }}" {% if selected_year == dt|date:'Y' %}selected{% endif %}>
+                            {{ dt|date:'Y' }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                {% if selected_location != 'all' or selected_year != 'all' %}
+                <a href="?{% if request.GET.view %}view={{ request.GET.view }}{% endif %}" class="btn btn-sm btn-outline-secondary shadow-sm" title="Reset Filters">
+                    <i class="fas fa-undo"></i>
+                </a>
+                {% endif %}
+            </form>
+            <a href="{% url 'project_create' %}" class="btn btn-primary shadow-sm">
+                <i class="fas fa-plus fa-sm text-white-50 me-2"></i>New Project
+            </a>
+        </div>
     </div>
 </div>
 
@@ -65,8 +103,95 @@
     </div>
 </div>
 
-<!-- Project Grid -->
+<!-- Project Grid / List -->
 <h6 class="font-weight-bold text-primary mb-3">Active Projects</h6>
+
+{% if request.GET.view == 'list' %}
+<!-- TABLE VIEW -->
+<div class="card shadow mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-uppercase small text-muted">
+                    <tr>
+                        <th class="ps-4">Project Name</th>
+                        <th>Manager</th>
+                        <th>Site / Vendor</th> <!-- Added Column Header -->
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Timeline</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td class="ps-4">
+                            <a href="{% url 'project_detail' project.pk %}" class="fw-bold text-decoration-none text-dark">{{ project.name }}</a>
+                            <div class="small text-muted">{{ project.description|truncatechars:50 }}</div>
+                        </td>
+                        <td>
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                                    {{ project.manager.first_name.0|default:"?" }}
+                                </div>
+                                <span class="small fw-bold text-dark">{{ project.manager.first_name|default:"Unassigned" }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small text-muted mb-1">
+                                {% if project.location %}<i class="fas fa-map-marker-alt me-1"></i>{{ project.location.name }}{% endif %}
+                            </div>
+                            <div class="small text-dark">
+                                {% if project.vendor %}<i class="fas fa-building me-1"></i>{{ project.vendor.name }}{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                             <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-info{% else %}bg-secondary{% endif %} rounded-pill px-2">
+                                {{ project.status }}
+                            </span>
+                        </td>
+                        <td style="width: 15%;">
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                    <div class="progress-bar {% if project.status == 'Completed' %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ project.progress }}%"></div>
+                                </div>
+                                <span class="small fw-bold">{{ project.progress }}%</span>
+                            </div>
+                        </td>
+                        <td class="small text-nowrap">
+                            <div class="text-success"><i class="fas fa-play fa-fw me-1"></i> {{ project.start_date|date:"d M" }}</div>
+                            <div class="text-danger"><i class="fas fa-flag fa-fw me-1"></i> {{ project.end_date|date:"d M Y" }}</div>
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="dropdown no-arrow">
+                                <a class="btn btn-sm btn-light" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v fa-sm text-gray-400"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in">
+                                    <a class="dropdown-item" href="{% url 'project_detail' project.pk %}">Open Workspace</a>
+                                    {% if user.is_superuser or user == project.manager %}
+                                    <a class="dropdown-item" href="{% url 'project_update' project.pk %}">Edit Details</a>
+                                    {% endif %}
+                                    {% if user|has_group:"Admin" or user.is_superuser %}
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item text-danger" href="{% url 'project_delete' project.pk %}">Delete Project</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No projects found for this period.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% else %}
 <div class="row">
     {% for project in projects %}
     <div class="col-xl-4 col-md-6 mb-4">
@@ -97,6 +222,16 @@
                     <a href="{% url 'project_detail' project.pk %}" class="text-decoration-none text-dark">{{ project.name }}</a>
                 </h5>
                 <p class="small text-muted mb-3">{{ project.description|truncatechars:80 }}</p>
+
+                <div class="small text-muted mb-3">
+                    {% if project.location %}
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ project.location.name }}
+                    {% endif %}
+                    {% if project.vendor %}
+                        {% if project.location %}<span class="mx-1">|</span>{% endif %}
+                        <i class="fas fa-building me-1"></i>{{ project.vendor.name }}
+                    {% endif %}
+                </div>
 
                 <!-- Manager & Budget -->
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -149,4 +284,5 @@
     </div>
     {% endfor %}
 </div>
+{% endif %}
 {% endblock %}

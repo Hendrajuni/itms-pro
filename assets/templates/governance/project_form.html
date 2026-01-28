@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-xl-10 col-lg-11">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-primary">{% if form.instance.pk %}Edit Project{% else %}Create New Project{% endif %}</h6>
@@ -24,6 +24,11 @@
                             <div class="col-md-6">{{ form.manager|as_crispy_field }}</div>
                             <div class="col-md-6">{{ form.status|as_crispy_field }}</div>
                         </div>
+
+                        <div class="row">
+                            <div class="col-md-6">{{ form.location|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.vendor|as_crispy_field }}</div>
+                        </div>
                         
                         <div class="row">
                             <div class="col-md-6">{{ form.start_date|as_crispy_field }}</div>
@@ -39,15 +44,16 @@
                         
                         {{ tasks.management_form }}
                         <div class="table-responsive">
-                            <table class="table table-bordered table-sm">
-                                <thead class="bg-light">
+                            <table class="table table-bordered table-sm align-middle">
+                                <thead class="bg-light text-center">
                                     <tr>
-                                        <th style="width: 25%;">Task Name</th>
+                                        <th style="width: 20%;">Task Name</th>
                                         <th style="width: 25%;">Description</th>
-                                        <th style="width: 15%;">Assigned To</th>
+                                        <th style="width: 12%;">Assigned To</th>
                                         <th style="width: 10%;">Status</th>
-                                        <th style="width: 15%;">Due Date</th>
-                                        <th style="width: 10%;">Delete?</th>
+                                        <th style="width: 12%;">Start Date</th>
+                                        <th style="width: 12%;">Due Date</th>
+                                        <th style="width: 5%;"><i class="fas fa-trash"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -60,12 +66,13 @@
                                         <td>{{ task_form.description }}</td>
                                         <td>{{ task_form.assigned_to }}</td>
                                         <td>{{ task_form.status }}</td>
+                                        <td>{{ task_form.start_date }}</td>
                                         <td>{{ task_form.due_date }}</td>
                                         <td class="text-center">{{ task_form.DELETE }}</td>
                                     </tr>
                                     {% if task_form.errors %}
                                     <tr>
-                                        <td colspan="5" class="text-danger small">{{ task_form.errors }}</td>
+                                        <td colspan="7" class="text-danger small">{{ task_form.errors }}</td>
                                     </tr>
                                     {% endif %}
                                     {% endfor %}

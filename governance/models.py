@@ -57,6 +57,8 @@ class Project(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Software Development')
     description = models.TextField()
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_projects')
+    location = models.ForeignKey('assets.Location', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
+    vendor = models.ForeignKey('assets.Vendor', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
     budget = models.ForeignKey('BudgetPost', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects', help_text="Funding Source")
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(default=timezone.now)
@@ -95,6 +97,15 @@ class ProjectTask(models.Model):
     start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Analytics
+    PRIORITY_CHOICES = [('High', 'High'), ('Medium', 'Medium'), ('Low', 'Low')]
+    DIFFICULTY_CHOICES = [('Smooth', 'Smooth'), ('Minor Issues', 'Minor Issues'), ('Hard/Blocker', 'Hard/Blocker')]
+    
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='Medium')
+    completion_difficulty = models.CharField(max_length=50, choices=DIFFICULTY_CHOICES, blank=True, null=True)
+    completion_note = models.TextField(blank=True, help_text="How was the task solved?")
+    actual_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     
     @property
     def is_past_due(self):

@@ -80,12 +80,22 @@
                         <div class="form-text">Provide technical details, error messages, or steps taken so far.</div>
                     </div>
 
+                    <div class="mb-4">
+                        <div class="form-check p-3 border rounded bg-light">
+                            {{ form.notify_everyone }}
+                            <label class="form-check-label fw-bold text-danger" for="{{ form.notify_everyone.id_for_label }}">
+                                <i class="fas fa-bullhorn me-2"></i>BROADCAST TO EVERYONE?
+                            </label>
+                            <div class="small text-muted mt-1">If checked, this will alert ALL users (Staff & IT) in the location. Leave unchecked for IT Support only.</div>
+                        </div>
+                    </div>
+
                     <hr class="my-4">
 
                     <div class="d-flex justify-content-end gap-2">
                         <a href="{% url 'downtime_list' %}" class="btn btn-light border px-4">Cancel</a>
                         <button type="submit" class="btn btn-danger px-4 fw-bold">
-                            <i class="fas fa-tower-broadcast me-2"></i>BROADCAST ALERT
+                            <i class="fas fa-tower-broadcast me-2"></i>SUBMIT REPORT
                         </button>
                     </div>
                 </form>
@@ -99,8 +109,11 @@
     document.addEventListener("DOMContentLoaded", function() {
         // Add form-control class to all inputs except checkboxes
         document.querySelectorAll('input, select, textarea').forEach(function(el) {
-            if (!el.classList.contains('form-check-input')) {
+            if (!el.classList.contains('form-check-input') && el.type !== 'checkbox') {
                 el.classList.add('form-control');
+            }
+            if (el.type === 'checkbox') {
+                el.classList.add('form-check-input');
             }
              if (el.tagName === 'SELECT') {
                 el.classList.add('form-select');

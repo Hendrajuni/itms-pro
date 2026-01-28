@@ -147,8 +147,8 @@
                             </td>
 
                             <td class="text-center">
-                                {% if branch.project_tasks > 0 %}
-                                    <span class="badge bg-primary text-white">{{ branch.project_tasks }}</span>
+                                {% if branch.active_projects > 0 %}
+                                    <span class="badge bg-primary text-white">{{ branch.active_projects }}</span>
                                 {% else %}
                                     <span class="text-muted small">-</span>
                                 {% endif %}

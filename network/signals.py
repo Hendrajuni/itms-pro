@@ -81,13 +81,18 @@ def log_incident_to_daily_job(sender, instance, created, **kwargs):
         # Recipient Logic
         recipients = set()
         
-        # 1. Local IT Support
+        # 1. Local Notification Logic
         if target_location:
-            # Notify IT Support in this location
-            # (And maybe parent locations? For now strict local avoids noise)
-            local_techs = User.objects.filter(groups__name='IT Support', location=target_location)
-            for tech in local_techs:
-                recipients.add(tech)
+            if instance.notify_everyone:
+                # BROADCAST: Notify everyone in the location (Staff + IT)
+                local_users = User.objects.filter(location=target_location)
+                for u in local_users:
+                    recipients.add(u)
+            else:
+                # DEFAULT: Notify ONLY IT Support in this location
+                local_techs = User.objects.filter(groups__name='IT Support', location=target_location)
+                for tech in local_techs:
+                    recipients.add(tech)
                 
         # 2. Technician (if assigned)
         if instance.technician:

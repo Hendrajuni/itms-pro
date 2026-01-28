@@ -6,13 +6,18 @@
 {% block content %}
 <!-- Header & Actions -->
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h1 class="h3 mb-0 text-gray-800">{{ project.name }}</h1>
-        <div class="mt-1">
-            <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% else %}bg-secondary{% endif %} rounded-pill px-3">
-                {{ project.status }}
-            </span>
-            <span class="text-muted small ms-2"><i class="far fa-calendar-alt me-1"></i> {{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</span>
+    <div class="d-flex align-items-start">
+        <a href="{% url 'project_list' %}" class="btn btn-link text-secondary p-0 me-3 mt-1" title="Back to Projects">
+            <i class="fas fa-arrow-left fa-lg"></i>
+        </a>
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">{{ project.name }}</h1>
+            <div class="mt-1">
+                <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% else %}bg-secondary{% endif %} rounded-pill px-3">
+                    {{ project.status }}
+                </span>
+                <span class="text-muted small ms-2"><i class="far fa-calendar-alt me-1"></i> {{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</span>
+            </div>
         </div>
     </div>
     
@@ -131,110 +136,166 @@
     </div>
 </div>
 
-<!-- Main Content Grid -->
+
+<!-- TABS NAVIGATION -->
+<nav class="mb-4">
+    <div class="nav nav-tabs" id="projectTabs" role="tablist">
+        <button class="nav-link active" id="nav-kanban-tab" data-bs-toggle="tab" data-bs-target="#nav-kanban" type="button" role="tab" aria-controls="nav-kanban" aria-selected="true"><i class="fas fa-columns me-2"></i>Task Board</button>
+        <button class="nav-link" id="nav-timeline-tab" data-bs-toggle="tab" data-bs-target="#nav-timeline" type="button" role="tab" aria-controls="nav-timeline" aria-selected="false"><i class="fas fa-stream me-2"></i>Timeline (Gantt)</button>
+        <button class="nav-link" id="nav-calendar-tab" data-bs-toggle="tab" data-bs-target="#nav-calendar" type="button" role="tab" aria-controls="nav-calendar" aria-selected="false"><i class="far fa-calendar-alt me-2"></i>Calendar</button>
+    </div>
+</nav>
+
 <div class="row">
-    
-    <!-- LEFT: Kanban Board (Work) -->
+    <!-- LEFT CONTENT (TABS) -->
     <div class="col-xl-8 col-lg-7">
-        
-        {% if my_tasks %}
-        <!-- My Action Items (Priority) -->
-        <div class="card shadow mb-4 border-bottom-danger">
-            <div class="card-header py-3 bg-white">
-                <h6 class="m-0 font-weight-bold text-danger"><i class="fas fa-fire me-2"></i>My Pending Tasks</h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                         <tbody>
-                            {% for task in my_tasks %}
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="fw-bold">{{ task.name }}</div>
-                                    <small class="text-muted">Due: {{ task.due_date|date:"d M" }}</small>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <form action="{% url 'complete_project_task' task.pk %}" method="POST">
-                                        {% csrf_token %}
-                                        <button class="btn btn-sm btn-success rounded-pill px-3">Mark Done</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                         </tbody>
-                    </table>
+        <div class="tab-content" id="projectTabsContent">
+            
+            <!-- TAB 1: KANBAN BOARD -->
+            <div class="tab-pane fade show active" id="nav-kanban" role="tabpanel" aria-labelledby="nav-kanban-tab">
+                {% if my_tasks %}
+                <!-- My Action Items (Priority) -->
+                <!-- ... (Keep existing My Pending Tasks) ... -->
+                <div class="card shadow mb-4 border-bottom-danger">
+                    <div class="card-header py-3 bg-white">
+                        <h6 class="m-0 font-weight-bold text-danger"><i class="fas fa-fire me-2"></i>My Pending Tasks</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                 <tbody>
+                                    {% for task in my_tasks %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-bold">{{ task.name }}</div>
+                                            <small class="text-muted">Due: {{ task.due_date|date:"d M" }}</small>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <button class="btn btn-sm btn-success rounded-pill px-3" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#completionModal"
+                                                    data-task-id="{{ task.pk }}"
+                                                    data-task-name="{{ task.name }}">
+                                                Mark Done
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                 </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- KANBAN BOARD -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Task Board</h6>
-                <!-- Only Manager can add tasks -->
-                {% if user.is_superuser or user == project.manager %}
-                    <!-- Ideally link to a create task modal or page -->
-                    <a href="{% url 'project_update' project.pk %}#tasks" class="btn btn-sm btn-outline-primary">Manage Tasks</a>
                 {% endif %}
-            </div>
-            <div class="card-body bg-light">
-                <div class="row">
-                    <!-- Column: Pending -->
+
+                <!-- KANBAN COLUMNS -->
+                <!-- KANBAN COLUMNS -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Task Board</h6>
+                    {% if user.is_superuser or user == project.manager %}
+                        <a href="{% url 'project_update' project.pk %}#tasks" class="btn btn-sm btn-primary shadow-sm"><i class="fas fa-cog me-1"></i> Manage Tasks</a>
+                    {% endif %}
+                </div>
+
+                <div class="row g-3">
+                    <!-- Column 1: Pending -->
                     <div class="col-md-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="font-weight-bold text-secondary text-uppercase small">Pending</h6>
-                            <span class="badge bg-secondary rounded-pill">{{ tasks_pending|length }}</span>
-                        </div>
-                        <div class="kanban-col">
-                            {% for task in tasks_pending %}
-                                {% include 'governance/partials/kanban_card.html' with task=task color="secondary" %}
-                            {% empty %}
-                                <div class="text-center text-muted small py-4 border rounded border-dashed">No tasks</div>
-                            {% endfor %}
+                        <div class="card border-0 h-100 bg-transparent">
+                            <div class="card-header bg-white border-bottom border-secondary border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
+                                <span class="fw-bold text-secondary text-uppercase small">Pending</span>
+                                <span class="badge bg-secondary text-white">{{ tasks_pending|length }}</span>
+                            </div>
+                            <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 600px;">
+                                <div class="kanban-col">
+                                    {% for task in tasks_pending %}
+                                        {% include 'governance/partials/kanban_card.html' with task=task color="secondary" %}
+                                    {% empty %}
+                                        <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Column: In Progress -->
+                    <!-- Column 2: In Progress -->
                     <div class="col-md-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="font-weight-bold text-primary text-uppercase small">In Progress</h6>
-                            <span class="badge bg-primary rounded-pill">{{ tasks_progress|length }}</span>
-                        </div>
-                        <div class="kanban-col">
-                            {% for task in tasks_progress %}
-                                {% include 'governance/partials/kanban_card.html' with task=task color="primary" %}
-                            {% endfor %}
+                        <div class="card border-0 h-100 bg-transparent">
+                            <div class="card-header bg-white border-bottom border-primary border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
+                                <span class="fw-bold text-primary text-uppercase small">In Progress</span>
+                                <span class="badge bg-primary text-white">{{ tasks_progress|length }}</span>
+                            </div>
+                            <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 600px;">
+                                <div class="kanban-col">
+                                    {% for task in tasks_progress %}
+                                        {% include 'governance/partials/kanban_card.html' with task=task color="primary" %}
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Column: Completed -->
+                    <!-- Column 3: Completed -->
                     <div class="col-md-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="font-weight-bold text-success text-uppercase small">Completed</h6>
-                            <span class="badge bg-success rounded-pill">{{ tasks_completed|length }}</span>
-                        </div>
-                        <div class="kanban-col">
-                            {% for task in tasks_completed %}
-                                {% include 'governance/partials/kanban_card.html' with task=task color="success" %}
-                            {% endfor %}
+                        <div class="card border-0 h-100 bg-transparent">
+                            <div class="card-header bg-white border-bottom border-success border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
+                                <span class="fw-bold text-success text-uppercase small">Completed</span>
+                                <span class="badge bg-success text-white">{{ tasks_completed|length }}</span>
+                            </div>
+                            <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 600px;">
+                                <div class="kanban-col">
+                                    {% for task in tasks_completed %}
+                                        {% include 'governance/partials/kanban_card.html' with task=task color="success" %}
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- TAB 2: GANTT CHART -->
+            <div class="tab-pane fade" id="nav-timeline" role="tabpanel" aria-labelledby="nav-timeline-tab">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Project Timeline</h6>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary active" onclick="changeGanttView('Day')">Day</button>
+                            <button class="btn btn-outline-secondary" onclick="changeGanttView('Week')">Week</button>
+                            <button class="btn btn-outline-secondary" onclick="changeGanttView('Month')">Month</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="gantt-container" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                            <div id="gantt-chart" style="min-width: 800px; min-height: 350px;"></div>
+                        </div>
+                        <div id="gantt-empty" class="text-center py-5 d-none">
+                            <p class="text-muted">No scheduled tasks found.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: CALENDAR -->
+            <div class="tab-pane fade" id="nav-calendar" role="tabpanel" aria-labelledby="nav-calendar-tab">
+                <div class="card shadow mb-4">
+                    <div class="card-body">
+                       <div id="calendar"></div>
+                    </div>
+                </div>
+            </div>
+            
         </div>
     </div>
 
-    <!-- RIGHT: Info & Team -->
+    <!-- RIGHT CONTENT (TEAM, ETC) keep as is -->
+    <!-- ... (No changes needed in right column) ... -->
     <div class="col-xl-4 col-lg-5">
-        
         <!-- About Project -->
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Project Team</h6>
             </div>
             <div class="card-body">
-                
                 <h6 class="small font-weight-bold text-uppercase text-muted mb-2">Manager</h6>
                 <div class="d-flex align-items-center mb-4">
                      <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
@@ -272,11 +333,8 @@
                     <div class="small text-muted text-uppercase">Budget Source</div>
                     <div class="fw-bold">{{ project.budget.name }}</div>
                 </div>
-                
-                <!-- Simple bar for illustration -->
                 <div class="small text-muted text-uppercase mb-1">Utilization</div>
                 <div class="progress mb-2" style="height: 10px;">
-                    <!-- Placeholder: assuming 0 spent for now, or maybe project tasks have cost? -->
                     <div class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
                 </div>
                 <div class="d-flex justify-content-between small">
@@ -286,26 +344,39 @@
             </div>
         </div>
         {% endif %}
-
     </div>
 </div>
 
 <style>
-    .kanban-col {
-        min-height: 200px;
+    .kanban-col { min-height: 200px; }
+    a.stretched-link { position: static; }
+    .card-body { position: relative; }
+    
+    /* Gantt Styles */
+    .gantt .bar-label { fill: #2c3e50; font-weight: bold; font-size: 12px; }
+    .gantt .bar-progress { fill: #4e73df; opacity: 0.8; }
+    .gantt-container {
+        border-radius: 0.35rem;
     }
-    a.stretched-link {
-        position: static; /* Prevent conflict with dropdown */
+    .gantt .grid-header { fill: #f8f9fc; stroke: #e3e6f0; }
+    .gantt .grid-row { fill: #fff; }
+    .gantt .grid-row:nth-child(even) { fill: #f8f9fc; }
+    .gantt .tick { font-size: 11px; fill: #858796; }
+    
+    /* Custom Popup Style Override */
+    .date { font-weight: bold; }
+    .details-container { font-size: 12px; }
+
+    /* Calendar Styles */
+    #calendar {
+        max-width: 100%;
+        margin: 0 auto;
+        min-height: 600px;
     }
-    /* Only stretch if not clicking dropdown */
-    .card-body {
-        position: relative;
-    }
-    /* Custom stretched link logic to avoid covering dropdown */
-    /* Handled by JS or specific z-index if needed */
+    .fc-event { cursor: pointer; }
 </style>
 
-<!-- Task Detail Modal -->
+<!-- Task Detail Modal (View Only) -->
 <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -322,6 +393,11 @@
                     <label class="small text-muted text-uppercase fw-bold">Description / Scope</label>
                     <p id="taskDetailDesc" class="text-dark border p-3 rounded bg-light"></p>
                 </div>
+                <!-- Added Solution Note view if completed -->
+                <div class="mb-3 d-none" id="taskSolutionDiv">
+                    <label class="small text-muted text-uppercase fw-bold">Solution Note</label>
+                    <p id="taskDetailSolution" class="text-success border p-3 rounded bg-soft-success"></p>
+                </div>
                 <div class="row">
                     <div class="col-6">
                         <label class="small text-muted text-uppercase fw-bold">Assigned To</label>
@@ -332,6 +408,16 @@
                         <div id="taskDetailDue" class="fw-bold"></div>
                     </div>
                 </div>
+                <div class="row mt-3 border-top pt-3">
+                     <div class="col-12">
+                        <label class="small text-muted text-uppercase fw-bold">Date Range</label>
+                        <div class="d-flex justify-content-between">
+                            <span id="taskDetailStart" class="fw-bold text-primary"></span>
+                            <i class="fas fa-arrow-right text-muted mx-2"></i>
+                            <span id="taskDetailEnd" class="fw-bold text-danger"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -340,38 +426,208 @@
     </div>
 </div>
 
+<!-- Completion Feedback Modal (Action) -->
+<div class="modal fade" id="completionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold">Mark Task as Done</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="completionForm" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="mb-3">You are completing: <strong id="completionTaskName"></strong></p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase">Completion Status / Challenges</label>
+                        <select name="completion_difficulty" class="form-select" required>
+                            <option value="Smooth">Smooth (No Issues)</option>
+                            <option value="Minor Issues">Minor Issues</option>
+                            <option value="Hard/Blocker">Hard / Blocker</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase">Actual Duration (Hours)</label>
+                        <input type="number" name="actual_hours" class="form-control" step="0.5" min="0.5" placeholder="e.g. 4.5">
+                        <div class="form-text">Estimate the actual time spent on this task.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase">Solution / Notes</label>
+                        <textarea name="completion_note" class="form-control" rows="3" placeholder="Briefly describe how it was resolved..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-2"></i>Confirm Completion</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- LOAD GANTT LIBRARY -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.css">
+
+<!-- LOAD FULLCALENDAR LIBRARY -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // --- 1. Task Detail Modal Handling ---
         var taskModal = document.getElementById('taskDetailModal');
+        var modalBS = new bootstrap.Modal(taskModal); // Create JS instance for manual show
+
         taskModal.addEventListener('show.bs.modal', function (event) {
-            var button = event.relatedTarget;
+            var button = event.relatedTarget; // Triggering button
+            // If triggered by Calendar, button might be null so we handle that in eventClick
+            if(button) {
+                populateTaskModal(button.dataset);
+            }
+        });
+
+        function populateTaskModal(data) {
+            // Update Text Content
+            document.getElementById('taskDetailTitle').textContent = data.taskName;
+            document.getElementById('taskDetailDesc').innerHTML = (data.taskDesc || '').replace(/\n/g, '<br>');
+            document.getElementById('taskDetailDue').textContent = data.taskDue;
+            document.getElementById('taskDetailAssignee').textContent = data.taskAssignee;
             
-            // Extract info from data-* attributes
-            var name = button.getAttribute('data-task-name');
-            var desc = button.getAttribute('data-task-desc');
-            var due = button.getAttribute('data-task-due');
-            var status = button.getAttribute('data-task-status');
-            var assignee = button.getAttribute('data-task-assignee');
-            
-            // Update Modal Content
-            var modalTitle = taskModal.querySelector('#taskDetailTitle');
-            var modalDesc = taskModal.querySelector('#taskDetailDesc');
-            var modalDue = taskModal.querySelector('#taskDetailDue');
-            var modalStatus = taskModal.querySelector('#taskDetailStatus');
-            var modalAssignee = taskModal.querySelector('#taskDetailAssignee');
-            
-            modalTitle.textContent = name;
-             // Handle Description line breaks simple way
-            modalDesc.innerHTML = desc.replace(/\n/g, '<br>');
-            modalDue.textContent = due;
-            modalAssignee.textContent = assignee;
-            
-            // Status Badge Logic
+            // New Date Range
+            document.getElementById('taskDetailStart').textContent = data.taskStart || '-';
+            document.getElementById('taskDetailEnd').textContent = data.taskDue || '-';
+
+            // Status Badge
+            let status = data.taskStatus;
             let badgeClass = 'bg-secondary';
             if(status === 'In Progress') badgeClass = 'bg-primary';
             else if(status === 'Completed') badgeClass = 'bg-success';
+            document.getElementById('taskDetailStatus').innerHTML = `<span class="badge ${badgeClass} rounded-pill px-3">${status}</span>`;
             
-            modalStatus.innerHTML = `<span class="badge ${badgeClass} rounded-pill px-3">${status}</span>`;
+            // Solution Note (if available)
+             var solutionDiv = document.getElementById('taskSolutionDiv');
+            if(status === 'Completed' && data.taskNote) {
+                 solutionDiv.classList.remove('d-none');
+                 document.getElementById('taskDetailSolution').textContent = data.taskNote;
+            } else {
+                 solutionDiv.classList.add('d-none');
+            }
+        }
+        
+        // --- 2. Completion Modal Handling ---
+        var completionModal = document.getElementById('completionModal');
+        completionModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var taskId = button.getAttribute('data-task-id');
+            var taskName = button.getAttribute('data-task-name');
+            
+            document.getElementById('completionTaskName').textContent = taskName;
+            
+            // Update Form Action URL using JS string replacement
+            // Use a dummy 0 pk URL as template
+            var baseUrl = "{% url 'complete_project_task' 0 %}".replace('0', taskId);
+            document.getElementById('completionForm').action = baseUrl;
+        });
+
+        // --- 3. Gantt Chart Logic ---
+        const tasksData = [
+            {% for task in project.tasks.all %}
+                {
+                    id: "t{{ task.id }}",
+                    name: "{{ task.name|escapejs }}",
+                    // Fallback logic for GANTT
+                    start: "{% if task.start_date %}{{ task.start_date|date:'Y-m-d' }}{% elif project.start_date %}{{ project.start_date|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}",
+                    end: "{% if task.due_date %}{{ task.due_date|date:'Y-m-d' }}{% elif project.end_date %}{{ project.end_date|date:'Y-m-d' }}{% else %}{{ task.start_date|date:'Y-m-d' }}{% endif %}",
+                    progress: {% if task.status == 'Completed' %}100{% elif task.status == 'In Progress' %}50{% else %}0{% endif %},
+                    dependencies: "", 
+                    custom_class: "gantt-bar-{% if task.status == 'Completed' %}success{% elif task.status == 'In Progress' %}primary{% else %}secondary{% endif %}"
+                },
+            {% endfor %}
+        ];
+
+        if (tasksData.length > 0) {
+            var gantt = new Gantt("#gantt-chart", tasksData, {
+                header_height: 50,
+                column_width: 30,
+                step: 24,
+                view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
+                bar_height: 25,
+                bar_corner_radius: 3,
+                arrow_curve: 5,
+                padding: 18,
+                view_mode: 'Day',
+                date_format: 'YYYY-MM-DD',
+                custom_popup_html: function(task) {
+                    return `
+                        <div class="details-container">
+                            <h5>${task.name}</h5>
+                            <p>Progress: ${task.progress}%</p>
+                        </div>
+                    `;
+                }
+            });
+            window.changeGanttView = function(mode) {
+                gantt.change_view_mode(mode);
+            };
+        } else {
+            document.getElementById('gantt-empty').classList.remove('d-none');
+        }
+
+        // --- 4. Calendar Logic (FullCalendar) ---
+        var calendarEl = document.getElementById('calendar');
+        
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listWeek'
+            },
+            themeSystem: 'bootstrap5',
+            events: [
+                {% for task in project.tasks.all %}
+                {
+                    title: "{{ task.name|escapejs }}",
+                    start: "{% if task.start_date %}{{ task.start_date|date:'Y-m-d' }}{% elif project.start_date %}{{ project.start_date|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}",
+                    end: "{% if task.due_date %}{{ task.due_date|date:'Y-m-d' }}{% endif %}", // Calendar handles single day events differently if end is same as start
+                    backgroundColor: "{% if task.status == 'Completed' %}#1cc88a{% elif task.status == 'In Progress' %}#4e73df{% else %}#858796{% endif %}",
+                    borderColor: "transparent",
+                    extendedProps: {
+                        description: "{{ task.description|escapejs }}",
+                        assignee: "{{ task.assigned_to|default:'Unassigned' }}",
+                        status: "{{ task.status }}",
+                        due: "{{ task.due_date|date:'d M Y' }}",
+                        startRaw: "{{ task.start_date|date:'d M Y' }}",
+                        note: "{{ task.completion_note|escapejs }}"
+                    }
+                },
+                {% endfor %}
+            ],
+            eventClick: function(info) {
+                // Trigger Modal Display manually
+                var props = info.event.extendedProps;
+                
+                populateTaskModal({
+                    taskName: info.event.title,
+                    taskDesc: props.description,
+                    taskDue: props.due,
+                    taskAssignee: props.assignee,
+                    taskStatus: props.status,
+                    taskStart: props.startRaw,
+                    taskNote: props.note
+                });
+                
+                modalBS.show();
+            }
+        });
+
+        // Re-render Calendar when tab is shown so it sizes correctly
+        var calendarTab = document.getElementById('nav-calendar-tab');
+        calendarTab.addEventListener('shown.bs.tab', function (e) {
+            calendar.render();
         });
     });
 </script>

@@ -157,7 +157,9 @@ class DowntimeEvent(models.Model):
     impact = models.CharField(max_length=20, choices=IMPACT_CHOICES, default='Medium')
     description = models.TextField(blank=True, help_text="Detailed description of the incident")
     resolution = models.TextField(blank=True)
+    resolution = models.TextField(blank=True)
     is_resolved = models.BooleanField(default=False)
+    notify_everyone = models.BooleanField(default=False, help_text="If checked, notifies ALL users in the location (including Staff). Default is IT Only.")
 
     def calculate_duration(self):
         if self.end_time:

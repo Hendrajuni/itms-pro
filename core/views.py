@@ -16,7 +16,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 from tickets.models import Ticket
 from network.models import NetworkNode
-from governance.models import DailyLog
+from governance.models import DailyLog, Project
 from django.utils.decorators import method_decorator
 
 class CustomLoginView(LoginView):
@@ -447,6 +447,7 @@ def get_dashboard_stats(user):
     # [NEW] Branch Health (Root Locations)
     if is_admin: 
         from assets.models import Location
+        from governance.models import Project  # Import locally to avoid potential circular/scope issues
         root_locs = Location.objects.filter(parent__isnull=True)
         branch_health = []
         
@@ -470,15 +471,16 @@ def get_dashboard_stats(user):
                 status__in=['Scheduled', 'In Progress']
             ).count()
 
-            # Project Tasks (By Assignee Location)
-            # Find users in this branch subtree
-            branch_users = User.objects.filter(location_id__in=subtree_ids)
-            project_task_count = ProjectTask.objects.filter(
-                assigned_to__in=branch_users
-            ).exclude(status='Completed').count()
+            # Projects (Active Projects in this Branch)
+            # User request: "hanya menampilkan active project saja"
+            project_count = Project.objects.filter(
+                location_id__in=subtree_ids,
+                status__in=['Planning', 'In Progress']
+            ).count()
 
             # Simple Health Score
-            score = 100 - (tickets_critical * 20) - (tickets_open * 2) - (infra_maint_count * 5) - (project_task_count * 1)
+            # Removed project count from penalty as active projects are not bad health indicators.
+            score = 100 - (tickets_critical * 20) - (tickets_open * 2) - (infra_maint_count * 5)
             score = max(0, score)
             
             status = 'Healthy'
@@ -497,7 +499,7 @@ def get_dashboard_stats(user):
                 'critical_tickets': tickets_critical,
                 'asset_maint': asset_maint_count,
                 'infra_maint': infra_maint_count,
-                'project_tasks': project_task_count,
+                'active_projects': project_count,
                 'health_score': score,
                 'status': status,
                 'color': color

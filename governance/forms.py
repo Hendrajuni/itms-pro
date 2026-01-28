@@ -57,13 +57,14 @@ from .models import Project, ProjectTask
 class ProjectTaskForm(forms.ModelForm):
     class Meta:
         model = ProjectTask
-        fields = ['name', 'assigned_to', 'status', 'due_date', 'description']
+        fields = ['name', 'assigned_to', 'status', 'start_date', 'due_date', 'description']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Task Name'}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
+            'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 1, 'placeholder': 'Optional description'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Optional description'}),
         }
 
 ProjectTaskFormSet = inlineformset_factory(
