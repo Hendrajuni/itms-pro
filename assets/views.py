@@ -796,7 +796,19 @@ class AssetSmartAnalyticsView(LoginRequiredMixin, TemplateView):
         today = timezone.now().date()
         useful_life_days = 4 * 365
         
-        for asset in financial_assets: # Limit if too many?
+        # Predictive 1: 3-Year Capex Budget Forecast
+        # Logic: Find assets reaching EOL (Purchase Date + 4 Years) in 2026, 2027, 2028
+        current_year = today.year
+        forecast_years = [current_year + 1, current_year + 2, current_year + 3]
+        budget_forecast = {year: 0 for year in forecast_years}
+        budget_forecast_counts = {year: 0 for year in forecast_years}
+        
+        # Predictive 2: Repair vs Replace (Money Pits)
+        # Logic: Total Maintenance > 50% Purchase Price
+        money_pit_assets = []
+        
+        for asset in financial_assets: 
+            # Depreciation Calc
             age_days = (today - asset.purchase_date).days
             if age_days >= useful_life_days:
                 current_value = 0
@@ -807,10 +819,50 @@ class AssetSmartAnalyticsView(LoginRequiredMixin, TemplateView):
             asset.cached_current_value = max(int(current_value), 0)
             depreciation_list.append(asset)
             
+            # --- New: Budget Forecast Logic ---
+            if asset.purchase_date:
+                eol_date = asset.purchase_date + timedelta(days=useful_life_days)
+                eol_year = eol_date.year
+                if eol_year in forecast_years:
+                    budget_forecast[eol_year] += (asset.purchase_price or 0)
+                    budget_forecast_counts[eol_year] += 1
+                
+            # --- New: Repair vs Replace Logic ---
+            if asset.purchase_price and asset.purchase_price > 0:
+                # We need to calculate total maintenance. 
+                # Optimization: We already fetched maintenance_logs for all base_assets.
+                # Let's filter in memory (might be slow for huge DBs but fine for now) or use annotation.
+                # For safety/speed, let's just use the method if efficient or sum from pre-fetched logs.
+                # Ideally, we should have annotated `total_maintenance_cost` in the queryset.
+                # Let's use a quick list comp filter on pre-fetched `maintenance_logs`
+                asset_maint_logs = [m for m in maintenance_logs if m.asset_id == asset.id]
+                total_maint = sum(m.cost or 0 for m in asset_maint_logs)
+                
+                cost_ratio = (total_maint / asset.purchase_price) * 100
+                if cost_ratio > 50:
+                    asset.maintenance_ratio = cost_ratio
+                    asset.total_maint_cost = total_maint
+                    money_pit_assets.append(asset)
+            
         depreciation_list.sort(key=lambda x: x.cached_current_value, reverse=True)
         context['financial_top_assets'] = depreciation_list[:20]
         context['financial_total_depreciated_value'] = sum([a.cached_current_value for a in depreciation_list])
         
+        # Sort Money Pits
+        money_pit_assets.sort(key=lambda x: x.maintenance_ratio, reverse=True)
+        context['money_pit_assets'] = money_pit_assets[:10]
+
+        # Pass Forecast Data
+        context['forecast_labels'] = json.dumps([str(y) for y in forecast_years])
+        context['forecast_data'] = json.dumps([float(budget_forecast[y]) for y in forecast_years])
+        context['forecast_counts'] = budget_forecast_counts
+        
+        # Forward-Looking: Contract Renewals
+        context['expiring_contracts'] = Contract.objects.filter(
+            end_date__gte=today,
+            end_date__lte=today + timedelta(days=90)
+        ).order_by('end_date')
+
         # Replacement Forecast (Exceeds Useful Life in next 1 year)
         # Actually, let's show assets OLDER than 4 years (End of Life)
         eol_threshold = today - timedelta(days=useful_life_days)

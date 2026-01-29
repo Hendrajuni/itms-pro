@@ -91,6 +91,14 @@ class NavigationHistoryMiddleware:
                     icon = 'fas fa-home'
                 
                 # Inventory Group
+                # --- NEW MAPPINGS (Prioritize over generic 'asset') ---
+                elif 'analytics' in url_name:
+                    label = 'Analytics'
+                    icon = 'fas fa-chart-pie'
+                elif 'disposal' in url_name:
+                    label = 'Disposal Requests'
+                    icon = 'fas fa-trash-alt'
+                    
                 elif 'asset' in url_name:
                     label = 'Assets' # Catch-all for Asset List, Detail, Create
                     icon = 'fas fa-laptop'
@@ -139,6 +147,8 @@ class NavigationHistoryMiddleware:
                 elif 'user' in url_name or 'profile' in url_name:
                     label = 'Users' # or Profile
                     icon = 'fas fa-users'
+
+
 
                 # If no label matched (e.g. unknown page), skip adding it to tabs 
                 # OR fallback to generic if really needed. User said "Only Sidebar", so let's skip unknown.
