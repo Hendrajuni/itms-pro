@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage, Location
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage, Location, PartHistory
 
 class AssetStorageForm(forms.ModelForm):
     class Meta:
@@ -339,3 +339,14 @@ class ContractForm(forms.ModelForm):
 #             'progress': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100}),
 #             'budget': forms.NumberInput(attrs={'class': 'form-control'}),
 #         }
+class PartHistoryForm(forms.ModelForm):
+    class Meta:
+        model = PartHistory
+        fields = ['part_name', 'action_date', 'description', 'cost', 'vendor']
+        widgets = {
+            'part_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Motherboard, RAM Upgrade'}),
+            'action_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'cost': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}),
+            'vendor': forms.Select(attrs={'class': 'form-select'}),
+        }

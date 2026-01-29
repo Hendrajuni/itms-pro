@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django import forms
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView, View, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Count, Sum
 from django.db import IntegrityError
 from django.db.models import Q, Count, Sum, F, ExpressionWrapper, fields, ProtectedError
@@ -20,10 +20,10 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, InfrastructureType, Contract, Location, Department, Category, AssetStorage, Vendor
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, InfrastructureType, Contract, Location, Department, Category, AssetStorage, Vendor, PartHistory
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
-from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm
+from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm, PartHistoryForm
 from django.db.models import Sum, Q, Count, F
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -475,9 +475,18 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
         
         context['maintenance_logs'] = maintenance_logs
         
-        # Calculate total cost
-        total_cost = sum(log.cost for log in maintenance_logs)
-        context['total_maintenance_cost'] = total_cost
+        # New: Part History & Cost Calculations
+        part_history = self.object.part_history.all().order_by('-action_date')
+        context['part_history'] = part_history
+        
+        # Calculate Total Costs
+        total_parts_cost = part_history.aggregate(total=Sum('cost'))['total'] or 0
+        total_maintenance_cost = self.object.maintenances.aggregate(total=Sum('cost'))['total'] or 0
+        purchase_price = self.object.purchase_price or 0
+        
+        context['total_parts_cost'] = total_parts_cost
+        context['total_maintenance_cost'] = total_maintenance_cost
+        context['total_spend'] = purchase_price + total_parts_cost + total_maintenance_cost
         
         # Pass specification safely
         context['spec'] = self.object.safe_specification
@@ -504,6 +513,19 @@ class AssetDetailPrintView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         # Populate context similar to detail view for report
         context['history'] = self.object.loans.all().order_by('-loan_date') if hasattr(self.object, 'loans') else []
+        
+        # New: Part History & Cost Calculations
+        part_history = self.object.part_history.all().order_by('-action_date')
+        context['part_history'] = part_history
+        
+        # Calculate Total Costs
+        total_parts_cost = part_history.aggregate(total=Sum('cost'))['total'] or 0
+        total_maintenance_cost = self.object.maintenances.aggregate(total=Sum('cost'))['total'] or 0
+        purchase_price = self.object.purchase_price or 0
+        
+        context['total_parts_cost'] = total_parts_cost
+        context['total_maintenance_cost'] = total_maintenance_cost
+        context['total_spend'] = purchase_price + total_parts_cost + total_maintenance_cost
         
         # Maintenance logs
         maintenance_logs = self.object.maintenances.all().order_by('-scheduled_date') if hasattr(self.object, 'maintenances') else []
@@ -1677,3 +1699,30 @@ class AssetPrintListView(AssetListView):
                 pass
                 
         return context
+class PartHistoryCreateView(LoginRequiredMixin, CreateView):
+    model = PartHistory
+    form_class = PartHistoryForm
+    template_name = 'assets/part_history_form.html'
+    
+    def form_valid(self, form):
+        asset = get_object_or_404(Asset, pk=self.kwargs['asset_id'])
+        form.instance.asset = asset
+        messages.success(self.request, f"Part history added for '{asset.name}'.")
+        return super().form_valid(form)
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['asset'] = get_object_or_404(Asset, pk=self.kwargs['asset_id'])
+        return context
+
+    def get_success_url(self):
+        return reverse('asset_detail', kwargs={'pk': self.kwargs['asset_id']}) + '#part-history'
+
+class PartHistoryDeleteView(LoginRequiredMixin, DeleteView):
+    model = PartHistory
+    template_name = 'assets/confirm_delete.html'
+    
+    def get_success_url(self):
+        asset_id = self.object.asset.id
+        messages.success(self.request, "Part history record deleted.")
+        return reverse('asset_detail', kwargs={'pk': asset_id}) + '#part-history'

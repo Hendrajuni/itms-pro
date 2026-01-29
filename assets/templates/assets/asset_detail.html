@@ -181,6 +181,9 @@
                     <a class="nav-link fw-bold" data-bs-toggle="tab" href="#notes" role="tab">Notes</a>
                 </li>
                 <li class="nav-item">
+                     <a class="nav-link fw-bold" data-bs-toggle="tab" href="#part-history" role="tab">Part History</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link fw-bold" data-bs-toggle="tab" href="#kb" role="tab">Knowledge Base</a>
                 </li>
             </ul>
@@ -582,6 +585,78 @@
                         {{ asset.infrastructure.notes|linebreaks }}
                     </div>
                     {% endif %}
+
+                </div>
+
+                <!-- Part History Tab -->
+                <div class="tab-pane fade" id="part-history" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-muted text-uppercase mb-0 small fw-bold ls-1">Part Replacement History</h6>
+                        {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                        <a href="{% url 'part_history_add' asset.pk %}" class="btn btn-sm btn-outline-primary py-0">
+                            <i class="fas fa-plus fa-sm"></i> Add Record
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Part Name</th>
+                                    <th>Description</th>
+                                    <th>Vendor</th>
+                                    <th class="text-end">Cost</th>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}<th class="text-end" style="width: 50px;"></th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for part in part_history %}
+                                <tr>
+                                    <td>{{ part.action_date|date:"d M Y" }}</td>
+                                    <td class="fw-bold text-dark">{{ part.part_name }}</td>
+                                    <td>{{ part.description }}</td>
+                                    <td>{{ part.vendor.name|default:"-" }}</td>
+                                    <td class="text-end font-monospace">
+                                        {% if part.cost %}Rp {{ part.cost|floatformat:0|intcomma }}{% else %}-{% endif %}
+                                    </td>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                                    <td class="text-end">
+                                        <a href="{% url 'part_history_delete' part.pk %}" class="text-danger" title="Delete">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </a>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="fas fa-memory mb-2 fs-3 opacity-25"></i>
+                                        <p>No part history recorded.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="bg-light border-top">
+                                <tr>
+                                    <td colspan="4" class="text-end fw-bold text-muted small text-uppercase ls-1">Total Parts Cost</td>
+                                    <td class="text-end fw-bold text-dark font-monospace">Rp {{ total_parts_cost|floatformat:0|intcomma }}</td>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}<td></td>{% endif %}
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end fw-bold text-muted small text-uppercase ls-1">Total Maintenance Services</td>
+                                    <td class="text-end fw-bold text-dark font-monospace">Rp {{ total_maintenance_cost|floatformat:0|intcomma }}</td>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}<td></td>{% endif %}
+                                </tr>
+                                <tr class="bg-primary bg-opacity-10 border-top border-primary border-opacity-25">
+                                    <td colspan="4" class="text-end fw-bold text-primary small text-uppercase ls-1 py-3">Total Investment (Purchase + Parts + Maint)</td>
+                                    <td class="text-end fw-bold text-primary font-monospace fs-6 py-3">Rp {{ total_spend|floatformat:0|intcomma }}</td>
+                                    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}<td></td>{% endif %}
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- Knowledge Base Tab -->

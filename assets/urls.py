@@ -26,6 +26,8 @@ urlpatterns = [
     path('analytics/', views.AssetSmartAnalyticsView.as_view(), name='asset_analytics'),
     path('reports/financials/', views.AssetFinancialView.as_view(), name='asset_financials'),
     path('export/', views.AssetExportView.as_view(), name='asset_export'),
+    path('<int:asset_id>/part-history/add/', views.PartHistoryCreateView.as_view(), name='part_history_add'),
+    path('part-history/<int:pk>/delete/', views.PartHistoryDeleteView.as_view(), name='part_history_delete'),
     path('print-list/', views.AssetPrintListView.as_view(), name='asset_print_list'),
 
     # Software Asset Management

@@ -1,0 +1,35 @@
+{% extends 'layouts/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Part History | ITMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Add Part History Item</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-4">
+                        Record a replacement, upgrade, or addition of a component for asset: <strong>{{ asset.name }}</strong> ({{ asset.asset_code }})
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Save Record
+                            </button>
+                            <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

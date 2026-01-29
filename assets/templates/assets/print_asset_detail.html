@@ -216,6 +216,55 @@
         <p class="text-muted fst-italic ms-3">No maintenance records found.</p>
         {% endif %}
 
+        <!-- Part History -->
+        <div class="section-title">Part Replacement History</div>
+        {% if part_history %}
+        <table class="table table-sm table-striped table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Part Name</th>
+                    <th>Description</th>
+                    <th>Vendor</th>
+                    <th class="text-end">Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for part in part_history %}
+                <tr>
+                    <td>{{ part.action_date|date:"d M Y" }}</td>
+                    <td class="fw-bold">{{ part.part_name }}</td>
+                    <td>{{ part.description }}</td>
+                    <td>{{ part.vendor.name|default:"-" }}</td>
+                    <td class="text-end">Rp {{ part.cost|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted fst-italic ms-3">No part replacement history recorded.</p>
+        {% endif %}
+
+        <!-- Total Cost Summary -->
+        <div class="row mt-4">
+            <div class="col-6 offset-6">
+                <table class="table table-sm table-bordered table-custom">
+                    <tr class="bg-light">
+                        <td class="fw-bold">Total Parts Cost</td>
+                        <td class="text-end font-monospace">Rp {{ total_parts_cost|floatformat:0|intcomma }}</td>
+                    </tr>
+                    <tr class="bg-light">
+                        <td class="fw-bold">Total Maintenance Services</td>
+                        <td class="text-end font-monospace">Rp {{ total_maintenance_cost|floatformat:0|intcomma }}</td>
+                    </tr>
+                    <tr class="table-primary border-primary">
+                        <td class="fw-bold text-primary">Total Investment (Purchase + Parts + Maint)</td>
+                        <td class="text-end fw-bold text-primary font-monospace">Rp {{ total_spend|floatformat:0|intcomma }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
         <!-- Assignment History -->
         <div class="section-title">Assignment History</div>
         {% if history %}
