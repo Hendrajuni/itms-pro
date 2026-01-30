@@ -4,7 +4,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.db.models import Q
 from itertools import chain
-from .models import AssetMaintenance, InfraMaintenance
+from .models import AssetMaintenance, InfraMaintenance, MaintenanceSchedule
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from django.contrib import messages
 
 class MaintenanceDashboardView(LoginRequiredMixin, ListView):
     template_name = 'maintenance/maintenance_dashboard.html'
@@ -166,3 +169,146 @@ class MaintenanceDashboardView(LoginRequiredMixin, ListView):
         context['is_manager'] = user.is_superuser # Simplify for now
         
         return context
+
+# --- Maintenance Schedule Views ---
+
+class MaintenanceScheduleListView(LoginRequiredMixin, ListView):
+    model = MaintenanceSchedule
+    template_name = 'maintenance/maintenance_schedule_list.html'
+    context_object_name = 'schedules'
+    ordering = ['next_run_date']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        
+        # 1. RBAC: Determine if user is Manager/Admin
+        # Adjust group names as per your system. 'Head IT' was used in Dashboard. 
+        # Adding 'Admin', 'Manager' for consistency.
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Head IT', 'Admin', 'Manager']).exists()
+        
+        if not is_manager:
+            user_loc = getattr(user, 'location', None)
+            if user_loc:
+                # User sees schedules for items in their location or sub-locations
+                subtree = user_loc.get_descendants(include_self=True)
+                qs = qs.filter(
+                    Q(asset__location__in=subtree) | 
+                    Q(infrastructure__location__in=subtree)
+                )
+            else:
+                # User has no location? Fallback to assigned only or nothing.
+                # Showing assigned only is safer.
+                qs = qs.filter(assigned_to=user)
+
+        # 2. Location Filtering (Dropdown)
+        location_filter = self.request.GET.get('location')
+        if location_filter:
+            qs = qs.filter(
+                Q(asset__location_id=location_filter) | 
+                Q(infrastructure__location_id=location_filter)
+            )
+            
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # RBAC for Filter Options
+        from assets.models import Location
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Head IT', 'Admin', 'Manager']).exists()
+        
+        if is_manager:
+            # Show all roots
+            roots = Location.objects.filter(parent__isnull=True).prefetch_related('children__children')
+        else:
+            # Show only user's location as root (or just the subtree)
+            user_loc = getattr(user, 'location', None)
+            if user_loc:
+                roots = [user_loc] # Treat user's loc as the single root for the tree display
+            else:
+                roots = []
+
+        tree = []
+        def add_node(node, level=0):
+            tree.append({
+                'pk': node.pk,
+                'name': node.name,
+                'level': level,
+                'indent': '&nbsp;' * (level * 4)
+            })
+            for child in node.children.all():
+                add_node(child, level + 1)
+        
+        for root in roots:
+            add_node(root)
+            
+        context['locations'] = tree
+        return context
+
+from .forms import MaintenanceScheduleForm
+
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+
+class MaintenanceScheduleMixin(UserPassesTestMixin):
+    def test_func(self):
+        user = self.request.user
+        return user.is_authenticated and (user.is_superuser or user.groups.filter(name__in=['Admin', 'Manager', 'IT Support']).exists())
+
+class MaintenanceScheduleCreateView(LoginRequiredMixin, MaintenanceScheduleMixin, CreateView):
+    model = MaintenanceSchedule
+    form_class = MaintenanceScheduleForm
+    template_name = 'maintenance/maintenance_schedule_form.html'
+    success_url = reverse_lazy('maintenance_schedule_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Maintenance Schedule created successfully.")
+        return super().form_valid(form)
+
+class MaintenanceScheduleUpdateView(LoginRequiredMixin, MaintenanceScheduleMixin, UpdateView):
+    model = MaintenanceSchedule
+    form_class = MaintenanceScheduleForm
+    template_name = 'maintenance/maintenance_schedule_form.html'
+    success_url = reverse_lazy('maintenance_schedule_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Maintenance Schedule updated successfully.")
+        return super().form_valid(form)
+
+class MaintenanceScheduleDeleteView(LoginRequiredMixin, MaintenanceScheduleMixin, DeleteView):
+    model = MaintenanceSchedule
+    template_name = 'maintenance/maintenance_schedule_confirm_delete.html'
+    success_url = reverse_lazy('maintenance_schedule_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, "Maintenance Schedule deleted.")
+        return super().delete(request, *args, **kwargs)
+
+from django.shortcuts import get_object_or_404, redirect
+from django.db import transaction
+
+@transaction.atomic
+def maintenance_schedule_generate(request, pk):
+    """
+    Manually triggers ticket generation for a specific schedule.
+    """
+    schedule = get_object_or_404(MaintenanceSchedule, pk=pk)
+    
+    # Permission check (reuse logic or assume login required/admin)
+    if not (request.user.is_authenticated and (request.user.is_superuser or request.user.groups.filter(name__in=['Admin', 'Manager', 'IT Support']).exists())):
+         messages.error(request, "You do not have permission to perform this action.")
+         return redirect('maintenance_schedule_list')
+
+    ticket = schedule.create_ticket()
+    
+    if ticket:
+        messages.success(request, f"Maintenance Ticket '{ticket.title}' generated successfully.")
+        # Redirect to the ticket update page to see it immediately
+        if schedule.asset:
+            return redirect('asset_maintenance_update', pk=ticket.pk)
+        else:
+            return redirect('infra_maintenance_update', pk=ticket.pk)
+    else:
+        messages.error(request, "Failed to generate ticket. Ensure target (Asset/Infra) is valid.")
+        return redirect('maintenance_schedule_list')

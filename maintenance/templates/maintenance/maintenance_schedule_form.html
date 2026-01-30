@@ -1,0 +1,87 @@
+{% extends 'layouts/base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}
+    {% if object %}Edit Schedule - {{ object.title }}{% else %}New Maintenance Schedule{% endif %} - ITMS
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow border-0">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold text-primary">
+                    {% if object %}
+                        <i class="fas fa-edit me-2"></i>Edit Schedule: {{ object.title }}
+                    {% else %}
+                        <i class="fas fa-plus-circle me-2"></i>Create New Maintenance Schedule
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                             {{ form.title|as_crispy_field }}
+                        </div>
+                         <div class="col-md-4">
+                             {{ form.frequency|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                         <div class="col-md-4">
+                             {{ form.maintenance_type|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                             {{ form.next_run_date|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.assigned_to|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small mt-2">
+                        <i class="fas fa-info-circle me-1"></i> 
+                        Select <strong>EITHER</strong> an Asset <strong>OR</strong> Infrastructure. Do not select both.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.asset|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.infrastructure|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    {{ form.description|as_crispy_field }}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Checklist (JSON Format)</label>
+                        {{ form.checklist|as_crispy_field }}
+                        <div class="form-text">
+                            Enter checklist as a JSON list. Example: <code>[{"task": "Check Fan", "done": false}, {"task": "Clean Filter", "done": false}]</code>
+                        </div>
+                    </div>
+
+                    {% if object %}
+                    <div class="mb-3">
+                        {{ form.is_active|as_crispy_field }}
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'maintenance_schedule_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-2"></i>Save Schedule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -421,7 +421,7 @@
                         </div>
                         <p class="mb-1 text-muted small"><i class="fas fa-bullseye me-1"></i> {{ m.target }}</p>
                         <div class="d-flex justify-content-between align-items-center mt-2">
-                            <span class="badge bg-{{1|random|yesno:'info,primary' }} bg-opacity-10 text-dark">{{ m.type }}</span>
+                            <span class="badge bg-{{ forloop.counter|divisibleby:2|yesno:'info,primary' }} bg-opacity-10 text-dark">{{ m.type }}</span>
                             <small class="text-muted"><i class="fas fa-user-hard-hat me-1"></i> {{ m.technician.username|default:"Unassigned" }}</small>
                         </div>
                     </div>

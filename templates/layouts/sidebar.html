@@ -141,7 +141,7 @@
                                 <a href="{% url 'downtime_list' %}" class="nav-link {% if 'downtime' in request.path %}active{% endif %}">Downtime & Incidents</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'subnet_list' %}" class="nav-link {% if 'subnets' in request.path %}active{% endif %}">IP Address</a>
+                                <a href="{% url 'subnet_list' %}" class="nav-link {% if 'subnets' in request.path %}active{% endif %}">IP Address (IPAM)</a>
                             </li>
                         </ul>
                     </div>
@@ -154,13 +154,21 @@
                     </a>
                     <div class="collapse {% if 'tickets' in request.path or 'maintenance' in request.path or 'knowledge' in request.path %}show{% endif %}" id="opsSubmenu">
                         <ul class="nav-tree">
-
+                            
+                            <!-- Maintenance Dashboard -->
                             <li class="nav-item">
-                                <a href="{% url 'maintenance_dashboard' %}" class="nav-link {% if 'maintenance' in request.path %}active{% endif %}">
-                                    Maintenance
+                                <a href="{% url 'maintenance_dashboard' %}" class="nav-link {% if 'maintenance' in request.path and not 'schedules' in request.path %}active{% endif %}">
+                                    <i class="fas fa-tools icon-sm me-2"></i>Command Center
                                     {% if global_overdue_count > 0 %}
-                                        <span class="badge bg-danger ms-2 rounded-pill">{{ global_overdue_count }}</span>
+                                        <span class="badge bg-danger ms-auto rounded-pill">{{ global_overdue_count }}</span>
                                     {% endif %}
+                                </a>
+                            </li>
+
+                            <!-- PM Schedules -->
+                            <li class="nav-item">
+                                <a href="{% url 'maintenance_schedule_list' %}" class="nav-link {% if 'maintenance/schedules' in request.path %}active{% endif %}">
+                                    <i class="fas fa-calendar-check icon-sm me-2"></i>PM Schedules
                                 </a>
                             </li>
 
