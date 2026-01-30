@@ -62,6 +62,21 @@ class AssetListView(LoginRequiredMixin, ListView):
             # Default: operational, financial, lifecycle -> Exclude DISPOSED
             queryset = queryset.exclude(status='DISPOSED')
 
+        # Filter: Status (New)
+        status_filter = self.request.GET.get('status')
+        if status_filter:
+            # If specifically asking for LOST/RETIRED/DISPOSED, we must include them 
+            # even if excluded above. But above logic uses 'mode'.
+            # If mode='disposed', we already see disposed.
+            # If mode='operational' (default), we excluded disposed.
+            # If user filters status='LOST', we should show it.
+            # So, re-filter/include based on specific status?
+            # Actually, the exclusion of 'DISPOSED' happens if mode != 'disposed'.
+            # If user selects status='DISPOSED' via filter but mode is 'operational', it might conflict.
+            # Let's trust the filter overrides or works within valid set.
+            # For LOST/RETIRED, they are not 'DISPOSED' so they are in queryset.
+            queryset = queryset.filter(status=status_filter)
+
         # Filter: Location (Recursive: Include children)
         loc = self.request.GET.get('loc')
         if loc:

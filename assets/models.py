@@ -123,6 +123,8 @@ class Asset(models.Model):
         ('MAINTENANCE', 'Maintenance'),
         ('BROKEN', 'Broken'),
         ('DISPOSED', 'Disposed'),
+        ('LOST', 'Lost'),
+        ('RETIRED', 'Retired'),
     ]
     history = HistoricalRecords()
 

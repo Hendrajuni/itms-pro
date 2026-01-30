@@ -62,7 +62,7 @@
                 <i class="fas fa-list"></i> List
             </a>
         </div>
-        <a href="#" class="btn btn-success ms-2 shadow-sm" onclick="alert('To run Auto-Ping manually, use terminal command: python manage.py ping_nodes')">
+        <a href="#" id="scanBtn" class="btn btn-success ms-2 shadow-sm" onclick="autoScan()">
             <i class="fas fa-sync-alt me-1"></i> Scan
         </a>
         <a href="{% url 'network_node_create' %}" class="btn btn-primary ms-2 shadow-sm">
@@ -225,57 +225,96 @@
 
 <!-- AJAX Ping Script (Works for both layouts) -->
 <script>
-async function pingNode(btn, nodeId) {
-    const originalContent = btn.innerHTML;
-    const badge = document.getElementById(`badge-${nodeId}`);
-    const timeSpan = document.getElementById(`time-${nodeId}`);
+    async function pingNode(btn, nodeId) {
+        const originalContent = btn.innerHTML;
+        const badge = document.getElementById(`badge-${nodeId}`);
+        const timeSpan = document.getElementById(`time-${nodeId}`);
 
-    // 1. Loading State
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
-
-    try {
-        // 2. Fetch Ping API
-        const response = await fetch(`/network/nodes/ping/${nodeId}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.status === 'success') {
-            // 3. Update Badge
-            if (data.node_status === 'Online') {
-                badge.className = 'badge rounded-pill bg-success';
-                badge.textContent = 'Online';
-            } else {
-                badge.className = 'badge rounded-pill bg-danger';
-                badge.textContent = 'Offline';
-            }
-            // 4. Update Time
-            // Note: 'data.last_checked' formats as H:M:S, but table uses timesince. 
-            // Ideally we update text to "Just now" or the H:M:S. 
-            timeSpan.textContent = data.last_checked;
-        } else {
-            alert("Error: " + data.message);
+        // 1. Loading State
+        if(btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
         }
 
-    } catch (error) {
-        console.error('Ping failed:', error);
-        alert("Network Error: Failed to reach server.");
-    } finally {
-        // 5. Restore Button
-        btn.innerHTML = originalContent;
-        btn.disabled = false;
-    }
-}
+        try {
+            // 2. Fetch Ping API
+            const response = await fetch(`/network/nodes/ping/${nodeId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            });
 
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text);
-    // Silent copy
-}
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // 3. Update Badge
+                if (data.node_status === 'Online') {
+                    if(badge) {
+                        badge.className = 'badge rounded-pill bg-success';
+                        badge.textContent = 'Online';
+                    }
+                } else {
+                    if(badge) {
+                        badge.className = 'badge rounded-pill bg-danger';
+                        badge.textContent = 'Offline';
+                    }
+                }
+                // 4. Update Time
+                if(timeSpan) timeSpan.textContent = data.last_checked;
+            } else {
+                console.warn("Ping Error: " + data.message);
+            }
+
+        } catch (error) {
+            console.error('Ping failed:', error);
+        } finally {
+            // 5. Restore Button
+            if(btn) {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text);
+        // Silent copy
+    }
+
+    // --- Auto Ping Feature (Every 5 Minutes) ---
+    async function autoScan() {
+        console.log("Starting Auto-Scan...");
+        const scanBtn = document.getElementById('scanBtn');
+        if(scanBtn) {
+            scanBtn.classList.add('disabled');
+            scanBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-1"></i> Scanning...';
+        }
+
+        // Select all Ping buttons (Grid and List view)
+        // We look for buttons that have the pingNode onclick
+        const buttons = document.querySelectorAll('button[onclick^="pingNode"]');
+        
+        // Execute sequentially to avoid server overload
+        for (const btn of buttons) {
+            // Extract Node ID
+            const match = btn.getAttribute('onclick').match(/pingNode\(this,\s*(\d+)\)/);
+            if (match && match[1]) {
+                const nodeId = match[1];
+                // Wait for each ping to finish before starting next
+                await pingNode(btn, nodeId);
+            }
+        }
+
+        if(scanBtn) {
+            scanBtn.classList.remove('disabled');
+            scanBtn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Scan';
+        }
+        console.log("Auto-Scan Completed.");
+    }
+
+    // Set Interval 5 Minutes (300,000 ms)
+    setInterval(autoScan, 300000);
 </script>
 {% endblock %}

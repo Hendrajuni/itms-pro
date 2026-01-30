@@ -227,9 +227,35 @@
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold text-primary">Asset List</h6>
-                    <button type="submit" class="btn btn-sm btn-secondary" id="bulk-print-btn" disabled>
-                        <i class="fas fa-print me-2"></i>Print Selected Labels
-                    </button>
+                    <div class="d-flex gap-2">
+                        <!-- Status Filter Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-filter me-1"></i> 
+                                {% if request.GET.status == 'LOST' %}Status: Lost
+                                {% elif request.GET.status == 'RETIRED' %}Status: Retired
+                                {% elif request.GET.status == 'BROKEN' %}Status: Broken
+                                {% elif request.GET.status == 'IN_USE' %}Status: In Use
+                                {% elif request.GET.status == 'AVAILABLE' %}Status: Available
+                                {% else %}Filter Status{% endif %}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="statusFilterDropdown">
+                                <li><a class="dropdown-item {% if not request.GET.status %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'status' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}">All Active</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item {% if request.GET.status == 'AVAILABLE' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'status' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}status=AVAILABLE">Available</a></li>
+                                <li><a class="dropdown-item {% if request.GET.status == 'IN_USE' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'status' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}status=IN_USE">In Use</a></li>
+                                <li><a class="dropdown-item {% if request.GET.status == 'MAINTENANCE' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'status' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}status=MAINTENANCE">Maintenance</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger {% if request.GET.status == 'LOST' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'status' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}status=LOST">Lost</a></li>
+                                <li><a class="dropdown-item text-muted {% if request.GET.status == 'RETIRED' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'status' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}status=RETIRED">Retired</a></li>
+                                <li><a class="dropdown-item text-danger {% if request.GET.status == 'BROKEN' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'status' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}status=BROKEN">Broken</a></li>
+                            </ul>
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-secondary" id="bulk-print-btn" disabled>
+                            <i class="fas fa-print me-2"></i>Print Selected Labels
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -265,7 +291,7 @@
                                     </th>
                                     <th>Age</th>
                                     <th>Warranty</th>
-                                    <th>Status Detail</th>
+                                    <th>Lifecycle Stage</th>
                                 {% else %}
                                     <th class="d-none d-lg-table-cell">Specs</th>
                                     <th class="d-none d-lg-table-cell">Branch</th>
@@ -274,11 +300,9 @@
                                     <th class="d-none d-xl-table-cell">Financial</th>
                                 {% endif %}
                                 
-                                {% if view_mode != 'lifecycle' %}
-                                    <th>
-                                        <a href="?{% param_replace sort='status' order='asc' %}" class="text-dark text-decoration-none">Status</a>
-                                    </th>
-                                {% endif %}
+                                <th>
+                                    <a href="?{% param_replace sort='status' order='asc' %}" class="text-dark text-decoration-none">Status</a>
+                                </th>
                                 
                                 <th class="text-end pe-4">Action</th>
                             </tr>
@@ -401,16 +425,16 @@
                                 {% endif %}
 
                                 <!-- Status Column (Shared except Lifecycle has its own detail) -->
-                                {% if view_mode != 'lifecycle' %}
                                 <td>
                                     {% if asset.status == 'IN_USE' %}<span class="badge badge-soft-success">In Use</span>
                                     {% elif asset.status == 'AVAILABLE' %}<span class="badge badge-soft-info">Available</span>
                                     {% elif asset.status == 'MAINTENANCE' %}<span class="badge badge-soft-warning">Maintenance</span>
                                     {% elif asset.status == 'BROKEN' %}<span class="badge badge-soft-danger">Broken</span>
+                                    {% elif asset.status == 'LOST' %}<span class="badge bg-danger">Lost</span>
+                                    {% elif asset.status == 'RETIRED' %}<span class="badge badge-soft-secondary">Retired</span>
                                     {% elif asset.status == 'DISPOSED' %}<span class="badge badge-soft-secondary">Disposed</span>
                                     {% else %}<span class="badge bg-secondary">{{ asset.get_status_display }}</span>{% endif %}
                                 </td>
-                                {% endif %}
 
                                 <!-- Action -->
                                 <td class="text-end pe-4">

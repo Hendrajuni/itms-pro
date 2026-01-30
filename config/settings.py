@@ -164,6 +164,11 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'staff_dashboard'  # Default fallback
 LOGOUT_REDIRECT_URL = 'login'
 
+# Session Management
+SESSION_COOKIE_AGE = 7200  # 2 Hours (7200 seconds)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
+
 # CKEditor Settings
 CKEDITOR_CONFIGS = {
     'default': {
