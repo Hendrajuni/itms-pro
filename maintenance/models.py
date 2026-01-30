@@ -91,6 +91,61 @@ class MaintenanceBase(models.Model):
             
         super().save(*args, **kwargs)
 
+        # --- Auto-Daily Log Integration ---
+        if self.technician:
+            try:
+                from django.utils import timezone
+                from django.contrib.contenttypes.models import ContentType
+                from governance.models import DailyLog, DailyLogItem
+
+                today = timezone.now().date()
+                
+                # 1. Get/Create DailyLog for the technician
+                daily_log, created = DailyLog.objects.get_or_create(
+                    executor=self.technician,
+                    date=today,
+                    defaults={'status': 'Draft'}
+                )
+
+                # 2. Prepare Log Content
+                # Extract completed checklist items
+                checklist_summary = ""
+                if self.maintenance_checklist:
+                    # Safely handle if it's not a list (e.g. dict or string, though it should be list)
+                    cl_data = self.maintenance_checklist if isinstance(self.maintenance_checklist, list) else []
+                    done_items = [item.get('task', 'Unknown') for item in cl_data if isinstance(item, dict) and item.get('done')]
+                    if done_items:
+                        checklist_summary = "Checklist Completed: " + ", ".join(done_items)
+
+                # Combine with main notes
+                full_note = f"{checklist_summary}\n\nTechnical Notes: {self.notes}" if checklist_summary else self.notes
+
+                # Map Status
+                log_status = 'In Progress'
+                if self.status == 'Completed':
+                    log_status = 'Completed'
+                elif self.status == 'Cancelled':
+                    log_status = 'Completed' # Or specific status if available
+
+                # 3. Update or Create DailyLogItem linked to this maintenance
+                # We need ContentType
+                ct = ContentType.objects.get_for_model(self)
+                
+                DailyLogItem.objects.update_or_create(
+                    log=daily_log,
+                    content_type=ct,
+                    object_id=self.pk,
+                    defaults={
+                        'task_name': f"Maintenance: {self.title}",
+                        'category': 'Support', # Default to Support or Engineering
+                        'status': log_status,
+                        'note': full_note.strip()
+                    }
+                )
+            except Exception as e:
+                # Fail silently or log error to avoid breaking the main save flow
+                print(f"Error auto-logging maintenance: {e}")
+
     def __str__(self):
         return f"{self.maintenance_code} - {self.title}"
 

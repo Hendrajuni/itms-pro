@@ -150,6 +150,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 leftDiv.appendChild(checkbox);
                 leftDiv.appendChild(label);
 
+                if (item.done && item.completed_at) {
+                    const dateSpan = document.createElement('span');
+                    dateSpan.className = 'badge bg-success ms-2 small';
+                    dateSpan.style.fontSize = '0.7rem';
+                    try {
+                        const dateObj = new Date(item.completed_at);
+                        const dateStr = dateObj.toLocaleDateString('id-ID', {day: '2-digit', month: 'short'}) + ' ' + dateObj.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
+                        dateSpan.textContent = dateStr;
+                    } catch (e) {
+                         dateSpan.textContent = 'Done';
+                    }
+                    leftDiv.appendChild(dateSpan);
+                }
+
                 const btnDel = document.createElement('button');
                 btnDel.className = 'btn btn-link text-danger btn-sm p-0 ms-2';
                 btnDel.innerHTML = '<i class="fas fa-times"></i>';
@@ -177,7 +191,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function toggleItem(index) {
-        checklistData[index].done = !checklistData[index].done;
+        const item = checklistData[index];
+        item.done = !item.done;
+        
+        if (item.done) {
+            // Set timestamp if not already present (or update it? better update to reflect actual action time)
+            item.completed_at = new Date().toISOString(); 
+        } else {
+             // Optional: Keep history or clear? User probably wants to clear if undone.
+             delete item.completed_at;
+        }
+        
         render();
     }
 

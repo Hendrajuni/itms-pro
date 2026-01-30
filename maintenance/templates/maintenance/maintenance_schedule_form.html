@@ -60,12 +60,113 @@
                     {{ form.description|as_crispy_field }}
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Checklist (JSON Format)</label>
-                        {{ form.checklist|as_crispy_field }}
+                        <label class="form-label fw-bold">Checklist Tasks</label>
+                        {{ form.checklist }} <!-- Hidden Input -->
+                        
+                        <div class="bg-light p-3 rounded border">
+                            <div class="input-group mb-2">
+                                <input type="text" id="newTaskInput" class="form-control" placeholder="Enter new task name (e.g. Check Power Cable)">
+                                <button type="button" class="btn btn-success" id="addTaskBtn">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                            
+                            <table class="table table-sm table-hover bg-white mb-0" id="checklistTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Task Name</th>
+                                        <th style="width: 100px;">Initial State</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Items will be injected here via JS -->
+                                </tbody>
+                            </table>
+                            <div id="emptyState" class="text-center text-muted py-3 small">
+                                No tasks added yet. Add tasks above.
+                            </div>
+                        </div>
                         <div class="form-text">
-                            Enter checklist as a JSON list. Example: <code>[{"task": "Check Fan", "done": false}, {"task": "Clean Filter", "done": false}]</code>
+                            Build your checklist here. It will be saved as JSON automatically.
                         </div>
                     </div>
+
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const hiddenInput = document.getElementById('id_checklist');
+                            const taskInput = document.getElementById('newTaskInput');
+                            const addBtn = document.getElementById('addTaskBtn');
+                            const tableBody = document.querySelector('#checklistTable tbody');
+                            const emptyState = document.getElementById('emptyState');
+                            
+                            // 1. Load initial data
+                            let checklistData = [];
+                            try {
+                                if (hiddenInput.value) {
+                                    checklistData = JSON.parse(hiddenInput.value);
+                                }
+                            } catch (e) {
+                                console.error("Invalid JSON in hidden field", e);
+                                checklistData = [];
+                            }
+
+                            // 2. Render Function
+                            function renderTable() {
+                                tableBody.innerHTML = '';
+                                if (checklistData.length === 0) {
+                                    emptyState.style.display = 'block';
+                                } else {
+                                    emptyState.style.display = 'none';
+                                    checklistData.forEach((item, index) => {
+                                        const row = document.createElement('tr');
+                                        row.innerHTML = `
+                                            <td>${item.task}</td>
+                                            <td><span class="badge bg-secondary">Pending</span></td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeTask(${index})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        `;
+                                        tableBody.appendChild(row);
+                                    });
+                                }
+                                // Update hidden input
+                                hiddenInput.value = JSON.stringify(checklistData);
+                            }
+
+                            // 3. Add Task
+                            addBtn.addEventListener('click', function() {
+                                const taskName = taskInput.value.trim();
+                                if (taskName) {
+                                    checklistData.push({
+                                        task: taskName,
+                                        done: false 
+                                    });
+                                    taskInput.value = '';
+                                    renderTable();
+                                }
+                            });
+                            
+                            // Allow Enter key
+                            taskInput.addEventListener('keypress', function(e) {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    addBtn.click();
+                                }
+                            });
+
+                            // 4. Remove Task (Global function for onclick events)
+                            window.removeTask = function(index) {
+                                checklistData.splice(index, 1);
+                                renderTable();
+                            };
+
+                            // Initial Render
+                            renderTable();
+                        });
+                    </script>
 
                     {% if object %}
                     <div class="mb-3">

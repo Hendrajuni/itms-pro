@@ -170,7 +170,7 @@ class AssetLoanForm(forms.ModelForm):
 class AssetMaintenanceForm(forms.ModelForm):
     class Meta:
         model = AssetMaintenance
-        fields = ['asset', 'title', 'maintenance_type', 'scheduled_date', 'status', 'cost', 'technician', 'vendor', 'notes']
+        fields = ['asset', 'title', 'maintenance_type', 'scheduled_date', 'status', 'cost', 'technician', 'vendor', 'notes', 'maintenance_checklist']
         widgets = {
             'asset': forms.Select(attrs={'class': 'form-select'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
@@ -181,12 +181,13 @@ class AssetMaintenanceForm(forms.ModelForm):
             'technician': forms.Select(attrs={'class': 'form-select'}),
             'vendor': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'maintenance_checklist': forms.HiddenInput(),
         }
 
 class InfraMaintenanceForm(forms.ModelForm):
     class Meta:
         model = InfraMaintenance
-        fields = ['infrastructure', 'title', 'maintenance_type', 'scheduled_date', 'status', 'cost', 'technician', 'vendor', 'notes']
+        fields = ['infrastructure', 'title', 'maintenance_type', 'scheduled_date', 'status', 'cost', 'technician', 'vendor', 'notes', 'maintenance_checklist']
         widgets = {
             'infrastructure': forms.Select(attrs={'class': 'form-select'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
@@ -197,6 +198,7 @@ class InfraMaintenanceForm(forms.ModelForm):
             'technician': forms.Select(attrs={'class': 'form-select'}),
             'vendor': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'maintenance_checklist': forms.HiddenInput(),
         }
 
 class SoftwareForm(forms.ModelForm):

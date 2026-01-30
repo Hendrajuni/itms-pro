@@ -8,7 +8,7 @@ class MaintenanceScheduleForm(forms.ModelForm):
         widgets = {
             'next_run_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'description': forms.Textarea(attrs={'rows': 3}),
-            'checklist': forms.Textarea(attrs={'rows': 5, 'font-family': 'monospace'}),
+            'checklist': forms.HiddenInput(),
         }
         help_texts = {
             'checklist': 'Format: [{"task": "Check Cable", "done": false}, ...]. Leave empty [] if none.'
