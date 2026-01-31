@@ -80,5 +80,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Data Management Card -->
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 bg-gradient-secondary text-white">
+                <h6 class="m-0 fw-bold"><i class="fas fa-database me-2"></i>Data Management</h6>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold">Database Backup</h6>
+                <p class="small text-muted mb-3">
+                    Download a full JSON dump of your database. Use this file to restore data if needed.
+                </p>
+                <div class="d-grid">
+                    <a href="{% url 'database_backup' %}" class="btn btn-outline-dark">
+                        <i class="fas fa-download me-2"></i>Download Backup (.json)
+                    </a>
+                </div>
+                <hr class="my-4">
+                <div class="alert alert-info py-2 small mb-0">
+                    <i class="fas fa-info-circle me-1"></i> 
+                    <strong>Tip:</strong> Automate backups? Currently manual only.
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

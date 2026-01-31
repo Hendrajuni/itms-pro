@@ -7,6 +7,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib import messages
 from django.db.models import Count, Q
+from django.core.management import call_command
+from django.utils import timezone
+import io
+import json
 
 User = get_user_model()
 
@@ -478,3 +482,26 @@ class SiteSettingsView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['page_title'] = 'Site Settings'
         return context
+
+class DatabaseBackupView(LoginRequiredMixin, SuperuserRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        # buffer to capture stdout
+        buffer = io.StringIO()
+        
+        # Dump all data (exclude sessions/contenttypes/auth permissions to keep it cleaner if desired, 
+        # but full dump is safer for full restore. We exclude sessions/contenttypes to avoid issues)
+        call_command('dumpdata', exclude=['contenttypes', 'sessions', 'admin'], indent=2, stdout=buffer)
+        
+        # Seek start
+        buffer.seek(0)
+        data = buffer.read()
+        buffer.close()
+        
+        # Prepare Response
+        timestamp = timezone.now().strftime('%Y-%m-%d_%H-%M')
+        filename = f"itms_backup_{timestamp}.json"
+        
+        response = HttpResponse(data, content_type='application/json')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
