@@ -27,5 +27,8 @@ urlpatterns = [
     
     # Global Search
     path('global-search/', views.GlobalSearchView.as_view(), name='global_search'),
+    
+
+
     path('', views.home, name='home'),
 ]

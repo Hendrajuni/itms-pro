@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django import forms
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Q, OuterRef, Subquery, IntegerField, F, Value
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
@@ -68,9 +69,16 @@ class DailyLogListView(LoginRequiredMixin, ListView):
         # Use Helper for Base Scope
         queryset = get_visible_daily_logs(self.request.user)
         
+        # Subquery to count resolved tickets for the executor on the specific date
+        tickets_resolved_qs = Ticket.objects.filter(
+            assigned_to=OuterRef('executor'),
+            resolved_at__date=OuterRef('date')
+        ).values('assigned_to').annotate(cnt=Count('id')).values('cnt')
+
         # Annotate counts for Work Summary
         queryset = queryset.annotate(
-            ticket_count=Count('items', filter=Q(items__content_type__model='ticket')),
+            manual_ticket_count=Count('items', filter=Q(items__content_type__model='ticket')),
+            auto_ticket_count=Coalesce(Subquery(tickets_resolved_qs[:1], output_field=IntegerField()), 0),
             maintenance_count=Count('items', filter=
                 Q(items__related_asset__isnull=False) | 
                 Q(items__related_infra__isnull=False) |
@@ -84,6 +92,8 @@ class DailyLogListView(LoginRequiredMixin, ListView):
                 Q(items__related_asset__isnull=True) & 
                 Q(items__related_infra__isnull=True)
             )
+        ).annotate(
+            ticket_count=F('manual_ticket_count') + F('auto_ticket_count')
         )
 
         # Date Filtering (Month/Year)

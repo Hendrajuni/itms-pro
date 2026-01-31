@@ -49,3 +49,17 @@ class SiteSetting(models.Model):
 
     def __str__(self):
         return "Site Configuration"
+
+class PersonalNote(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='personal_notes')
+    content = models.TextField(blank=True, help_text="Raw text content or JSON if checklist")
+    is_checklist = models.BooleanField(default=False)
+    checklist_data = models.JSONField(default=list, blank=True, help_text="e.g. [{'task': 'Buy Milk', 'done': False}]")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Personal Note"
+        verbose_name_plural = "Personal Notes"
+
+    def __str__(self):
+        return f"Note for {self.user.username}"

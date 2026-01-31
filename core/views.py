@@ -75,6 +75,7 @@ def get_dashboard_stats(user):
         today = timezone.localdate()
         stats['my_daily_log_done'] = DailyLog.objects.filter(executor=user, date=today).exists()
     
+    
     # 3. Manager Stats
     if user.groups.filter(name='Administrator').exists() or user.is_superuser:
         now = timezone.now()
@@ -97,6 +98,9 @@ def get_dashboard_stats(user):
             expiry_date__gte=timezone.localdate() - timedelta(days=60) # Keep visible for 60 days after expiry
         ).exclude(license_type='PERPETUAL').order_by('expiry_date')[:5]
 
+
+
+
         # -----------------------------------------------------
         # NEW WIDGETS
         # -----------------------------------------------------
@@ -104,8 +108,8 @@ def get_dashboard_stats(user):
         # 1. Technician Workload (Top 5 busiest)
         # We look for users in 'IT Support' group
         stats['tech_workload'] = User.objects.filter(groups__name='IT Support').select_related('location').annotate(
-            ticket_load=Count('tickets_assigned', filter=Q(tickets_assigned__status__in=['Open', 'In Progress'])),
-            project_load=Count('projecttask', filter=~Q(projecttask__status='Completed'))
+            ticket_load=Count('tickets_assigned', filter=Q(tickets_assigned__status__in=['Open', 'In Progress', 'Assigned', 'Pending_Vendor']), distinct=True),
+            project_load=Count('projecttask', filter=~Q(projecttask__status='Completed'), distinct=True)
         ).annotate(
             open_load=F('ticket_load') + F('project_load')
         ).order_by('-open_load')[:5]
@@ -780,3 +784,5 @@ class GlobalSearchView(LoginRequiredMixin, View):
             })
 
         return JsonResponse({'results': results})
+
+

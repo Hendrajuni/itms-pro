@@ -347,7 +347,9 @@
                             <tr>
                                 <th class="ps-3">Technician</th>
                                 <th>Branch</th>
-                                <th>Active Tasks</th>
+                                <th class="text-center">Tickets</th>
+                                <th class="text-center">Projects</th>
+                                <th>Total Active</th>
                                 <th>Load</th>
                             </tr>
                         </thead>
@@ -374,29 +376,43 @@
                                         <span class="text-muted small">-</span>
                                     {% endif %}
                                 </td>
-                                <td class="fw-bold fs-5 text-dark">{{ tech.open_load }}</td>
-                                <td style="width: 35%;">
-                                    {% if tech.open_load > 5 %}
-                                        {%  widthratio tech.open_load 10 100 as pct %}
+                                <td class="text-center">
+                                    {% if tech.ticket_load > 0 %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">{{ tech.ticket_load }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if tech.project_load > 0 %}
+                                        <span class="badge bg-info bg-opacity-10 text-info">{{ tech.project_load }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-bold fs-5 text-dark ps-4">{{ tech.open_load }}</td>
+                                <td style="width: 25%;">
+                                    {% if tech.open_load > 12 %}
+                                        {%  widthratio tech.open_load 20 100 as pct %}
                                         <div class="progress" style="height: 6px;">
                                             <div class="progress-bar bg-danger" role="progressbar" style="width: {{ pct }}%"></div>
                                         </div>
                                         <small class="text-danger fw-bold">Heavy</small>
-                                    {% elif tech.open_load > 2 %}
+                                    {% elif tech.open_load > 6 %}
                                         <div class="progress" style="height: 6px;">
                                             <div class="progress-bar bg-warning" role="progressbar" style="width: 50%"></div>
                                         </div>
                                         <small class="text-warning">Moderate</small>
                                     {% else %}
                                          <div class="progress" style="height: 6px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: 20%"></div>
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 25%"></div>
                                         </div>
                                         <small class="text-success">Light</small>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted">No Workload Data</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted">No Workload Data</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
