@@ -14,61 +14,93 @@
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     
-                    <div class="row mb-4">
-                        <div class="col-md-12 text-center mb-3">
-                            <h5 class="fw-bold mb-3">Current Branding</h5>
-                            <div class="d-flex justify-content-center gap-4 align-items-end">
-                                <div class="text-center">
-                                    <label class="form-label d-block fw-bold text-muted small">Logo</label>
-                                    {% if object.logo %}
-                                    <div class="p-2 border rounded bg-white">
-                                        <img src="{{ object.logo.url }}" alt="Logo" style="height: 60px;">
+                    <!-- Section: Application Settings -->
+                    <h6 class="fw-bold text-gray-800 border-bottom pb-2 mb-3 mt-2"><i class="fas fa-cogs me-2"></i>General Configuration</h6>
+                    <div class="row">
+                        <div class="col-md-8">
+                            {{ form.site_name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.asset_id_prefix|as_crispy_field }}
+                            <div class="form-text mt-0 text-xs">Example: <strong>{{ form.asset_id_prefix.value|default:"PMG" }}-0001/2026/IT</strong></div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Company Identity -->
+                    <h6 class="fw-bold text-gray-800 border-bottom pb-2 mb-3 mt-4"><i class="fas fa-building me-2"></i>Company Identity</h6>
+                    <div class="row">
+                        <div class="col-md-12">
+                            {{ form.company_name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.company_phone|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.company_email|as_crispy_field }}
+                        </div>
+                        <div class="col-md-12">
+                            <!-- Custom Widget Tweak for Textarea Height -->
+                            <div class="mb-3">
+                                <label class="form-label requiredField">Company address<span class="asteriskField">*</span></label>
+                                <textarea name="company_address" rows="3" class="form-control" required>{{ form.company_address.value|default:'' }}</textarea> 
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Branding -->
+                    <h6 class="fw-bold text-gray-800 border-bottom pb-2 mb-3 mt-4"><i class="fas fa-paint-brush me-2"></i>Visual Branding</h6>
+                    <div class="row">
+                        <!-- Logo -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-start-primary">
+                                <div class="card-body text-center">
+                                    <h6 class="fw-bold mb-3">Logo</h6>
+                                    <div class="mb-3 p-2 bg-light rounded border" style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                                        {% if object.logo %}
+                                        <img src="{{ object.logo.url }}" alt="Logo" style="max-height: 80px; max-width: 100%;">
+                                        {% else %}
+                                        <span class="text-muted small">No Image</span>
+                                        {% endif %}
                                     </div>
-                                    {% else %}
-                                    <span class="text-muted">Default</span>
-                                    {% endif %}
+                                    {{ form.logo|as_crispy_field }}
                                 </div>
-                                <div class="text-center">
-                                    <label class="form-label d-block fw-bold text-muted small">Favicon</label>
-                                    {% if object.favicon %}
-                                    <div class="p-2 border rounded bg-white">
-                                        <img src="{{ object.favicon.url }}" alt="Favicon" style="height: 32px;">
+                            </div>
+                        </div>
+                        <!-- Favicon -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-start-success">
+                                <div class="card-body text-center">
+                                    <h6 class="fw-bold mb-3">Favicon</h6>
+                                    <div class="mb-3 p-2 bg-light rounded border" style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                                        {% if object.favicon %}
+                                        <img src="{{ object.favicon.url }}" alt="Favicon" style="max-height: 48px; max-width: 100%;">
+                                        {% else %}
+                                        <span class="text-muted small">No Image</span>
+                                        {% endif %}
                                     </div>
-                                    {% else %}
-                                    <span class="text-muted small">None</span>
-                                    {% endif %}
+                                    {{ form.favicon|as_crispy_field }}
                                 </div>
-                                <div class="text-center">
-                                    <label class="form-label d-block fw-bold text-muted small">Login Background</label>
-                                    {% if object.login_background %}
-                                    <div class="p-1 border rounded">
-                                        <img src="{{ object.login_background.url }}" alt="BG" style="height: 80px; width: 120px; object-fit: cover;">
+                            </div>
+                        </div>
+                        <!-- Login BG -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-start-info">
+                                <div class="card-body text-center">
+                                    <h6 class="fw-bold mb-3">Login Background</h6>
+                                    <div class="mb-3 p-2 bg-light rounded border" style="height: 100px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                        {% if object.login_background %}
+                                        <img src="{{ object.login_background.url }}" alt="BG" style="width: 100%; height: 100%; object-fit: cover;">
+                                        {% else %}
+                                        <span class="text-muted small">No Image</span>
+                                        {% endif %}
                                     </div>
-                                    {% else %}
-                                    <span class="text-muted small">Default</span>
-                                    {% endif %}
+                                    {{ form.login_background|as_crispy_field }}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        {{ form.site_name|as_crispy_field }}
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            {{ form.logo|as_crispy_field }}
-                        </div>
-                        <div class="col-md-4">
-                            {{ form.favicon|as_crispy_field }}
-                        </div>
-                        <div class="col-md-4">
-                            {{ form.login_background|as_crispy_field }}
-                        </div>
-                    </div>
-
-                    <div class="mt-3 border-top pt-3">
+                    <div class="mt-3 pt-3">
                          {{ form.maintenance_mode|as_crispy_field }}
                          <div class="form-text text-warning"><i class="fas fa-exclamation-triangle"></i> Enabling maintenance mode will block access for non-admin users.</div>
                     </div>

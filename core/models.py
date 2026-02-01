@@ -30,6 +30,16 @@ class CustomUser(AbstractUser):
 
 class SiteSetting(models.Model):
     site_name = models.CharField(max_length=100, default="ITMS Pro")
+    
+    # Company Identity
+    company_name = models.CharField(max_length=100, default="PT. PMG - PROPERTY", help_text="Used in Reports")
+    company_address = models.TextField(blank=True, help_text="Full address for report headers")
+    company_phone = models.CharField(max_length=50, blank=True)
+    company_email = models.EmailField(blank=True)
+    
+    # Application Settings
+    asset_id_prefix = models.CharField(max_length=10, default="PMG", help_text="Prefix for auto-generated Asset IDs (e.g. PMG-0001)")
+    
     logo = models.ImageField(upload_to='branding/', default='img/default_logo.png')
     favicon = models.ImageField(upload_to='branding/', null=True, blank=True)
     login_background = models.ImageField(upload_to='branding/', null=True, blank=True)

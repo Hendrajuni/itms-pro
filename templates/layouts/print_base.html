@@ -132,14 +132,24 @@
         </div>
 
         <!-- Header -->
-        <div class="header d-flex justify-content-between align-items-end">
-            <div>
-                <div class="company-name">IT MANAGEMENT SYSTEM</div>
-                <div class="text-muted small mt-1">Infrastructure & Network Department</div>
+        <!-- Header -->
+        <div class="header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center mb-0">
+                {% if site_settings.logo %}
+                    <img src="{{ site_settings.logo.url }}" alt="Logo" style="height: 60px; width: auto; object-fit: contain; margin-right: 15px;">
+                {% endif %}
+                <div>
+                    <div class="company-name" style="font-size: 22px; margin-bottom: 0;">{{ site_settings.company_name|default:"IT MANAGEMENT SYSTEM"|upper }}</div>
+                    {% if site_settings.company_address %}
+                        <div class="text-muted small mt-1" style="font-size: 10px; max-width: 400px; line-height: 1.2;">{{ site_settings.company_address }}</div>
+                    {% else %}
+                        <div class="text-muted small mt-1">Infrastructure & Network Department</div>
+                    {% endif %}
+                </div>
             </div>
             <div class="text-end">
                 <div class="report-title">{% block report_title %}Report Title{% endblock %}</div>
-                <div class="fs-5 fw-bold text-dark mt-1">{% block report_subtitle %}{% endblock %}</div>
+                <div class="fs-6 fw-bold text-dark mt-1">{% block report_subtitle %}{% endblock %}</div>
             </div>
         </div>
 

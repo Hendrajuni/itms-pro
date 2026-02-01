@@ -231,12 +231,19 @@ class Asset(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.asset_code:
+            from django.apps import apps
+            SiteSetting = apps.get_model('core', 'SiteSetting')
+            try:
+                setting = SiteSetting.objects.get(pk=1)
+                prefix = setting.asset_id_prefix.upper()
+            except SiteSetting.DoesNotExist:
+                prefix = "PMG"
+
             today = timezone.now()
             year = today.year
-            # Format: PMG-{SEQ}/{YYYY}/IT
-            # Example: PMG-0001/2026/IT
+            # Format: {PREFIX}-{SEQ}/{YYYY}/IT
             
-            # Find last asset with this year's pattern (checking broad year match to continue sequence from INVK if needed)
+            # Find last asset with this year's pattern
             last_asset = Asset.objects.filter(asset_code__contains=f"/{year}/").order_by('-asset_code').first()
             
             if last_asset:
@@ -251,7 +258,7 @@ class Asset(models.Model):
             else:
                  seq = 1
             
-            self.asset_code = f"PMG-{seq:04d}/{year}/IT"
+            self.asset_code = f"{prefix}-{seq:04d}/{year}/IT"
 
         if not self.qr_code_image:
             qr = qrcode.QRCode(

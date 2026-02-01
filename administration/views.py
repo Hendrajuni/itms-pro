@@ -471,7 +471,7 @@ class AuditLogListView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView)
 
 class SiteSettingsView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
     model = SiteSetting
-    fields = ['site_name', 'logo', 'favicon', 'login_background', 'maintenance_mode']
+    fields = ['site_name', 'company_name', 'company_address', 'company_phone', 'company_email', 'asset_id_prefix', 'logo', 'favicon', 'login_background', 'maintenance_mode']
     template_name = 'administration/site_settings.html'
     success_url = reverse_lazy('site_settings')
 

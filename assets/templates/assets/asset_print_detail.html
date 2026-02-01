@@ -44,9 +44,14 @@
 
 <div class="container">
     <div class="header">
-        <div class="logo-section">
-            <div class="logo-text">IT ASSET DATASHEET</div>
-            <div style="font-size:12px; font-weight:bold; margin-top:5px;">PT. PMG - PROPERTY</div>
+        <div class="logo-section" style="display: flex; align-items: center; gap: 15px;">
+            {% if site_settings.logo %}
+                <img src="{{ site_settings.logo.url }}" alt="Company Logo" style="height: 50px; width: auto; object-fit: contain;">
+            {% endif %}
+            <div>
+                <div class="logo-text">{{ site_settings.site_name|default:"IT ASSET DATASHEET"|upper }}</div>
+                <div style="font-size:12px; font-weight:bold; margin-top:2px;">{{ site_settings.company_name|upper }}</div>
+            </div>
         </div>
         <div class="header-right">
             {% if asset.qr_code_image %}
@@ -275,7 +280,7 @@
     </div>
 
     <div class="footer">
-        IT Management System | PT. PMG | Printed by {{ user.username }}
+        {{ site_settings.site_name }} | {{ site_settings.company_name }} | Printed by {{ user.username }}
     </div>
 </div>
 
