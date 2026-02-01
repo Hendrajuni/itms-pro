@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+{% load humanize %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Asset Sheet - {{ asset.asset_code }}</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Arial', 'Helvetica', sans-serif; color: #000; background: #fff; -webkit-print-color-adjust: exact; }
+        .container { max-width: 210mm; margin: 0 auto; border: 1px solid #000; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-text { font-size: 26px; font-weight: 900; color: #000; letter-spacing: -0.5px; }
+        
+        .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        .qr-box { width: 80px; height: 80px; margin-bottom: 5px; }
+        .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .report-title { font-size: 14px; font-weight:bold; color: #000; }
+        .report-date { font-size: 11px; color: #000; }
+        
+        .main-info { display: flex; gap: 30px; margin-bottom: 25px; }
+        .photo-box { width: 140px; height: 140px; border: 1px solid #333; display: flex; justify-content: center; align-items: center; background: #f0f0f0; }
+        .photo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        
+        .info-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .info-item label { display: block; font-size: 10px; color: #444; text-transform: uppercase; margin-bottom: 3px; font-weight: 700; }
+        .info-item span { display: block; font-size: 13px; font-weight: 600; color: #000; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+        
+        .section-title { background: #eee; padding: 6px 10px; font-size: 12px; font-weight: 800; text-transform: uppercase; margin-top: 25px; margin-bottom: 10px; border-left: 5px solid #000; color: #000; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+        th { text-align: left; background: #f0f0f0; padding: 6px; border-bottom: 2px solid #000; font-weight: 800; color: #000; }
+        td { padding: 6px; border-bottom: 1px solid #ccc; color: #000; }
+        
+        .footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #000; font-size: 10px; color: #000; text-align: center; font-weight: bold;}
+        
+        @media print {
+            body { padding: 0; background: white; }
+            .container { border: none; padding: 0; }
+            @page { margin: 15mm; }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+
+<div class="container">
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo-text">IT ASSET DATASHEET</div>
+            <div style="font-size:12px; font-weight:bold; margin-top:5px;">PT. PMG - PROPERTY</div>
+        </div>
+        <div class="header-right">
+            {% if asset.qr_code_image %}
+            <div class="qr-box">
+                <img src="{{ asset.qr_code_image.url }}" alt="QR">
+            </div>
+            {% endif %}
+            <div class="report-title">{{ asset.name }}</div>
+            <div class="report-date">Generated: {% now "d M Y H:i" %}</div>
+        </div>
+    </div>
+
+    <div class="main-info">
+        <div class="photo-box">
+            {% if asset.photo %}
+            <img src="{{ asset.photo.url }}" alt="Asset Photo">
+            {% else %}
+            <span style="color:#ccc;">No Photo</span>
+            {% endif %}
+        </div>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Asset Code</label>
+                <span>{{ asset.asset_code }}</span>
+            </div>
+            <div class="info-item">
+                <label>Serial Number</label>
+                <span>{{ asset.serial_number|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Category</label>
+                <span>{{ asset.category.name|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Brand / Model</label>
+                <span>{{ asset.brand|default:"" }} {{ asset.model|default:"" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Current Location</label>
+                <span>{{ asset.location.name|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Assigned User</label>
+                <span>{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username|default:"Unassigned" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Status</label>
+                <span>{{ asset.get_status_display }}</span>
+            </div>
+            <div class="info-item">
+                <label>Department</label>
+                <span>{{ asset.department.name|default:"-" }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Specs -->
+    <div class="section-title">Technical Specifications</div>
+    <div class="info-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+        <div class="info-item"><label>CPU</label><span>{{ spec.cpu|default:"-" }}</span></div>
+        <div class="info-item"><label>RAM</label><span>{{ spec.ram|default:"-" }}</span></div>
+        <div class="info-item"><label>OS</label><span>{{ spec.os|default:"-" }}</span></div>
+    </div>
+    
+    <!-- Storage Info (New) -->
+    {% if asset.storages.exists %}
+    <div style="margin-bottom: 20px;">
+        <div class="info-item"><label style="margin-bottom: 5px; font-weight:bold;">Storage Devices</label></div>
+        <table style="margin-top:5px;">
+            <thead>
+                <tr>
+                    <th style="padding:4px; font-size:10px;">Type</th>
+                    <th style="padding:4px; font-size:10px;">Brand</th>
+                    <th style="padding:4px; font-size:10px;">Capacity</th>
+                    <th style="padding:4px; font-size:10px;">Serial</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for store in asset.storages.all %}
+                <tr>
+                    <td style="padding:4px;">{{ store.get_device_type_display }}</td>
+                    <td style="padding:4px;">{{ store.brand|default:"-" }}</td>
+                    <td style="padding:4px;">{{ store.capacity|default:"-" }}</td>
+                    <td style="padding:4px;">{{ store.serial_number|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Financials -->
+    <div class="section-title">Financial Information</div>
+    <div class="info-grid" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="info-item"><label>Purchase Date</label><span>{{ asset.purchase_date|default:"-" }}</span></div>
+        <div class="info-item"><label>Purchase Price</label><span>{{ asset.purchase_price|intcomma }}</span></div>
+        <div class="info-item"><label>Current Value</label><span>{{ asset.current_book_value|intcomma }}</span></div>
+        <div class="info-item"><label>Warranty</label><span>{{ asset.warranty_end|default:"-" }}</span></div>
+    </div>
+    
+    <!-- Network & Software (New) -->
+    <div class="section-title">Network & Software Allocation</div>
+    <div class="main-info" style="margin-bottom: 15px;">
+        <div style="flex:1;">
+             <div class="info-item" style="margin-bottom:10px;"><label>IP Configuration</label></div>
+             {% if asset.network_interfaces.exists %}
+                 <table style="margin-top:5px;">
+                    <thead>
+                        <tr>
+                            <th style="padding:4px; font-size:10px;">Interface</th>
+                            <th style="padding:4px; font-size:10px;">IP Address</th>
+                            <th style="padding:4px; font-size:10px;">MAC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for net in asset.network_interfaces.all %}
+                        <tr>
+                            <td style="padding:4px;">{{ net.name }}</td>
+                            <td style="padding:4px;">{{ net.ip_address|default:"-" }}</td>
+                            <td style="padding:4px;">{{ net.mac_address|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                 </table>
+             {% else %}
+                <div class="info-grid">
+                    <div class="info-item"><label>Primary IP</label><span>{{ spec.ip_address|default:"-" }}</span></div>
+                    <div class="info-item"><label>Primary MAC</label><span>{{ spec.mac_address|default:"-" }}</span></div>
+                </div>
+             {% endif %}
+        </div>
+        
+        <div style="flex:1;">
+            <div class="info-item" style="margin-bottom:10px;"><label>Installed Software</label></div>
+             {% if asset.software_installed.exists %}
+                 <table style="margin-top:5px;">
+                    <thead>
+                        <tr>
+                            <th style="padding:4px; font-size:10px;">Software</th>
+                            <th style="padding:4px; font-size:10px;">License</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for soft in asset.software_installed.all %}
+                        <tr>
+                            <td style="padding:4px;">{{ soft.software.name }}</td>
+                            <td style="padding:4px;">{{ soft.software.license_key|default:"-"|truncatechars:15 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                 </table>
+            {% else %}
+                <span style="font-size:12px; color:#999; font-style:italic;">No software allocated.</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Maintenance History (Last 5) -->
+    <div class="section-title">Recent Maintenance</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th style="text-align:right;">Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in maintenance_logs %}
+            <tr>
+                <td>{{ log.scheduled_date|date:"d/m/Y" }}</td>
+                <td>{{ log.get_maintenance_type_display }}</td>
+                <td>{{ log.title|default:log.notes|truncatechars:60 }}</td>
+                <td style="text-align:right;">{{ log.cost|default:"0"|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align:center; color:#999;">No maintenance records.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Part History (New) -->
+    {% if part_history %}
+    <div class="section-title">Part History</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Part Name</th>
+                <th>Description</th>
+                <th style="text-align:right;">Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for part in part_history %}
+            <tr>
+                <td>{{ part.action_date|date:"d/m/Y" }}</td>
+                <td>{{ part.part_name }}</td>
+                <td>{{ part.description|truncatechars:60 }}</td>
+                <td style="text-align:right;">{{ part.cost|default:"0"|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Cost Summary (New) -->
+    <div style="margin-top: 30px; border-top: 2px solid #000; padding-top: 10px;">
+        <div style="display: flex; justify-content: flex-end;">
+            <table style="width: auto; border: none;">
+                <tr>
+                    <td style="text-align: right; padding-right: 15px; border: none; font-weight: bold;">Total Maintenance Cost:</td>
+                    <td style="text-align: right; border: none; font-family: monospace;">Rp {{ total_maintenance_cost|intcomma }}</td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; padding-right: 15px; border: none; font-weight: bold;">Total Parts Cost:</td>
+                    <td style="text-align: right; border: none; font-family: monospace;">Rp {{ total_parts_cost|intcomma }}</td>
+                </tr>
+                <tr style="font-size: 14px; border-top: 1px solid #000;">
+                    <td style="text-align: right; padding-right: 15px; padding-top: 5px; border: none; font-weight: 900;">TOTAL SERVICE COST:</td>
+                    <td style="text-align: right; padding-top: 5px; border: none; font-family: monospace; font-weight: 900;">Rp {{ total_maintenance_cost|add:total_parts_cost|intcomma }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        IT Management System | PT. PMG | Printed by {{ user.username }}
+    </div>
+</div>
+
+</body>
+</html>

@@ -8,26 +8,30 @@
 
 ## 🚀 Fitur Utama
 
-### 📦 Siklus Hidup Aset Lengkap
-*   **Pelacakan Hardware**: Inventaris detail untuk Laptop, Server, dan Printer dengan dukungan barcode/QR.
-*   **Software & Lisensi**: Melacak masa berlaku lisensi dan jumlah pengguna (seats).
-*   **Cetak Label**: Cetak label QR Code secara massal untuk penandaan fisik.
+## 🚀 Fitur Utama (Real Capabilities)
 
-### 📡 Visualisasi Infrastruktur
-*   **Tata Letak Fisik**: Visualisasi Rak Server dan tata letak Data Center.
-*   **Pemantauan Jaringan (NMS)**: Pelacakan status *real-time* (Up/Down) node kritis via ICMP/SNMP.
-*   **Peringatan Downtime**: Notifikasi instan via **Telegram/WhatsApp** ketika beberapa node gagal.
-*   **Manajemen IP Address (IPAM)**: Mengatur Subnet dan penggunaan IP.
+### 📦 Manajemen Aset Terintegrasi
+*   **Aset Fisik & Hardware**: Pencatatan lengkap mulai dari Laptop, Server, hingga furnitur dengan status (Digunakan, Rusak, Disposal).
+*   **Lisensi Software**: Monitoring masa berlaku lisensi agar tidak ada yang *expired* tanpa ketahuan.
+*   **Riwayat Komponen**: Melacak upgrade RAM/SSD pada setiap aset, sehingga history perubahan spesifikasi terlihat jelas.
+*   **Cetak Label QR**: Generator QR Code bawaan untuk label aset fisik.
 
-### 🛠 Operasional & Helpdesk
-*   **Sistem Tiket**: Helpdesk internal untuk pelaporan masalah.
-*   **Pemeliharaan Preventif**: Menjadwalkan tugas pemeliharaan berulang untuk memperpanjang umur aset.
-*   **Knowledge Base**: Artikel mandiri untuk solusi masalah umum.
+### 🛠 Operasional & Pemeliharaan (Maintenance)
+*   **Jadwal Rutin (Preventive)**: Fitur "Next 7 Days Maintenance" yang memberi tahu teknisi apa yang harus dikerjakan minggu ini.
+*   **Checklist Maintenance**: Teknisi tidak hanya "klik selesai", tapi harus mencentang checklist (misal: "Cek Suhu", "Bersihkan Debu") sebelum menutup tugas.
+*   **Manajemen Perbaikan (Breakdown)**: Pencatatan perbaikan aset rusak (Service Luar/Dalam) beserta biayanya.
 
-### 🛡 Tata Kelola & Keamanan
-*   **Role-Based Access Control (RBAC)**: Akses aman untuk Admin, Manajer, IT Support, dan Pengguna Akhir.
-*   **Activity Logs**: Jejak audit (*Audit Trail*) anti-manipulasi untuk setiap perubahan sistem.
-*   **Manajemen Proyek**: Melacak inisiatif IT, anggaran, dan lini masa (Kanban/Gantt).
+### 📊 Produktivitas & Pelaporan
+*   **Sistem Tiket Helpdesk**: User melapor masalah, teknisi mengambil tiket, dan waktu penyelesaian ("SLA") tercatat.
+*   **Daily Activity Log**: *Fitur Unggulan*. Laporan harian teknisi yang otomatis menarik data dari Tiket dan Maintenance yang dikerjakan hari itu. Tidak perlu input ganda.
+*   **Workload Analysis**: Manajer bisa melihat beban kerja tim (siapa yang *overload*, siapa yang *idle*) secara *real-time*.
+
+### 🛡 Keamanan & Tata Kelola
+*   **Backup Database Manual**: Fitur satu klik untuk download backup seluruh data sistem (JSON) demi keamanan data.
+*   **Audit Trail Lengkap**: Mencatat "Siapa mengubah apa". Jika spek laptop berubah, sistem mencatat usernya dan waktu perubahannya.
+*   **Role-Based Access**: Dasbor terpisah antara Administrator, Manajer, Teknisi, dan User Biasa.
+*   **Manajemen Proyek**: Board Kanban sederhana untuk memantau proyek IT jangka panjang.
+*   **Pemantauan Jaringan (Simple NMS)**: Pengecekan status *Ping/ICMP* ke server/router vital dengan notifikasi status.
 
 ---
 

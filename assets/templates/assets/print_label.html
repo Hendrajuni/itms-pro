@@ -1,110 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>Label - {{ asset.asset_code }}</title>
     <style>
         body {
             margin: 0;
-            padding: 0;
-            font-family: sans-serif;
+            padding: 20px;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
         }
 
+        /* Logic for "Large/Special" Assets */
+        {% with cat_name=asset.category.name|lower name=asset.name|lower %}
+        {% if "desktop" in cat_name or "pc" in cat_name or "genset" in cat_name or "desktop" in name or "genset" in name %}
+            /* LARGE FORMAT for PC / Genset */
+            .label-container {
+                width: 400px; /* Approx 10.5cm */
+                height: 220px; /* Approx 5.8cm */
+                border: 2px solid #2c3e50; /* Thicker border */
+            }
+            .header-bar { height: 6px; background: #c0392b; /* distinct color? or stick to blue? User said "Special". Let's stick to blue but thicker. */ background: #2c3e50; }
+            .asset-code { font-size: 18px; }
+            .asset-name { font-size: 14px; font-weight: bold; }
+            .qr-section { width: 100px; height: 100px; }
+            .special-info { display: block; }
+        {% else %}
+            /* STANDARD FORMAT */
+            .label-container {
+                width: 320px; /* Approx 8.5cm */
+                height: 150px; /* Approx 4cm */
+                border: 1px solid #ddd;
+            }
+            .header-bar { height: 4px; background: #2c3e50; }
+            .asset-code { font-size: 13px; }
+            .asset-name { font-size: 11px; }
+            .qr-section { width: 70px; height: 70px; }
+            .special-info { display: none; }
+        {% endif %}
+        {% endwith %}
+
         .label-container {
-            width: 320px;
-            /* Approx 8.5cm */
-            height: 150px;
-            /* Approx 4cm */
-            border: 1px solid #000;
-            padding: 10px;
+            border-radius: 4px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            overflow: hidden;
+            background: #fff;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         @media print {
-            body {
-                margin: 0;
+            body { 
+                background: white; 
+                padding: 0; 
+                display: block; 
             }
-
             .label-container {
-                border: none;
-            }
-
-            @page {
+                box-shadow: none;
                 margin: 0;
-                size: auto;
+                page-break-inside: avoid;
             }
+            @page { margin: 0; size: auto; }
         }
 
-        .header {
-            font-weight: bold;
-            font-size: 14px;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-            text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 2px;
-        }
-
-        .content {
+        .main-body {
             display: flex;
             align-items: center;
+            padding: 10px 15px;
+            flex: 1;
         }
 
-        .qr-code {
-            width: 80px;
-            height: 80px;
+        .qr-section {
             margin-right: 15px;
+            flex-shrink: 0;
         }
 
-        .qr-code img {
+        .qr-section img {
             width: 100%;
             height: 100%;
             object-fit: contain;
+            display: block;
         }
 
-        .details {
+        .info-section {
             flex: 1;
-            font-size: 12px;
-            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        .details strong {
-            display: inline-block;
-            width: 60px;
+        .asset-code {
+            font-weight: 700;
+            color: #000;
+            margin-bottom: 5px;
+            font-family: monospace;
+            letter-spacing: -0.5px;
+        }
+
+        .asset-name {
+            line-height: 1.2;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .meta-row {
+            font-size: 10px;
+            color: #555;
+            display: flex;
+            margin-bottom: 2px;
+        }
+        
+        .meta-label {
+            width: 45px;
+            color: #888;
+            font-weight: 500;
         }
 
         .footer {
-            font-size: 10px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            padding: 4px 0;
             text-align: center;
-            margin-top: 5px;
+            font-size: 9px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-tag {
+            font-size: 9px;
+            font-weight: 700;
+            color: #2c3e50;
+            text-transform: uppercase;
+            margin-bottom: 4px;
         }
     </style>
 </head>
-
-<body onload="window.print()">
+<body onload="//window.print()">
     <div class="label-container">
-        <div class="header">PROPERTY OF PT.PMG</div>
-        <div class="content">
-            <div class="qr-code">
+        <div class="header-bar"></div>
+        <div class="main-body">
+            <div class="qr-section">
                 {% if asset.qr_code_image %}
                 <img src="{{ asset.qr_code_image.url }}" alt="QR">
                 {% else %}
-                <div style="width:100%;height:100%;background:#eee;"></div>
+                <div style="background:#eee;width:100%;height:100%;"></div>
                 {% endif %}
             </div>
-            <div class="details">
-                <div><strong>ID:</strong> {{ asset.asset_code }}</div>
-                <div><strong>Name:</strong> {{ asset.name|truncatechars:20 }}</div>
-                <div><strong>Loc:</strong> {{ asset.location.name|default:"-" }}</div>
-                <div><strong>User:</strong> {{ asset.assigned_to.username|default:"Unassigned" }}</div>
+            <div class="info-section">
+                <div class="brand-tag">PT. PMG - PROPERTY</div>
+                <div class="asset-code">{{ asset.asset_code }}</div>
+                <div class="asset-name">{{ asset.name }}</div>
+                
+                <div class="meta-row">
+                    <span class="meta-label">LOC</span>
+                    <span>{{ asset.location.name|default:"-"|truncatechars:20 }}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">USR</span>
+                    <span>{{ asset.assigned_to.username|default:"Unassigned" }}</span>
+                </div>
+
+                <!-- Special Info for PC/Genset -->
+                <div class="special-info" style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #eee;">
+                    {% if asset.brand or asset.model %}
+                    <div class="meta-row">
+                        <span class="meta-label">SPEC</span>
+                        <span>{{ asset.brand|default:"" }} {{ asset.model|default:"" }}</span>
+                    </div>
+                    {% endif %}
+                    {% if asset.serial_number %}
+                    <div class="meta-row">
+                        <span class="meta-label">S/N</span>
+                        <span>{{ asset.serial_number }}</span>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-        <div class="footer">If found, please return to IT Department.</div>
+        <div class="footer">RETURN TO IT DEPT IF FOUND</div>
     </div>
 </body>
-
 </html>

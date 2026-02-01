@@ -356,13 +356,48 @@ class AssetScannerView(LoginRequiredMixin, TemplateView):
 class BulkAssetLabelView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         asset_ids = request.POST.getlist('selected_assets')
-        assets = Asset.objects.filter(id__in=asset_ids).select_related('assigned_to', 'location')
+        if not asset_ids:
+            messages.warning(request, "No assets selected.")
+            return redirect('asset_list')
+            
+        assets = Asset.objects.filter(id__in=asset_ids)
+        
+        # Split into chunks of 24 (3x8) for A4
+        chunks = [assets[i:i + 24] for i in range(0, len(assets), 24)]
+        
+        context = {
+            'chunks': chunks,
+            'today': timezone.now().date(),
+        }
+        
+        return render(request, 'assets/asset_print_labels_bulk.html', context)
+
+class BulkAssetPrintListView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        asset_ids = request.POST.getlist('selected_assets')
+        mode = request.POST.get('mode')
+        if not mode:
+            mode = 'operational'
+        
+        if not asset_ids:
+            messages.warning(request, "No assets selected.")
+            return redirect('asset_list')
+            
+        # Get Assets ordered by name
+        assets = Asset.objects.filter(id__in=asset_ids).select_related(
+            'category', 'location', 'department', 'assigned_to', 'vendor'
+        ).order_by('name')
         
         context = {
             'assets': assets,
-            'print_date': timezone.now()
+            'today': timezone.now().date(),
+            'print_date': timezone.now(),
+            'report_title': 'Asset Selection Report',
+            'filter_display': f'Self-Selected ({len(assets)} Assets)',
+            'mode': mode
         }
-        return render(request, 'assets/print_labels_bulk.html', context)
+        
+        return render(request, 'assets/asset_print_list.html', context)
 
 from django.db import transaction
 
@@ -521,7 +556,7 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
 
 class AssetDetailPrintView(LoginRequiredMixin, DetailView):
     model = Asset
-    template_name = 'assets/print_asset_detail.html'
+    template_name = 'assets/asset_print_detail.html'
     context_object_name = 'asset'
 
     def get_context_data(self, **kwargs):
@@ -1743,6 +1778,9 @@ class AssetPrintListView(AssetListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Fix for template relying on 'mode' variable vs 'view_mode'
+        context['mode'] = self.request.GET.get('mode', 'operational')
+        
         # Add selection objects for Header Display
         loc_id = self.request.GET.get('loc')
         if loc_id:

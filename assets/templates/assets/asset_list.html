@@ -224,6 +224,7 @@
 
         <form id="bulk-form" method="post" action="{% url 'asset_print_labels_bulk' %}" target="_blank">
             {% csrf_token %}
+            <input type="hidden" name="mode" value="{{ view_mode }}">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold text-primary">Asset List</h6>
@@ -252,9 +253,23 @@
                             </ul>
                         </div>
 
-                        <button type="submit" class="btn btn-sm btn-secondary" id="bulk-print-btn" disabled>
-                            <i class="fas fa-print me-2"></i>Print Selected Labels
-                        </button>
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled>
+                                <i class="fas fa-print me-2"></i>Print Selected
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bulkActionsDropdown">
+                                <li>
+                                    <button type="submit" class="dropdown-item" name="action" value="labels" formaction="{% url 'asset_print_labels_bulk' %}">
+                                        <i class="fas fa-qrcode me-2 text-dark" style="width: 20px;"></i>Print Labels (QR)
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="submit" class="dropdown-item" name="action" value="list" formaction="{% url 'asset_print_list_bulk' %}">
+                                        <i class="fas fa-list-alt me-2 text-primary" style="width: 20px;"></i>Print Selected List
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -479,7 +494,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const selectAll = document.getElementById('select-all');
         const checkboxes = document.querySelectorAll('.asset-checkbox');
-        const bulkBtn = document.getElementById('bulk-print-btn');
+        const bulkBtn = document.getElementById('bulkActionsDropdown');
 
         function updateButton() {
             const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
