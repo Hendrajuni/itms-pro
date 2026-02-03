@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
 import os
 from pathlib import Path
 
@@ -27,6 +26,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-vm!@pmra2j3bz9o@dfl&0
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+
+# --- PRODUCTION SECURITY (Cloudflare/Nginx) ---
+# Agar bisa login via HTTPS Cloudflare & Localhost
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://itms.nubinote.my.id,http://localhost,http://127.0.0.1').split(',')
+
+# Memberitahu Django bahwa request ini sebenarnya HTTPS (jika lewat proxy)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -65,7 +71,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Added WhiteNoise
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -108,9 +114,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('POSTGRES_DB', 'dbitms2026'),
-        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'delapan'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        'USER': os.environ.get('POSTGRES_USER', 'postgres'),      
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'delapan'),  
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'), # Default localhost for runserver, 'db' for Docker
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
@@ -150,10 +156,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'  # Enable WhiteNoise compression
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Media files
 MEDIA_URL = '/media/'
@@ -191,5 +197,3 @@ CKEDITOR_CONFIGS = {
         ],
     },
 }
-
-# Trigger reload for new template directory
