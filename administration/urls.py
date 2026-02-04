@@ -3,6 +3,9 @@ from . import views
 
 urlpatterns = [
     path('users/', views.UserListView.as_view(), name='user_list'),
+    path('users/create/', views.UserCreateView.as_view(), name='user_create'),
+    path('users/<int:pk>/edit/', views.UserUpdateView.as_view(), name='user_update'),
+    path('users/<int:pk>/delete/', views.UserDeleteView.as_view(), name='user_delete'),
     path('users/export/', views.UserExportView.as_view(), name='user_export'),
     path('users/print/', views.UserPrintView.as_view(), name='user_print'),
     path('org-chart/', views.OrgChartView.as_view(), name='org_chart'),

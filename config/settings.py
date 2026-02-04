@@ -82,6 +82,7 @@ MIDDLEWARE = [
     'simple_history.middleware.HistoryRequestMiddleware',
     'core.middleware.MaintenanceMiddleware',
     'core.middleware.NavigationHistoryMiddleware',
+    'core.middleware.RestrictAdminMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -98,6 +99,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'assets.context_processors.notification_ctx',
                 'core.context_processors.site_branding',
+                'core.context_processors.license_processor', # License Info
                 'maintenance.context_processors.maintenance_status',
             ],
         },

@@ -113,9 +113,15 @@
                         <i class="fas fa-hdd text-secondary me-2"></i>Storage Devices
                         <small class="text-muted fw-normal ms-2 small">(Optional)</small>
                     </h5>
+                    {% if is_enterprise %}
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm('{{ storage_formset.prefix }}')">
                         <i class="fas fa-plus me-1"></i>Add Item
                     </button>
+                    {% else %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Pro Feature">
+                        <i class="fas fa-lock me-1"></i>Add Item
+                    </button>
+                    {% endif %}
                 </div>
                 <!-- Empty Form Template -->
                 <div id="empty-form-{{ storage_formset.prefix }}" style="display:none;">
@@ -172,6 +178,12 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    {% if not is_enterprise %}
+                    <div class="alert alert-warning m-3 d-flex align-items-center">
+                        <i class="fas fa-lock me-2"></i>
+                        <span class="small">Storage device tracking is locked in the Free Edition. <strong>Upgrade to Pro</strong> to track hard drives and SSDs.</span>
+                    </div>
+                    {% endif %}
                     {% if storage_formset.non_form_errors %}
                     <div class="alert alert-danger m-3">
                         {{ storage_formset.non_form_errors }}
@@ -190,9 +202,15 @@
                         <i class="fas fa-network-wired text-primary me-2"></i>Network Interfaces
                         <small class="text-muted fw-normal ms-2 small">(Optional)</small>
                     </h5>
+                    {% if is_enterprise %}
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm('{{ network_interfaces.prefix }}')">
                          <i class="fas fa-plus me-1"></i>Add Interface
                     </button>
+                    {% else %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Pro Feature">
+                         <i class="fas fa-lock me-1"></i>Add Interface
+                    </button>
+                    {% endif %}
                 </div>
                  <!-- Empty Form Template -->
                  <div id="empty-form-{{ network_interfaces.prefix }}" style="display:none;">
@@ -263,6 +281,12 @@
                             {% endfor %}
                         </tbody>
                      </table>
+                     {% if not is_enterprise %}
+                     <div class="alert alert-warning m-3 d-flex align-items-center">
+                        <i class="fas fa-lock me-2"></i>
+                        <span class="small">Advanced network tracking (VLANs, Multiple IPs) is locked in the Free Edition. <strong>Upgrade to Pro</strong> to track complex networks.</span>
+                    </div>
+                    {% endif %}
                      {% if network_interfaces.non_form_errors %}
                      <div class="alert alert-danger m-3">
                         {{ network_interfaces.non_form_errors }}

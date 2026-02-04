@@ -9,9 +9,11 @@
     </div>
     <div class="btn-group">
         {% if is_manager %}
+        {% if can_add_location %}
         <a href="{% url 'location_create' %}?parent={{ location.id }}" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-plus"></i> Add Sub-Location
         </a>
+        {% endif %}
         <a href="{% url 'location_update' location.id %}" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-edit"></i> Edit
         </a>

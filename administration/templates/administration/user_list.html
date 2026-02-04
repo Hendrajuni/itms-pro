@@ -103,6 +103,10 @@
 
     <!-- Actions -->
     <div class="col-auto ms-auto d-flex gap-2">
+        <a href="{% url 'user_create' %}" class="btn btn-sm btn-primary shadow-sm d-flex align-items-center">
+            <i class="fas fa-plus me-2"></i> Add User
+        </a>
+
         {% if request.GET.dept or request.GET.loc or request.GET.status %}
             <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center">
                 <i class="fas fa-times me-1"></i> Clear
@@ -226,8 +230,11 @@
                                         onclick="setupResetModal('{{ u.id }}', '{{ u.username }}')">
                                         <i class="fas fa-key small"></i>
                                     </button>
-                                    <a href="/admin/core/customuser/{{ u.id }}/change/" target="_blank" class="btn btn-sm btn-light border">
+                                    <a href="{% url 'user_update' u.pk %}" class="btn btn-sm btn-light border mx-1" title="Edit">
                                         <i class="fas fa-pen small"></i>
+                                    </a>
+                                    <a href="{% url 'user_delete' u.pk %}" class="btn btn-sm btn-light border text-danger mx-1" title="Delete">
+                                        <i class="fas fa-trash small"></i>
                                     </a>
                                 </td>
                             </tr>

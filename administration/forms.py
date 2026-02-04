@@ -61,5 +61,35 @@ class RegionalHeadForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['manager'].queryset = User.objects.filter(is_active=True).order_by('username')
         self.fields['manager'].widget.attrs.update({'class': 'form-select select2'})
+        self.fields['location'].widget.attrs.update({'class': 'form-select select2'})
+
+from django.contrib.auth.forms import UserCreationForm
+
+class UserCreateForm(UserCreationForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'department', 'location', 'groups']
+        widgets = {
+             'groups': forms.CheckboxSelectMultiple(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.fields['department'].widget.attrs.update({'class': 'form-select select2'})
         self.fields['location'].widget.attrs.update({'class': 'form-select select2'})
+        self.fields['email'].required = True
+
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'department', 'location', 'groups', 'is_active', 'is_staff', 'is_superuser']
+        widgets = {
+             'groups': forms.CheckboxSelectMultiple(),
+             'department': forms.Select(attrs={'class': 'form-select select2'}),
+             'location': forms.Select(attrs={'class': 'form-select select2'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email'].required = True
+

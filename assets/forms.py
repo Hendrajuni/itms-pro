@@ -352,3 +352,17 @@ class PartHistoryForm(forms.ModelForm):
             'cost': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}),
             'vendor': forms.Select(attrs={'class': 'form-select'}),
         }
+
+from .models import Vendor
+
+class VendorForm(forms.ModelForm):
+    class Meta:
+        model = Vendor
+        fields = ['name', 'contact_person', 'email', 'phone', 'address']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Company Name'}),
+            'contact_person': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'POC Name'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@vendor.com'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+62...'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }

@@ -78,4 +78,9 @@ urlpatterns = [
     path('locations/create/', views.LocationCreateView.as_view(), name='location_create'),
     path('locations/<int:pk>/update/', views.LocationUpdateView.as_view(), name='location_update'),
     path('locations/<int:pk>/delete/', views.LocationDeleteView.as_view(), name='location_delete'),
+    # Vendor Management
+    path('vendors/', views.VendorListView.as_view(), name='vendor_list'),
+    path('vendors/add/', views.VendorCreateView.as_view(), name='vendor_create'),
+    path('vendors/<int:pk>/update/', views.VendorUpdateView.as_view(), name='vendor_update'),
+    path('vendors/<int:pk>/delete/', views.VendorDeleteView.as_view(), name='vendor_delete'),
 ]

@@ -152,9 +152,11 @@
             </div>
             
             <!-- Scan QR (Desktop/Tablet) -->
+            {% if is_enterprise %}
             <a href="{% url 'asset_scanner' %}" class="btn btn-outline-primary d-none d-md-inline-block">
                 <i class="fas fa-qrcode me-2"></i>Scan QR
             </a>
+            {% endif %}
 
             <!-- Add Asset -->
             <a href="{% url 'asset_create' %}" class="btn btn-primary">
@@ -253,6 +255,7 @@
                             </ul>
                         </div>
 
+                        {% if is_enterprise %}
                         <div class="dropdown d-inline-block">
                             <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled>
                                 <i class="fas fa-print me-2"></i>Print Selected
@@ -270,6 +273,7 @@
                                 </li>
                             </ul>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -455,8 +459,10 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
                                         {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                                        {% if is_enterprise %}
                                         <!-- Print Label -->
                                         <a href="{% url 'asset_print_label' asset.pk %}" target="_blank" class="btn btn-icon btn-sm btn-light text-dark" title="Print Label"><i class="fas fa-print"></i></a>
+                                        {% endif %}
                                         {% endif %}
                                         
                                         <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-icon btn-sm btn-light text-primary" title="View"><i class="fas fa-eye"></i></a>

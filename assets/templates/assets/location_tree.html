@@ -8,11 +8,13 @@
         <div class="p-3">
             <h5 class="mb-3"><i class="fas fa-sitemap me-2 text-primary"></i>Locations</h5>
             {% if is_manager %}
+            {% if is_enterprise or all_locations.count < 1 %}
             <div class="d-grid gap-2 mb-3">
                 <a href="{% url 'location_create' %}" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i> Add Root Location
                 </a>
             </div>
+            {% endif %}
             {% endif %}
             
             <ul class="list-unstyled">

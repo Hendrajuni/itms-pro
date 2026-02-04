@@ -35,6 +35,34 @@
 
 ---
 
+## 💎 Versi Essential (Free) vs Enterprise (Pro)
+
+ITMS tersedia dalam dua edisi untuk memenuhi kebutuhan skala bisnis yang berbeda.
+
+| Fitur | Essential (Free) | Enterprise (Pro) |
+| :--- | :---: | :---: |
+| **Lokasi / Cabang** | Max **1** (Single Site) | **Unlimited** |
+| **Admin User** | Max **1** (Single Admin) | **Unlimited** |
+| **Limit Aset** | **Unlimited** | **Unlimited** |
+| **Software & Contracts** | ✅ | ✅ |
+| **Knowledge Base** | ❌ (Dikunci) | ✅ |
+| **Dashboard Intelligence** | ❌ (Terbatas) | ✅ (Full - Expiry Alerts, Health Overview) |
+| **Manajemen User** | ✅ (Basic) | ✅ (Full + Activity Logs) |
+| **Cetak Laporan & QR** | ❌ | ✅ |
+| **Integrasi Pihak Ketiga** | ❌ | ✅ |
+| **Akses Django Admin** | ❌ (Hidden) | ✅ (Full Access) |
+
+*Untuk detail teknis perbandingan, lihat file [EDITION_COMPARISON.md](EDITION_COMPARISON.md).*
+
+## ✨ Pembaruan Terkini (v2.1)
+
+*   **Sistem Lisensi CLI**: Aktivasi lisensi Enterprise yang aman melalui command line (`python manage.py activate_license`).
+*   **User Management Baru**: Antarmuka manajemen pengguna yang sepenuhnya kustom (Add/Edit/Delete) tanpa bergantung pada Django Admin.
+*   **Limitasi Cerdas**: Penegakan batasan kuota (Lokasi/Aset) secara otomatis pada level backend dan UI.
+*   **Perbaikan UI/UX**: Tampilan Sidebar dan Tree View lokasi yang lebih responsif dan bersih.
+
+---
+
 ## 💻 Teknologi (Tech Stack)
 
 *   **Backend**: Python 3.10+, Django 6.0

@@ -45,6 +45,11 @@ class SiteSetting(models.Model):
     login_background = models.ImageField(upload_to='branding/', null=True, blank=True)
     maintenance_mode = models.BooleanField(default=False)
 
+    # License / Edition Control (Obfuscated)
+    # Default is ESSENTIAL (d41d8cd98f00b204e9800998ecf8427e - MD5 of empty)
+    # ENTERPRISE is (e10adc3949ba59abbe56e057f20f883e - MD5 of 123456)
+    activation_code = models.CharField(max_length=255, default='d41d8cd98f00b204e9800998ecf8427e', help_text="System License Hash")
+
     def save(self, *args, **kwargs):
         self.pk = 1
         super().save(*args, **kwargs)

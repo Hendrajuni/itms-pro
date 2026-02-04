@@ -53,8 +53,13 @@
 
     <!-- PANEL (Tree Menu) -->
     <div class="sidebar-panel">
-        <div class="sidebar-heading">
+            <div class="sidebar-heading d-flex justify-content-between align-items-center">
             <span>{{ site_settings.site_name|default:"ITMS Pro" }}</span>
+            {% if is_enterprise %}
+                <span class="badge bg-warning text-dark" style="font-size: 0.6rem;">PRO</span>
+            {% else %}
+                <span class="badge bg-secondary" style="font-size: 0.6rem;">FREE</span>
+            {% endif %}
         </div>
 
         <ul class="sidebar-nav">
@@ -77,10 +82,17 @@
             </li>
 
             <li class="nav-item">
+                {% if is_enterprise %}
                 <a href="{% url 'article_list' %}" class="nav-link {% if 'knowledge' in request.path %}active{% endif %}">
                     <i class="fas fa-book-reader icon"></i>
                     <span>Knowledge Base</span>
                 </a>
+                {% else %}
+                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                     <i class="fas fa-book-reader icon text-muted"></i>
+                    <span>Knowledge Base</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                </a>
+                {% endif %}
             </li>
 
 
@@ -110,10 +122,26 @@
                                 <a href="{% url 'contract_list' %}" class="nav-link {% if 'contracts' in request.path %}active{% endif %}">Services & Contracts</a>
                             </li>
                             <li class="nav-item">
+                                <a href="{% url 'vendor_list' %}" class="nav-link {% if 'vendors' in request.path %}active{% endif %}">Vendors</a>
+                            </li>
+
+                            <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'asset_analytics' %}" class="nav-link {% if 'analytics' in request.path %}active{% endif %}">Analytics</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Analytics</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                              <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'disposal_list' %}" class="nav-link {% if 'disposals' in request.path %}active{% endif %}">Disposal Requests</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Disposal Requests</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                         </ul>
                     </div>
@@ -131,22 +159,47 @@
                     <div class="collapse {% if 'infrastructure' in request.path or 'cloud' in request.path or 'network' in request.path or 'downtime' in request.path or 'ips' in request.path or 'nodes' in request.path %}show{% endif %}" id="infraSubmenu">
                         <ul class="nav-tree">
                             <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'infra_list' %}" class="nav-link {% if 'infrastructure' in request.path %}active{% endif %}">Physical Infra</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Physical Infra</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
-
                             <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'network_node_list' %}" class="nav-link {% if 'nodes' in request.path %}active{% endif %}">Monitoring (NMS)</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Monitoring (NMS)</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                             <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'downtime_list' %}" class="nav-link {% if 'downtime' in request.path %}active{% endif %}">Downtime & Incidents</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Downtime & Incidents</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                             <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'subnet_list' %}" class="nav-link {% if 'subnets' in request.path %}active{% endif %}">IP Address (IPAM)</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>IP Address (IPAM)</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                         </ul>
                     </div>
                 </li>
-                 <li class="nav-item">
+
+
+                  <li class="nav-item">
                     <a class="nav-link collapsed" href="#opsSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'tickets' in request.path or 'maintenance' in request.path or 'knowledge' in request.path %}true{% else %}false{% endif %}">
                         <i class="fas fa-tasks icon"></i>
                         <span>Operations</span>
@@ -157,24 +210,38 @@
                             
                             <!-- Maintenance Dashboard -->
                             <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'maintenance_dashboard' %}" class="nav-link {% if 'maintenance' in request.path and not 'schedules' in request.path %}active{% endif %}">
                                     <i class="fas fa-tools icon-sm me-2"></i>Command Center
                                     {% if global_overdue_count > 0 %}
                                         <span class="badge bg-danger ms-auto rounded-pill">{{ global_overdue_count }}</span>
                                     {% endif %}
                                 </a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <i class="fas fa-tools icon-sm me-2 text-muted"></i>Command Center <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
 
                             <!-- PM Schedules -->
                             <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'maintenance_schedule_list' %}" class="nav-link {% if 'maintenance/schedules' in request.path %}active{% endif %}">
                                     <i class="fas fa-calendar-check icon-sm me-2"></i>PM Schedules
                                 </a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <i class="fas fa-calendar-check icon-sm me-2 text-muted"></i>PM Schedules <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
 
                         </ul>
                     </div>
                 </li>
+
+
 
                  <li class="sidebar-header">Governance</li>
                 <!-- GOVERNANCE & REPORTS -->
@@ -187,14 +254,27 @@
                     <div class="collapse {% if 'governance' in request.path or 'projects' in request.path or 'logs' in request.path %}show{% endif %}" id="govSubmenu">
                         <ul class="nav-tree">
                             <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'project_list' %}" class="nav-link {% if 'governance/projects' in request.path %}active{% endif %}">Projects</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Projects</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                              <li class="nav-item">
+                                {% if is_enterprise %}
                                 <a href="{% url 'dailylog_list' %}" class="nav-link {% if 'governance/logs' in request.path %}active{% endif %}">Daily Logs</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Daily Logs</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                         </ul>
                     </div>
                 </li>
+
 
             {% endif %}
 
@@ -232,27 +312,46 @@
 
             <!-- CONFIGURATION -->
             {% if user.is_superuser or user|has_group:"Admin" %}
-                <li class="sidebar-header">Administration</li>
+                <!-- Administration (System) -->
+                <li class="sidebar-header">System</li>
                 
                 <li class="nav-item">
-                    <a class="nav-link collapsed" href="#configSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'integrations' in request.path or 'site-settings' in request.path or 'audit-log' in request.path or 'admin' in request.path %}true{% else %}false{% endif %}">
+                    <a class="nav-link collapsed" href="#systemSubmenu" data-bs-toggle="collapse" aria-expanded="{% if '/administration/' in request.path or '/admin/' in request.path %}true{% else %}false{% endif %}">
                         <i class="fas fa-cogs icon"></i>
                         <span>System</span>
                         <i class="fas fa-chevron-right chevron"></i>
                     </a>
-                    <div class="collapse {% if 'integrations' in request.path or 'site-settings' in request.path or 'audit-log' in request.path or 'admin' in request.path %}show{% endif %}" id="configSubmenu">
+                    <div class="collapse {% if '/administration/' in request.path or '/admin/' in request.path %}show{% endif %}" id="systemSubmenu">
                         <ul class="nav-tree">
                             <li class="nav-item">
-                                <a href="{% url 'integrations:settings' %}" class="nav-link {% if 'integrations' in request.path %}active{% endif %}">Integrations</a>
+                                {% if is_enterprise %}
+                                <a href="{% url 'integration_list' %}" class="nav-link {% if '/integrations/' in request.path %}active{% endif %}">Integrations</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Integrations</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'site_settings' %}" class="nav-link {% if 'site-settings' in request.path %}active{% endif %}">Site Settings</a>
+                                <a href="{% url 'site_settings' %}" class="nav-link {% if '/settings/' in request.path %}active{% endif %}">Site Settings</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'audit_log_list' %}" class="nav-link {% if 'audit-log' in request.path %}active{% endif %}">Activity Log</a>
+                                {% if is_enterprise %}
+                                <a href="{% url 'audit_log_list' %}" class="nav-link {% if '/audit-log/' in request.path %}active{% endif %}">Activity Log</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Activity Log</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                             <li class="nav-item">
-                                <a href="/admin/" target="_blank" class="nav-link">Django Admin</a>
+                                {% if is_enterprise %}
+                                <a href="{% url 'admin:index' %}" target="_blank" class="nav-link">Django Admin</a>
+                                {% else %}
+                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
+                                    <span>Django Admin</span> <i class="fas fa-lock ms-auto text-warning small"></i>
+                                </a>
+                                {% endif %}
                             </li>
                         </ul>
                     </div>

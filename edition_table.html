@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITMS Edition Comparison</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding: 40px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .comparison-table { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
+        .comparison-table thead { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; }
+        .comparison-table th { padding: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border: none; }
+        .comparison-table td { padding: 16px 20px; vertical-align: middle; border-bottom: 1px solid #eee; }
+        .comparison-table tr:last-child td { border-bottom: none; }
+        .category-cell { font-weight: 700; color: #555; background-color: #fcfcfc; width: 200px; }
+        .feature-cell { font-weight: 500; color: #333; }
+        .essential-cell { text-align: center; background-color: #fff4f4; color: #d9534f; font-weight: 600; }
+        .enterprise-cell { text-align: center; background-color: #f0fdf4; color: #198754; font-weight: 600; }
+        .check { color: #198754; font-size: 1.2rem; }
+        .cross { color: #dc3545; font-size: 1.1rem; opacity: 0.6; }
+        .limit-text { padding: 4px 10px; border-radius: 20px; background: rgba(0,0,0,0.05); font-size: 0.9rem; }
+        h2 { color: #333; font-weight: 800; margin-bottom: 30px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>ITMS Edition Comparison</h2>
+        
+        <div class="table-responsive comparison-table">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th width="20%">Category</th>
+                        <th width="30%">Feature</th>
+                        <th width="25%" class="text-center">Free</th>
+                        <th width="25%" class="text-center">Pro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Core Limits -->
+                    <tr>
+                        <td rowspan="3" class="category-cell">Core Limits</td>
+                        <td class="feature-cell">Locations / Branches</td>
+                        <td class="essential-cell"><span class="limit-text">Max 1 (Single Site)</span></td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Unlimited</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Admin Users</td>
+                        <td class="essential-cell"><span class="limit-text">Max 1 (Single Admin)</span></td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Unlimited</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Asset Limit</td>
+                        <td class="essential-cell"><span class="check">✔</span> Unlimited</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Unlimited</td>
+                    </tr>
+
+                    <!-- Dashboard -->
+                    <tr>
+                        <td rowspan="3" class="category-cell">Dashboard</td>
+                        <td class="feature-cell">Branch Health Overview</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Hidden</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Visible</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Contract Expiry Alerts</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Hidden</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Visible</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Software License Alerts</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Hidden</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Visible</td>
+                    </tr>
+
+                    <!-- Asset Management -->
+                    <tr>
+                        <td rowspan="3" class="category-cell">Asset Management</td>
+                        <td class="feature-cell">Print QR / Barcode</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Disabled</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Enabled</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Print Asset Report</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Disabled</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Enabled</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Asset History / Audit</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Hidden</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Visible</td>
+                    </tr>
+
+                    <!-- System -->
+                    <tr>
+                        <td rowspan="4" class="category-cell">System & Admin</td>
+                        <td class="feature-cell">Integrations</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Hidden</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Visible</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Activity / Audit Logs</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Hidden</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Visible</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Django Admin Access</td>
+                        <td class="essential-cell"><span class="cross">✘</span> Hidden</td>
+                        <td class="enterprise-cell"><span class="check">✔</span> Visible</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-cell">Site Settings</td>
+                        <td class="essential-cell">Basic</td>
+                        <td class="enterprise-cell">Full Control</td>
+                    </tr>
+                    
+                    <!-- Support -->
+                    <tr>
+                        <td class="category-cell">Support</td>
+                        <td class="feature-cell">SLA</td>
+                        <td class="essential-cell">Community</td>
+                        <td class="enterprise-cell">Priority</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

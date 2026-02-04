@@ -16,9 +16,11 @@
         </a>
         
         {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+        {% if is_enterprise %}
         <a href="{% url 'asset_detail_print' asset.pk %}" target="_blank" class="btn btn-outline-dark me-2">
             <i class="fas fa-print me-1"></i> Print Report
         </a>
+        {% endif %}
         <a href="{% url 'asset_update' asset.pk %}" class="btn btn-outline-primary me-2">
             <i class="fas fa-edit me-1"></i> Edit Asset
         </a>
@@ -181,10 +183,16 @@
                     <a class="nav-link fw-bold" data-bs-toggle="tab" href="#notes" role="tab">Notes</a>
                 </li>
                 <li class="nav-item">
-                     <a class="nav-link fw-bold" data-bs-toggle="tab" href="#part-history" role="tab">Part History</a>
+                     <a class="nav-link fw-bold" data-bs-toggle="tab" href="#part-history" role="tab">
+                        Part History
+                        {% if not is_enterprise %}<i class="fas fa-lock text-warning small ms-1"></i>{% endif %}
+                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-bold" data-bs-toggle="tab" href="#kb" role="tab">Knowledge Base</a>
+                    <a class="nav-link fw-bold" data-bs-toggle="tab" href="#kb" role="tab">
+                        Knowledge Base
+                        {% if not is_enterprise %}<i class="fas fa-lock text-warning small ms-1"></i>{% endif %}
+                    </a>
                 </li>
             </ul>
         </div>
@@ -590,6 +598,7 @@
 
                 <!-- Part History Tab -->
                 <div class="tab-pane fade" id="part-history" role="tabpanel">
+                    {% if is_enterprise %}
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="text-muted text-uppercase mb-0 small fw-bold ls-1">Part Replacement History</h6>
                         {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
@@ -658,9 +667,27 @@
                         </table>
                     </div>
                 </div>
+                {% else %}
+                    <!-- Locked State for Part History -->
+                    <div class="text-center py-5">
+                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-lock fa-3x text-warning"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Part History Tracking Locked</h5>
+                        <p class="text-muted mb-4" style="max-width: 400px; margin: 0 auto;">
+                            Track every component change (RAM, HDD upgrades) and associated costs over time with the Pro edition.
+                        </p>
+                        <button class="btn btn-warning text-dark fw-bold btn-sm disabled" style="cursor: default;">
+                            <i class="fas fa-crown me-2"></i>Pro Feature
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
 
                 <!-- Knowledge Base Tab -->
+                <!-- Knowledge Base Tab -->
                 <div class="tab-pane fade" id="kb" role="tabpanel">
+                    {% if is_enterprise %}
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="text-muted text-uppercase mb-0 small fw-bold ls-1">Related Articles</h6>
                         {% if user.is_superuser or user.is_staff or user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Administrator" or user|has_group:"Manager" %}
@@ -696,6 +723,22 @@
                         </div>
                         {% endfor %}
                     </div>
+                </div>
+                {% else %}
+                    <!-- Locked State for KB -->
+                    <div class="text-center py-5">
+                         <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-lock fa-3x text-warning"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Knowledge Base Locked</h5>
+                        <p class="text-muted mb-4" style="max-width: 400px; margin: 0 auto;">
+                            Link troubleshooting guides, manuals, and improved documentation directly to your assets.
+                        </p>
+                         <button class="btn btn-warning text-dark fw-bold btn-sm disabled" style="cursor: default;">
+                            <i class="fas fa-crown me-2"></i>Enterprise Feature
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
 
             </div>

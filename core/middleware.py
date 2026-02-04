@@ -1,6 +1,9 @@
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from .models import SiteSetting
+from .license import is_enterprise
+from django.http import HttpResponseForbidden
+from django.contrib import messages
 
 class MaintenanceMiddleware:
     def __init__(self, get_response):
@@ -176,3 +179,26 @@ class NavigationHistoryMiddleware:
 
         response = self.get_response(request)
         return response
+
+class RestrictAdminMiddleware:
+    """
+    Restricts access to the Django Admin (/portal-admin/) to Enterprise/Pro Edition only.
+    Use this to prevent Free users from accessing the admin panel directly via URL.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Change this if you renamed the admin URL in config/urls.py
+        admin_path = '/portal-admin/'
+        
+        if request.path.startswith(admin_path):
+            if not is_enterprise():
+                # Option 1: Return 403 Forbidden
+                # return HttpResponseForbidden("<h1>403 Forbidden</h1><p>Access to the Admin Portal is a Pro feature.</p>")
+                
+                # Option 2: Redirect to Dashboard with a Flash Message (Better UX)
+                messages.error(request, "Access Denied: The Admin Portal is locked in the Free Edition.")
+                return redirect('home')
+
+        return self.get_response(request)

@@ -31,6 +31,7 @@
 
             <!-- Search Bar (Admins/IT Only) -->
             {% load rbac_tags %}
+            {% if is_enterprise %}
             {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
             <div class="position-relative me-4 d-none d-md-block" style="width: 300px;">
                 <input type="text" id="global-search" class="form-control bg-light border-0 ps-5 rounded-pill" placeholder="Search anything (Ctrl+K)...">
@@ -42,8 +43,10 @@
                 </div>
             </div>
             {% endif %}
+            {% endif %}
 
             <script>
+                {% if is_enterprise %}
                 {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
                 document.addEventListener('DOMContentLoaded', function() {
                     const searchInput = document.getElementById('global-search');
@@ -145,6 +148,7 @@
                         }
                     });
                 });
+                {% endif %}
                 {% endif %}
             </script>
             

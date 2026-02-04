@@ -23,7 +23,7 @@ from openpyxl.utils import get_column_letter
 from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, InfrastructureType, Contract, Location, Department, Category, AssetStorage, Vendor, PartHistory
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
-from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm, PartHistoryForm
+from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm, PartHistoryForm, VendorForm
 from django.db.models import Sum, Q, Count, F
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -420,6 +420,12 @@ class AssetCreateView(LoginRequiredMixin, CreateView):
         return data
 
     def form_valid(self, form):
+        # License Check: Limit Assets for Essential Edition
+        from core.license import check_asset_limit
+        if not check_asset_limit():
+            messages.error(self.request, "License Restriction: Essential Edition is limited to 100 Assets. Please upgrade to Enterprise.")
+            return self.render_to_response(self.get_context_data(form=form))
+
         context = self.get_context_data()
         network_interfaces = context['network_interfaces']
         storage_formset = context['storage_formset']
@@ -773,12 +779,84 @@ class AssetStorageDeleteView(LoginRequiredMixin, DeleteView):
         context['title'] = "Delete Storage Device"
         return context
 
-class AssetSmartAnalyticsView(LoginRequiredMixin, TemplateView):
+# Enterprise Only
+from django.contrib.auth.mixins import UserPassesTestMixin
+from core.license import is_enterprise
+
+class AssetSmartAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'assets/smart_analytics.html'
+
+    def test_func(self):
+        return is_enterprise()
+    
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+             messages.error(self.request, "This feature requires the Enterprise Edition.")
+             return redirect('asset_list')
+        return super().handle_no_permission()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
+        return context
+
+class VendorListView(LoginRequiredMixin, ListView):
+    model = Vendor
+    template_name = 'assets/vendor_list.html'
+    context_object_name = 'vendors'
+    ordering = ['name']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        q = self.request.GET.get('q')
+        if q:
+            queryset = queryset.filter(
+                Q(name__icontains=q) |
+                Q(contact_person__icontains=q) |
+                Q(email__icontains=q)
+            )
+        return queryset
+
+class VendorCreateView(LoginRequiredMixin, CreateView):
+    model = Vendor
+    form_class = VendorForm
+    template_name = 'assets/vendor_form.html'
+    success_url = reverse_lazy('vendor_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Vendor created successfully!")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action_title'] = "Add New Vendor"
+        return context
+
+class VendorUpdateView(LoginRequiredMixin, UpdateView):
+    model = Vendor
+    form_class = VendorForm
+    template_name = 'assets/vendor_form.html'
+    success_url = reverse_lazy('vendor_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Vendor updated successfully!")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action_title'] = "Edit Vendor"
+        return context
+
+class VendorDeleteView(LoginRequiredMixin, DeleteView):
+    model = Vendor
+    template_name = 'assets/asset_confirm_delete.html'
+    success_url = reverse_lazy('vendor_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = "Delete Vendor"
+        context['message'] = f"Are you sure you want to delete vendor '{self.object.name}'? All related assets/contracts will need to be updated."
+        return context
         
         # --- 1. Location Scope Logic (Tree Sidebar) ---
         # Get Root Locations for Sidebar
@@ -1740,6 +1818,9 @@ class LocationDetailAjaxView(LoginRequiredMixin, DetailView):
         user = self.request.user
         context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
         
+        from core.license import check_location_limit
+        context['can_add_location'] = check_location_limit()
+        
         return context
 
 class LocationCreateView(LoginRequiredMixin, CreateView):
@@ -1755,6 +1836,13 @@ class LocationCreateView(LoginRequiredMixin, CreateView):
         if parent_id:
              initial['parent'] = parent_id
         return initial
+
+    def form_valid(self, form):
+        from core.license import check_location_limit
+        if not check_location_limit():
+             messages.error(self.request, "License Restriction: Essential Edition supports only 1 Location. Upgrade to Enterprise.")
+             return self.render_to_response(self.get_context_data(form=form))
+        return super().form_valid(form)
 
 class LocationUpdateView(LoginRequiredMixin, UpdateView):
     model = Location

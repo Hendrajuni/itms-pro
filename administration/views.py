@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import TemplateView, View, UpdateView
+from django.urls import reverse_lazy
+from django.views.generic import TemplateView, View, UpdateView, CreateView, DeleteView
 from core.models import SiteSetting
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -8,6 +9,8 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.core.management import call_command
+from django.core.management import call_command
+from .forms import UserCreateForm, UserUpdateForm
 from django.utils import timezone
 import io
 import json
@@ -89,6 +92,54 @@ class UserListView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
         
         return context
 
+class UserCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+    template_name = 'administration/user_form.html'
+    form_class = UserCreateForm
+    success_url = reverse_lazy('user_list')
+    
+    def form_valid(self, form):
+        from core.license import check_user_limit
+        if not check_user_limit():
+             messages.error(self.request, "License Restriction: Essential Edition supports only 1 User (Admin). Upgrade to Enterprise.")
+             return self.render_to_response(self.get_context_data(form=form))
+             
+        messages.success(self.request, f"User {form.instance.username} created successfully.")
+        return super().form_valid(form)
+
+class UserUpdateView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+    model = User
+    form_class = UserUpdateForm
+    template_name = 'administration/user_form.html'
+    success_url = reverse_lazy('user_list')
+    context_object_name = 'user_obj' # Avoid conflict with user context processor
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Edit User"
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, f"User {form.instance.username} updated successfully.")
+        return super().form_valid(form)
+
+class UserDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
+    model = User
+    template_name = 'assets/confirm_delete.html'
+    success_url = reverse_lazy('user_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        # Prevent deleting yourself
+        if str(kwargs.get('pk')) == str(request.user.pk):
+             messages.error(request, "You cannot delete your own account.")
+             return redirect('user_list')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = "Delete User"
+        context['warning'] = f"Are you sure you want to delete user '{self.object.username}'? This action cannot be undone."
+        return context
+
 class UserToggleStatusView(LoginRequiredMixin, SuperuserRequiredMixin, View):
     def post(self, request, pk):
         user = get_object_or_404(User, pk=pk)
@@ -121,7 +172,7 @@ class AdminPasswordResetView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 from django.views.generic import UpdateView
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
-from .forms import UserProfileForm, DepartmentForm, RegionalHeadForm
+from .forms import UserProfileForm, DepartmentForm, RegionalHeadForm, UserCreateForm
 from django.views.generic import CreateView, DeleteView, ListView
 from assets.models import Department, DepartmentHead
 
