@@ -798,6 +798,115 @@ class AssetSmartAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateV
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
+        
+        # 1. Location Tree
+        context['location_roots'] = Location.objects.filter(parent=None)
+        
+        # Selected Location Filter
+        selected_loc_id = self.request.GET.get('loc')
+        selected_location = None
+        assets = Asset.objects.all()
+
+        if selected_loc_id:
+            try:
+                selected_location = Location.objects.get(pk=selected_loc_id)
+                context['selected_location'] = selected_location
+                
+                # Fetch descendants (using custom get_descendants which returns list of objects)
+                # Since get_descendants returns objects, we extract IDs
+                descendants = selected_location.get_descendants(include_self=True)
+                descendant_ids = [loc.id for loc in descendants]
+                assets = assets.filter(location_id__in=descendant_ids)
+                
+            except Location.DoesNotExist:
+                pass
+        
+        # 2. Key Performance Indicators (KPIs)
+        total_assets = assets.count()
+        total_value = assets.aggregate(Sum('purchase_price'))['purchase_price__sum'] or 0
+        
+        assets_in_use = assets.filter(status='IN_USE').count()
+        utilization_rate = round((assets_in_use / total_assets * 100), 1) if total_assets > 0 else 0
+        
+        assets_broken = assets.filter(status='BROKEN').count()
+        
+        context.update({
+            'total_assets': total_assets,
+            'total_value': total_value,
+            'utilization_rate': utilization_rate,
+            'assets_broken': assets_broken,
+        })
+
+        # 3. Charts Data
+        # Category Composition
+        cat_data = assets.values('category__name').annotate(count=Count('id')).order_by('-count')
+        context['chart_category_labels'] = json.dumps([item['category__name'] for item in cat_data])
+        context['chart_category_data'] = json.dumps([item['count'] for item in cat_data])
+        
+        # Regional Distribution (Top 5 Locations)
+        reg_data = assets.values('location__name').annotate(count=Count('id')).order_by('-count')[:5]
+        context['chart_region_labels'] = json.dumps([item['location__name'] for item in reg_data])
+        context['chart_region_count'] = json.dumps([item['count'] for item in reg_data])
+
+        # 4. Financials & Optimization (Python Processing)
+        # We fetch related data to avoid N+1 problems
+        asset_list = assets.select_related('location', 'category').prefetch_related('maintenances')
+        
+        financial_top = []
+        money_pits = []
+        eol_candidates = []
+        current_val_sum = 0
+        
+        today = timezone.now().date()
+        
+        for asset in asset_list:
+            # Current Value
+            curr_val = asset.get_current_value()
+            current_val_sum += curr_val
+            asset.cached_current_value = curr_val # Attach to object for template
+            
+            financial_top.append(asset)
+            
+            # EOL Check (Example: > 4 years old)
+            if asset.purchase_date:
+                age_days = (today - asset.purchase_date).days
+                if age_days > (365 * 4):
+                    eol_candidates.append(asset)
+            
+            # Money Pit Check (Maintenance Cost > 50% Purchase Price)
+            # Note: maintenance 'cost' field is Decimal
+            maint_cost = sum(m.cost for m in asset.maintenances.all()) if asset.maintenances.exists() else 0
+            purchase = asset.purchase_price or 1 # Avoid div by zero
+            if purchase > 1:
+                ratio = (float(maint_cost) / float(purchase)) * 100
+                if ratio > 50:
+                    asset.total_maint_cost = maint_cost
+                    asset.maintenance_ratio = ratio
+                    money_pits.append(asset)
+
+        # Sort Top Assets
+        financial_top.sort(key=lambda x: x.cached_current_value, reverse=True)
+        
+        context['financial_total_depreciated_value'] = current_val_sum
+        context['financial_top_assets'] = financial_top[:20]
+        context['money_pit_assets'] = money_pits
+        
+        context['eol_candidates_count'] = len(eol_candidates)
+        context['eol_candidates_value'] = sum((a.purchase_price or 0) for a in eol_candidates)
+        
+        # Contracts (Expiring in 90 days)
+        # context['expiring_contracts'] = Contract.objects.filter(end_date__lte=today + timedelta(days=90), end_date__gte=today)
+
+        # Forecast Dummy Data (Total Value projection)
+        current_year = today.year
+        context['forecast_labels'] = json.dumps([str(current_year), str(current_year+1), str(current_year+2)])
+        val_float = float(total_value)
+        context['forecast_data'] = json.dumps([val_float*0.1, val_float*0.15, val_float*0.05])
+        
+        # Stock Status
+        context['stock_active'] = assets_in_use
+        context['stock_idle'] = assets.filter(status='AVAILABLE').count()
+        
         return context
 
 class VendorListView(LoginRequiredMixin, ListView):

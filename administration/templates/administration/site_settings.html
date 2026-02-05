@@ -124,11 +124,32 @@
                 <p class="small text-muted mb-3">
                     Download a full JSON dump of your database. Use this file to restore data if needed.
                 </p>
-                <div class="d-grid">
+                <div class="d-grid mb-4">
                     <a href="{% url 'database_backup' %}" class="btn btn-outline-dark">
                         <i class="fas fa-download me-2"></i>Download Backup (.json)
                     </a>
                 </div>
+
+                <hr class="my-3">
+
+                <h6 class="fw-bold text-danger">Restore Database</h6>
+                <p class="small text-muted mb-3">
+                    Upload a JSON backup file to restore. <br>
+                    <span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> Warning:</span> Updates existing IDs. Created new ones.
+                </p>
+                
+                <form action="{% url 'database_restore' %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <input class="form-control form-control-sm" type="file" name="backup_file" accept=".json" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure? This will overwrite/merge data with the backup file.')">
+                            <i class="fas fa-upload me-2"></i>Upload & Restore
+                        </button>
+                    </div>
+                </form>
+
                 <hr class="my-4">
                 <div class="alert alert-info py-2 small mb-0">
                     <i class="fas fa-info-circle me-1"></i> 

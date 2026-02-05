@@ -33,4 +33,5 @@ urlpatterns = [
     # Site Settings
     path('settings/', views.SiteSettingsView.as_view(), name='site_settings'),
     path('settings/backup/', views.DatabaseBackupView.as_view(), name='database_backup'),
+    path('settings/restore/', views.DatabaseRestoreView.as_view(), name='database_restore'),
 ]

@@ -175,7 +175,7 @@ class Asset(models.Model):
         age_in_years = age_in_days / 365.25
         
         if age_in_years >= self.useful_life_years:
-            return self.residual_value
+            return float(self.residual_value)
             
         depreciable_amount = self.purchase_price - self.residual_value
         depreciable_amount = float(depreciable_amount) # Convert to float for calculation

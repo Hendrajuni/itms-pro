@@ -556,3 +556,47 @@ class DatabaseBackupView(LoginRequiredMixin, SuperuserRequiredMixin, View):
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         return response
+
+class DatabaseRestoreView(LoginRequiredMixin, SuperuserRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        # 1. Check File
+        if 'backup_file' not in request.FILES:
+            messages.error(request, "Please upload a valid JSON backup file.")
+            return redirect('site_settings')
+            
+        backup_file = request.FILES['backup_file']
+        
+        # 2. Save Temporary
+        import os
+        from django.conf import settings
+        
+        # Safety check extension
+        if not backup_file.name.endswith('.json'):
+             messages.error(request, "Invalid file format. Please upload a .json file.")
+             return redirect('site_settings')
+             
+        # Save to temp directory
+        temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp_backups')
+        os.makedirs(temp_dir, exist_ok=True)
+        file_path = os.path.join(temp_dir, f"restore_{int(timezone.now().timestamp())}.json")
+        
+        try:
+            with open(file_path, 'wb+') as destination:
+                for chunk in backup_file.chunks():
+                    destination.write(chunk)
+                    
+            # 3. Call Loaddata
+            # Note: loaddata treats the input as fixture paths.
+            call_command('loaddata', file_path)
+            
+            messages.success(request, "Database restored successfully! (Records updated/created)")
+            
+        except Exception as e:
+            messages.error(request, f"Restore Failed: {str(e)}")
+            
+        finally:
+            # Cleanup
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                
+        return redirect('site_settings')
