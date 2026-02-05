@@ -30,4 +30,4 @@ RUN mkdir -p /app/staticfiles /app/media
 EXPOSE 8000
 
 # Default command (will be overridden by compose or entrypoint)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "itms.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application"]

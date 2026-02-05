@@ -324,13 +324,7 @@
                     <div class="collapse {% if '/administration/' in request.path or '/admin/' in request.path %}show{% endif %}" id="systemSubmenu">
                         <ul class="nav-tree">
                             <li class="nav-item">
-                                {% if is_enterprise %}
-                                <a href="{% url 'integration_list' %}" class="nav-link {% if '/integrations/' in request.path %}active{% endif %}">Integrations</a>
-                                {% else %}
-                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
-                                    <span>Integrations</span> <i class="fas fa-lock ms-auto text-warning small"></i>
-                                </a>
-                                {% endif %}
+                                <a href="{% url 'integrations:settings' %}" class="nav-link {% if '/integrations/' in request.path %}active{% endif %}">Integrations</a>
                             </li>
                             <li class="nav-item">
                                 <a href="{% url 'site_settings' %}" class="nav-link {% if '/settings/' in request.path %}active{% endif %}">Site Settings</a>
