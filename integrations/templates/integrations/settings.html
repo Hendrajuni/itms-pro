@@ -21,27 +21,39 @@
         <div class="card">
             <div class="card-body">
                 <!-- Nav tabs -->
-                <ul class="nav nav-tabs" role="tablist" style="border-bottom: 2px solid #eff2f7; display: flex; flex-direction: row; flex-wrap: nowrap;">
+                <ul class="nav nav-tabs" role="tablist">
                     <li class="nav-item">
                         <a class="nav-link active" data-bs-toggle="tab" href="#email-settings" role="tab">
                             <i class="fas fa-envelope me-2"></i>Email (SMTP)
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-muted" style="cursor: not-allowed; opacity: 0.6;" title="Locked">
+                        {% if is_enterprise %}
+                        <a class="nav-link" data-bs-toggle="tab" href="#telegram-settings" role="tab">
+                            <i class="fab fa-telegram me-2 text-primary"></i>Telegram
+                        </a>
+                        {% else %}
+                        <a class="nav-link text-muted" style="cursor: not-allowed; opacity: 0.6;" title="Locked (Pro Feature)">
                             <i class="fas fa-lock me-2 text-warning"></i>Telegram (Pro)
                         </a>
+                        {% endif %}
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-muted" style="cursor: not-allowed; opacity: 0.6;" title="Locked">
+                        {% if is_enterprise %}
+                        <a class="nav-link" data-bs-toggle="tab" href="#whatsapp-settings" role="tab">
+                            <i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp
+                        </a>
+                        {% else %}
+                        <a class="nav-link text-muted" style="cursor: not-allowed; opacity: 0.6;" title="Locked (Pro Feature)">
                             <i class="fas fa-lock me-2 text-warning"></i>WhatsApp (Pro)
                         </a>
+                        {% endif %}
                     </li>
                 </ul>
 
                 <!-- Tab panes -->
                 <div class="tab-content p-3 text-muted">
-                    <!-- Email Tab (Now Active & First) -->
+                    <!-- Email Tab -->
                     <div class="tab-pane active" id="email-settings" role="tabpanel">
                         <div class="row">
                             <div class="col-lg-6">
@@ -69,8 +81,69 @@
                         </div>
                     </div>
 
-                    <!-- Lock Message for others (Hidden content from DOM or just inaccessible via tabs) -->
-                    <!-- We don't need to render the forms for blocked tabs if they are not clickable -->
+                    <!-- Telegram Tab -->
+                    <div class="tab-pane" id="telegram-settings" role="tabpanel">
+                        {% if is_enterprise %}
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {{ telegram_form|crispy }}
+                                    <div class="mt-3">
+                                        <button type="submit" name="submit_telegram" class="btn btn-primary">Save Telegram Settings</button>
+                                         <button type="button" class="btn btn-info ms-2" onclick="testNotification('telegram')">Test Telegram</button>
+                                    </div>
+                                </form>
+                            </div>
+                             <div class="col-lg-6">
+                                <div class="alert alert-info">
+                                    <h5 class="alert-heading"><i class="fab fa-telegram"></i> Telegram Setup</h5>
+                                    <ol>
+                                        <li>Create a bot with <a href="https://t.me/BotFather" target="_blank">@BotFather</a></li>
+                                        <li>Get the <strong>Bot Token</strong></li>
+                                        <li>Get your <strong>Chat ID</strong> (use @userinfobot)</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                             <div class="text-center py-5">
+                                <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+                                <h4>Pro Feature Locked</h4>
+                                <p>Upgrade to Enterprise Edition to unlock Telegram integration.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- WhatsApp Tab -->
+                    <div class="tab-pane" id="whatsapp-settings" role="tabpanel">
+                        {% if is_enterprise %}
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {{ whatsapp_form|crispy }}
+                                    <div class="mt-3">
+                                        <button type="submit" name="submit_whatsapp" class="btn btn-success">Save WhatsApp Settings</button>
+                                        <button type="button" class="btn btn-info ms-2" onclick="testNotification('whatsapp')">Test WhatsApp</button>
+                                    </div>
+                                </form>
+                            </div>
+                             <div class="col-lg-6">
+                                <div class="alert alert-success bg-opacity-10">
+                                    <h5 class="alert-heading"><i class="fab fa-whatsapp"></i> WhatsApp Setup</h5>
+                                    <p>Configure your WhatsApp Gateway API details here.</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                             <div class="text-center py-5">
+                                <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+                                <h4>Pro Feature Locked</h4>
+                                <p>Upgrade to Enterprise Edition to unlock WhatsApp integration.</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

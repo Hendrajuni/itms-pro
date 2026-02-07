@@ -6,13 +6,22 @@ from django.db.models import Q
 from django.contrib import messages
 from .models import Article
 from .forms import ArticleForm # Need to create this form
+from core.license import is_enterprise
+
+class EnterpriseRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        return is_enterprise()
+
+    def handle_no_permission(self):
+        messages.error(self.request, "This feature is available in Enterprise Edition only.")
+        return redirect('dashboard')
 
 class ITStaffRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         user = self.request.user
         return user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'IT Support']).exists()
 
-class ArticleListView(LoginRequiredMixin, ListView):
+class ArticleListView(LoginRequiredMixin, EnterpriseRequiredMixin, ListView):
     model = Article
     template_name = 'knowledgebase/article_list.html'
     context_object_name = 'articles'
@@ -58,7 +67,7 @@ class ArticleListView(LoginRequiredMixin, ListView):
         context['can_create_article'] = can_create
         return context
 
-class ArticleDetailView(LoginRequiredMixin, DetailView):
+class ArticleDetailView(LoginRequiredMixin, EnterpriseRequiredMixin, DetailView):
     model = Article
     template_name = 'knowledgebase/article_detail.html'
     
@@ -84,7 +93,7 @@ class ArticleDetailView(LoginRequiredMixin, DetailView):
         self.object.save()
         return context
 
-class ArticleCreateView(LoginRequiredMixin, ITStaffRequiredMixin, CreateView):
+class ArticleCreateView(LoginRequiredMixin, EnterpriseRequiredMixin, ITStaffRequiredMixin, CreateView):
     model = Article
     form_class = ArticleForm
     template_name = 'knowledgebase/article_form.html'
@@ -107,7 +116,7 @@ class ArticleCreateView(LoginRequiredMixin, ITStaffRequiredMixin, CreateView):
         messages.success(self.request, "Article created successfully.")
         return super().form_valid(form)
 
-class ArticleUpdateView(LoginRequiredMixin, ITStaffRequiredMixin, UpdateView):
+class ArticleUpdateView(LoginRequiredMixin, EnterpriseRequiredMixin, ITStaffRequiredMixin, UpdateView):
     model = Article
     form_class = ArticleForm
     template_name = 'knowledgebase/article_form.html'
@@ -117,7 +126,7 @@ class ArticleUpdateView(LoginRequiredMixin, ITStaffRequiredMixin, UpdateView):
         messages.success(self.request, "Article updated successfully.")
         return super().form_valid(form)
 
-class ArticleDeleteView(LoginRequiredMixin, ITStaffRequiredMixin, DeleteView):
+class ArticleDeleteView(LoginRequiredMixin, EnterpriseRequiredMixin, ITStaffRequiredMixin, DeleteView):
     model = Article
     template_name = 'knowledgebase/article_confirm_delete.html'
     success_url = reverse_lazy('article_list')
