@@ -83,4 +83,9 @@ urlpatterns = [
     path('vendors/add/', views.VendorCreateView.as_view(), name='vendor_create'),
     path('vendors/<int:pk>/update/', views.VendorUpdateView.as_view(), name='vendor_update'),
     path('vendors/<int:pk>/delete/', views.VendorDeleteView.as_view(), name='vendor_delete'),
+    # Category Management
+    path('categories/', views.CategoryListView.as_view(), name='category_list'),
+    path('categories/add/', views.CategoryCreateView.as_view(), name='category_create'),
+    path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category_update'),
+    path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
 ]

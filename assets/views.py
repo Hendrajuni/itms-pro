@@ -2029,3 +2029,44 @@ class PartHistoryDeleteView(LoginRequiredMixin, DeleteView):
         asset_id = self.object.asset.id
         messages.success(self.request, "Part history record deleted.")
         return reverse('asset_detail', kwargs={'pk': asset_id}) + '#part-history'
+
+# --- Category Management Views ---
+class CategoryListView(LoginRequiredMixin, ListView):
+    model = Category
+    template_name = 'assets/category_list.html'
+    context_object_name = 'categories'
+    ordering = ['name']
+
+class CategoryCreateView(LoginRequiredMixin, CreateView):
+    model = Category
+    fields = ['name', 'type']
+    template_name = 'assets/category_form.html'
+    success_url = reverse_lazy('category_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Category created successfully.")
+        return super().form_valid(form)
+
+class CategoryUpdateView(LoginRequiredMixin, UpdateView):
+    model = Category
+    fields = ['name', 'type']
+    template_name = 'assets/category_form.html'
+    success_url = reverse_lazy('category_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Category updated successfully.")
+        return super().form_valid(form)
+
+class CategoryDeleteView(LoginRequiredMixin, DeleteView):
+    model = Category
+    template_name = 'assets/confirm_delete.html'
+    success_url = reverse_lazy('category_list')
+
+    def delete(self, request, *args, **kwargs):
+        # DEMO MODE: Block delete
+        from django.conf import settings
+        if getattr(settings, 'DEMO_MODE', False):
+            messages.error(request, "This action is disabled in Demo Mode.")
+            return redirect('category_list')
+        messages.success(request, "Category deleted successfully.")
+        return super().delete(request, *args, **kwargs)

@@ -1,0 +1,73 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize %}
+
+{% block title %}Asset Categories - ITMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-0 text-dark">Asset Categories</h4>
+            <p class="text-muted small mb-0">Manage asset categories and types.</p>
+        </div>
+        <a href="{% url 'category_create' %}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-plus me-2"></i> Add Category
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4 py-3 text-uppercase text-muted small fw-bold">Name</th>
+                            <th class="py-3 text-uppercase text-muted small fw-bold">Type</th>
+                            <th class="pe-4 py-3 text-end text-uppercase text-muted small fw-bold" style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-dark">{{ category.name }}</td>
+                            <td>
+                                {% if category.type == 'HW' %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">Hardware</span>
+                                {% elif category.type == 'SW' %}
+                                    <span class="badge bg-info bg-opacity-10 text-info">Software</span>
+                                {% elif category.type == 'CL' %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning">Cloud</span>
+                                {% elif category.type == 'IN' %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary">Infrastructure</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border">{{ category.get_type_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                <a href="{% url 'category_update' category.pk %}" class="btn btn-sm btn-light border mx-1" title="Edit">
+                                    <i class="fas fa-pen small text-muted"></i>
+                                </a>
+                                {% if not is_demo_mode %}
+                                <a href="{% url 'category_delete' category.pk %}" class="btn btn-sm btn-light border text-danger mx-1" title="Delete">
+                                    <i class="fas fa-trash small"></i>
+                                </a>
+                                {% else %}
+                                <span class="badge bg-warning text-dark" title="Delete disabled in Demo Mode"><i class="fas fa-lock small"></i></span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-5 text-muted">
+                                <i class="fas fa-folder-open fa-3x mb-3 opacity-25"></i>
+                                <p class="mb-0">No categories found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -103,12 +103,12 @@
 
                 <!-- INVENTORY GROUP -->
                 <li class="nav-item">
-                    <a class="nav-link collapsed" href="#invSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'assets' in request.path or 'software' in request.path or 'contracts' in request.path or 'disposals' in request.path %}true{% else %}false{% endif %}">
+                    <a class="nav-link collapsed" href="#invSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'assets' in request.path or 'software' in request.path or 'contracts' in request.path or 'disposals' in request.path or 'categories' in request.path %}true{% else %}false{% endif %}">
                         <i class="fas fa-box icon"></i>
                         <span>Inventory</span>
                         <i class="fas fa-chevron-right chevron"></i>
                     </a>
-                    <div class="collapse {% if 'assets' in request.path or 'software' in request.path or 'contracts' in request.path or 'disposals' in request.path %}show{% endif %}" id="invSubmenu">
+                    <div class="collapse {% if 'assets' in request.path or 'software' in request.path or 'contracts' in request.path or 'disposals' in request.path or 'categories' in request.path %}show{% endif %}" id="invSubmenu">
                         <ul class="nav-tree">
                             <li class="nav-item">
                                 <a href="{% url 'asset_list' %}" class="nav-link {% if 'assets' in request.path and not 'analytics' in request.path %}active{% endif %}">Hardware</a>
@@ -123,6 +123,9 @@
                             </li>
                             <li class="nav-item">
                                 <a href="{% url 'vendor_list' %}" class="nav-link {% if 'vendors' in request.path %}active{% endif %}">Vendors</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'category_list' %}" class="nav-link {% if 'categories' in request.path %}active{% endif %}">Categories</a>
                             </li>
 
                             <li class="nav-item">
