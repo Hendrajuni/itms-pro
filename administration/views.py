@@ -128,6 +128,11 @@ class UserDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
     success_url = reverse_lazy('user_list')
 
     def dispatch(self, request, *args, **kwargs):
+        # DEMO MODE: Block user deletion
+        from django.conf import settings
+        if getattr(settings, 'DEMO_MODE', False):
+            messages.error(request, "This action is disabled in Demo Mode.")
+            return redirect('user_list')
         # Prevent deleting yourself
         if str(kwargs.get('pk')) == str(request.user.pk):
              messages.error(request, "You cannot delete your own account.")
@@ -142,6 +147,12 @@ class UserDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
 
 class UserToggleStatusView(LoginRequiredMixin, SuperuserRequiredMixin, View):
     def post(self, request, pk):
+        # DEMO MODE: Block user toggle
+        from django.conf import settings
+        if getattr(settings, 'DEMO_MODE', False):
+            messages.error(request, "This action is disabled in Demo Mode.")
+            return redirect('user_list')
+            
         user = get_object_or_404(User, pk=pk)
         
         # Prevent disabling oneself
@@ -158,6 +169,12 @@ class UserToggleStatusView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 
 class AdminPasswordResetView(LoginRequiredMixin, SuperuserRequiredMixin, View):
     def post(self, request, pk):
+        # DEMO MODE: Block password reset
+        from django.conf import settings
+        if getattr(settings, 'DEMO_MODE', False):
+            messages.error(request, "Password reset is disabled in Demo Mode.")
+            return redirect('user_list')
+            
         user = get_object_or_404(User, pk=pk)
         form = SetPasswordForm(user, request.POST)
         
@@ -559,6 +576,12 @@ class DatabaseBackupView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 
 class DatabaseRestoreView(LoginRequiredMixin, SuperuserRequiredMixin, View):
     def post(self, request, *args, **kwargs):
+        # DEMO MODE: Block database restore
+        from django.conf import settings as django_settings
+        if getattr(django_settings, 'DEMO_MODE', False):
+            messages.error(request, "Database restore is disabled in Demo Mode.")
+            return redirect('site_settings')
+            
         # 1. Check File
         if 'backup_file' not in request.FILES:
             messages.error(request, "Please upload a valid JSON backup file.")

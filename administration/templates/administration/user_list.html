@@ -216,6 +216,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if not is_demo_mode %}
                                     <form method="post" action="{% url 'user_toggle_status' u.pk %}" class="d-inline">
                                         {% csrf_token %}
                                         <div class="form-check form-switch">
@@ -224,8 +225,12 @@
                                                 {% if u == request.user %}disabled{% endif %}>
                                         </div>
                                     </form>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted border"><i class="fas fa-lock small"></i> Demo</span>
+                                    {% endif %}
                                 </td>
                                 <td class="text-end pe-4">
+                                    {% if not is_demo_mode %}
                                     <button class="btn btn-sm btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#resetPasswordModal" 
                                         onclick="setupResetModal('{{ u.id }}', '{{ u.username }}')">
                                         <i class="fas fa-key small"></i>
@@ -236,6 +241,9 @@
                                     <a href="{% url 'user_delete' u.pk %}" class="btn btn-sm btn-light border text-danger mx-1" title="Delete">
                                         <i class="fas fa-trash small"></i>
                                     </a>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-shield-alt me-1"></i>Protected</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}

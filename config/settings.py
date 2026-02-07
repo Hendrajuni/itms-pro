@@ -34,6 +34,10 @@ CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://itms.nubi
 # Memberitahu Django bahwa request ini sebenarnya HTTPS (jika lewat proxy)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# --- DEMO MODE ---
+# Set to 'True' ONLY on demo servers. This blocks destructive actions (password reset, user delete, etc.)
+DEMO_MODE = os.environ.get('DEMO_MODE', 'False') == 'True'
+
 
 # Application definition
 
