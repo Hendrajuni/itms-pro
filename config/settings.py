@@ -80,6 +80,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'administration.middleware.UserActivityMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
+    'core.middleware.LoginRequiredMiddleware',  # Global auth enforcement
     'core.middleware.MaintenanceMiddleware',
     'core.middleware.NavigationHistoryMiddleware',
     'core.middleware.RestrictAdminMiddleware',

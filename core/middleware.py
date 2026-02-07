@@ -53,6 +53,41 @@ class MaintenanceMiddleware:
         return self.get_response(request)
 
 
+class LoginRequiredMiddleware:
+    """
+    Global middleware that forces login for all pages except whitelisted URLs.
+    This prevents unauthenticated users from seeing any UI (including 404 pages with sidebar).
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Whitelist paths that don't require authentication
+        self.exempt_urls = [
+            '/accounts/login/',
+            '/accounts/logout/',
+            '/static/',
+            '/media/',
+            '/favicon.ico',
+        ]
+
+    def __call__(self, request):
+        # Skip if user is already authenticated
+        if request.user.is_authenticated:
+            return self.get_response(request)
+        
+        # Check if path is exempt
+        path = request.path
+        for exempt in self.exempt_urls:
+            if path.startswith(exempt) or path == exempt:
+                return self.get_response(request)
+        
+        # Not authenticated and not exempt -> redirect to login
+        from django.shortcuts import redirect
+        from django.urls import reverse
+        login_url = reverse('login')
+        # Preserve the "next" parameter so user is redirected after login
+        return redirect(f'{login_url}?next={path}')
+
+
 class NavigationHistoryMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
