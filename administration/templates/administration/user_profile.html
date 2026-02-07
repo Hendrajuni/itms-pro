@@ -162,6 +162,15 @@
                             </div>
                         </div>
 
+                        {% if is_demo_mode %}
+                        <div class="alert alert-info border-0 d-flex align-items-center" role="alert">
+                            <i class="fas fa-shield-alt me-3 fa-lg"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1">Password Change Disabled</h6>
+                                <p class="mb-0 small">This feature is disabled in Demo Mode to protect the demo account.</p>
+                            </div>
+                        </div>
+                        {% else %}
                         <form method="post" style="max-width: 600px;">
                             {% csrf_token %}
                             {{ form|crispy }}
@@ -171,6 +180,7 @@
                                 </button>
                             </div>
                         </form>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

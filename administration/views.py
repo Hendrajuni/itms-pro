@@ -283,6 +283,14 @@ class UserChangePasswordView(LoginRequiredMixin, PasswordChangeView):
     template_name = 'administration/user_profile.html'
     success_url = reverse_lazy('user_profile')
     
+    def dispatch(self, request, *args, **kwargs):
+        # DEMO MODE: Block password change
+        from django.conf import settings
+        if getattr(settings, 'DEMO_MODE', False):
+            messages.error(request, "Password change is disabled in Demo Mode.")
+            return redirect('user_profile')
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['active_tab'] = 'security'
