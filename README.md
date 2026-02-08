@@ -71,18 +71,6 @@ ITMS tersedia dalam dua edisi untuk memenuhi kebutuhan skala bisnis yang berbeda
 
 ---
 
-## 📸 Tangkapan Layar
-
-| Dashboard | Detail Aset |
-|-----------|--------------|
-|  | ![Asset](https://via.placeholder.com/600x400?text=Asset+Lifecycle) |
-
-| Peta Jaringan | Kanban Proyek |
-|-------------|----------------|
-| ![Network](https://via.placeholder.com/600x400?text=Network+Map) | ![Kanban](https://via.placeholder.com/600x400?text=Kanban+Board) |
-
----
-
 ## 🔧 Instalasi
 
 1.  **Clone repositori**
@@ -111,9 +99,6 @@ ITMS tersedia dalam dua edisi untuk memenuhi kebutuhan skala bisnis yang berbeda
     python manage.py createsuperuser
     python manage.py runserver
     ```
-
-## 🤝 Kontribusi
-Kontribusi, masalah (issues), dan permintaan fitur sangat diterima!
 
 ## 📄 Lisensi
 (LICENSE) © 2026 Hendra Juniansyah.
