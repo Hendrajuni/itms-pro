@@ -34,6 +34,21 @@ CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://itms.nubi
 # Memberitahu Django bahwa request ini sebenarnya HTTPS (jika lewat proxy)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# --- PRODUCTION SECURITY ---
+if not DEBUG:
+    # Cookies Stuffs
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # HSTS (HTTP Strict Transport Security)
+    # Memberitahu browser untuk selalu menggunakan HTTPS untuk jangka waktu tertentu
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Redirect HTTP to HTTPS (Jika tidak ditangani Nginx)
+    SECURE_SSL_REDIRECT = True
+
 # --- DEMO MODE ---
 # Set to 'True' ONLY on demo servers. This blocks destructive actions (password reset, user delete, etc.)
 DEMO_MODE = os.environ.get('DEMO_MODE', 'False') == 'True'
