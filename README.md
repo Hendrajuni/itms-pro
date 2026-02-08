@@ -75,7 +75,7 @@ ITMS tersedia dalam dua edisi untuk memenuhi kebutuhan skala bisnis yang berbeda
 
 1.  **Clone repositori**
     ```bash
-    git clone https://github.com/usernameanda/itms-pro.git
+    git clone https://github.com/hendrajuni/itms-pro.git
     cd itms-pro
     ```
 
