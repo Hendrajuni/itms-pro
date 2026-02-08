@@ -5,9 +5,6 @@
 <img width="600" height="900" alt="image" src="https://github.com/user-attachments/assets/96d93b5a-ea4e-4f6b-b650-071bd8baa186" />
 
 
-
-## 🚀 Fitur Utama
-
 ## 🚀 Fitur Utama (Real Capabilities)
 
 ### 📦 Manajemen Aset Terintegrasi
@@ -35,11 +32,11 @@
 
 ---
 
-## 💎 Versi Essential (Free) vs Enterprise (Pro)
+## 💎 Versi Free vs Pro
 
 ITMS tersedia dalam dua edisi untuk memenuhi kebutuhan skala bisnis yang berbeda.
 
-| Fitur | Essential (Free) | Enterprise (Pro) |
+| Fitur | Free | Pro) |
 | :--- | :---: | :---: |
 | **Lokasi / Cabang** | Max **1** (Single Site) | **Unlimited** |
 | **Admin User** | Max **1** (Single Admin) | **Unlimited** |
@@ -78,7 +75,7 @@ ITMS tersedia dalam dua edisi untuk memenuhi kebutuhan skala bisnis yang berbeda
 
 | Dashboard | Detail Aset |
 |-----------|--------------|
-| ![Dashboard](https://via.placeholder.com/600x400?text=IT+Dashboard) | ![Asset](https://via.placeholder.com/600x400?text=Asset+Lifecycle) |
+|  | ![Asset](https://via.placeholder.com/600x400?text=Asset+Lifecycle) |
 
 | Peta Jaringan | Kanban Proyek |
 |-------------|----------------|
