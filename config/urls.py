@@ -28,6 +28,7 @@ urlpatterns = [
     path('notifications/', include('notifications.urls')),
     path('integrations/', include('integrations.urls')),
     path('administration/', include('administration.urls')),
+    path('ai/', include('ai_assistant.urls')),
     path('', include('core.urls')),
 ]
 

@@ -1,0 +1,292 @@
+<!-- AI Assistant Floating Widget -->
+<style>
+    #ai-chat-widget {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1050;
+    }
+    
+    #ai-chat-button {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: var(--bs-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease;
+    }
+    
+    #ai-chat-button:hover {
+        transform: scale(1.1);
+    }
+    
+    #ai-chat-window {
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        width: 350px;
+        height: 500px;
+        background-color: var(--bs-body-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .chat-header {
+        background-color: var(--bs-primary);
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: bold;
+    }
+    
+    .chat-body {
+        flex-grow: 1;
+        padding: 15px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background-color: rgba(var(--bs-body-bg-rgb), 0.5);
+    }
+    
+    .chat-message {
+        max-width: 85%;
+        padding: 10px 15px;
+        border-radius: 15px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .message-user {
+        background-color: var(--bs-primary);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 5px;
+    }
+    
+    .message-assistant {
+        background-color: var(--bs-secondary-bg);
+        color: var(--bs-body-color);
+        align-self: flex-start;
+        border-bottom-left-radius: 5px;
+        border: 1px solid var(--bs-border-color);
+    }
+    
+    .chat-footer {
+        padding: 15px;
+        border-top: 1px solid var(--bs-border-color);
+        display: flex;
+        gap: 10px;
+    }
+    
+    #chat-input {
+        flex-grow: 1;
+        border-radius: 20px;
+        padding-left: 15px;
+    }
+    
+    .typing-indicator {
+        display: none;
+        align-self: flex-start;
+        background-color: transparent;
+        padding: 5px 10px;
+        color: var(--bs-secondary-color);
+        font-size: 12px;
+        font-style: italic;
+    }
+
+    /* Small screens */
+    @media (max-width: 576px) {
+        #ai-chat-window {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            z-index: 1060;
+        }
+        #ai-chat-widget {
+            bottom: 90px; /* Above the mobile FAB */
+        }
+    }
+</style>
+
+<div id="ai-chat-widget">
+    <div id="ai-chat-window">
+        <div class="chat-header">
+            <div>
+                <i class="fas fa-robot me-2"></i> IT Assistant
+            </div>
+            <div>
+                <button class="btn btn-sm btn-link text-white p-0" id="chat-clear-btn" title="Clear Chat">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                <button class="btn btn-sm btn-link text-white p-0 ms-2" id="chat-close-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="chat-body" id="chat-body">
+            <!-- Messages will appear here -->
+            <div class="chat-message message-assistant">
+                Hi! I'm your IT Assistant. How can I help you today?
+            </div>
+        </div>
+        <div class="typing-indicator" id="typing-indicator">
+            <i class="fas fa-circle-notch fa-spin me-1"></i> AI is thinking...
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chat-input" class="form-control form-control-sm" placeholder="Type a message..." autocomplete="off">
+            <button class="btn btn-primary btn-sm rounded-circle" id="chat-send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div id="ai-chat-button" onclick="toggleChatWindow()">
+        <i class="fas fa-comment-dots"></i>
+    </div>
+</div>
+
+<script>
+    const chatWindow = document.getElementById('ai-chat-window');
+    const chatBody = document.getElementById('chat-body');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send-btn');
+    const closeBtn = document.getElementById('chat-close-btn');
+    const clearBtn = document.getElementById('chat-clear-btn');
+    const typingIndicator = document.getElementById('typing-indicator');
+    
+    let isChatOpen = false;
+
+    function toggleChatWindow() {
+        isChatOpen = !isChatOpen;
+        if (isChatOpen) {
+            chatWindow.style.display = 'flex';
+            loadHistory();
+            setTimeout(() => chatInput.focus(), 100);
+        } else {
+            chatWindow.style.display = 'none';
+        }
+    }
+
+    closeBtn.addEventListener('click', () => {
+        isChatOpen = false;
+        chatWindow.style.display = 'none';
+    });
+
+    function appendMessage(role, content) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message message-${role}`;
+        
+        // Simple markdown-like formatting for line breaks
+        content = content.replace(/\n/g, '<br>');
+        msgDiv.innerHTML = content;
+        
+        chatBody.appendChild(msgDiv);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    async function loadHistory() {
+        try {
+            const response = await fetch('/ai/api/chat/history/');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.messages && data.messages.length > 0) {
+                    // Clear default greeting if we have history
+                    chatBody.innerHTML = '';
+                    data.messages.forEach(msg => {
+                        appendMessage(msg.role, msg.content);
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load chat history', error);
+        }
+    }
+
+    async function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        // Clear input and show user message
+        chatInput.value = '';
+        appendMessage('user', message);
+        
+        // Show typing indicator
+        typingIndicator.style.display = 'block';
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        try {
+            const response = await fetch('/ai/api/chat/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ message: message })
+            });
+
+            const data = await response.json();
+            
+            typingIndicator.style.display = 'none';
+
+            if (response.ok) {
+                appendMessage('assistant', data.reply);
+            } else {
+                appendMessage('assistant', `<em>Error: ${data.error || 'Failed to get response'}</em>`);
+            }
+        } catch (error) {
+            typingIndicator.style.display = 'none';
+            appendMessage('assistant', `<em>Error: Could not connect to server.</em>`);
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    clearBtn.addEventListener('click', async () => {
+        if (confirm("Are you sure you want to clear the chat history?")) {
+            await fetch('/ai/api/chat/clear/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            chatBody.innerHTML = '<div class="chat-message message-assistant">Chat cleared. How can I help you today?</div>';
+        }
+    });
+
+    // Helper to get CSRF cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>

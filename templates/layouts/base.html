@@ -198,6 +198,10 @@
             $.fn.modal.Constructor.prototype._enforceFocus = function() {};
         });
     </script>
+    
+    {% if user.is_authenticated %}
+        {% include 'ai_assistant/widget.html' %}
+    {% endif %}
 </body>
 
 </html>
