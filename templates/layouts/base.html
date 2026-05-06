@@ -188,7 +188,7 @@
             // Apply Select2 to all select elements with class 'form-select'
             // But we need to exclude hidden ones or small ones if any. 
             // For now, apply to all visible form-selects.
-            $('select.form-select').select2({
+            $('select.form-select').not('[id*="__prefix__"]').select2({
                 theme: 'bootstrap-5',
                 width: '100%',
                 placeholder: $(this).data('placeholder'),

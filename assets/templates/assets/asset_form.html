@@ -455,6 +455,12 @@
         var tbody = table.querySelector('tbody');
         tbody.insertAdjacentHTML('beforeend', newRowHtml);
         
+        // Initialize Select2 on the newly added row
+        $(tbody.lastElementChild).find('select.form-select').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
+        
         // Update Total Forms count
         formIdxInput.value = formIdx + 1;
     }
