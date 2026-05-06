@@ -522,7 +522,11 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['history'] = self.object.loans.all().order_by('-loan_date') if hasattr(self.object, 'loans') else []
+        
+        loans = list(self.object.loans.all().order_by('-loan_date')) if hasattr(self.object, 'loans') else []
+        for i, loan in enumerate(loans):
+            loan.previous_user = loans[i+1].employee if i + 1 < len(loans) else None
+        context['history'] = loans
         
         maintenance_logs = self.object.maintenances.all().order_by('-scheduled_date') if hasattr(self.object, 'maintenances') else []
         # Note: 'maintenances' related name might default to assetmaintenance_set if not defined explicitly.

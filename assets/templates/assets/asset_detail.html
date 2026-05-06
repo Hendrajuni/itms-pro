@@ -507,6 +507,7 @@
                                     <tr>
                                         <th>Loan Date</th>
                                         <th>Employee</th>
+                                        <th>Previous User</th>
                                         <th>Return Date</th>
                                         <th>Condition</th>
                                         {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}<th class="text-end" style="width: 100px;">Actions</th>{% endif %}
@@ -528,6 +529,13 @@
                                                 </span>
                                                 {% endwith %}
                                             </div>
+                                        </td>
+                                        <td>
+                                            {% if loan.previous_user %}
+                                                {{ loan.previous_user.get_full_name|default:loan.previous_user.username }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             {% if loan.return_date %}
