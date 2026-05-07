@@ -145,11 +145,13 @@
 
     <!-- Financials -->
     <div class="section-title">Financial Information</div>
-    <div class="info-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="info-grid" style="grid-template-columns: repeat(3, 1fr); row-gap: 15px;">
         <div class="info-item"><label>Purchase Date</label><span>{{ asset.purchase_date|default:"-" }}</span></div>
-        <div class="info-item"><label>Purchase Price</label><span>{{ asset.purchase_price|intcomma }}</span></div>
-        <div class="info-item"><label>Current Value</label><span>{{ asset.current_book_value|intcomma }}</span></div>
-        <div class="info-item"><label>Warranty</label><span>{{ asset.warranty_end|default:"-" }}</span></div>
+        <div class="info-item"><label>Purchase Price</label><span>Rp {{ asset.purchase_price|default:0|floatformat:0|intcomma }}</span></div>
+        <div class="info-item"><label>Current Value</label><span>Rp {{ asset.current_book_value|default:0|floatformat:0|intcomma }}</span></div>
+        <div class="info-item"><label>Usage / Age</label><span>{{ asset.age_usage|default:"-" }}</span></div>
+        <div class="info-item"><label>Warranty Expiry</label><span>{{ asset.warranty_end|default:"-" }}</span></div>
+        <div class="info-item"><label>Vendor</label><span>{{ asset.vendor.name|default:"-" }}</span></div>
     </div>
     
     <!-- Network & Software (New) -->
