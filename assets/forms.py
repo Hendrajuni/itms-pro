@@ -1,6 +1,8 @@
 from django import forms
 from django.forms import inlineformset_factory
+from django.utils import timezone
 from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage, Location, PartHistory
+
 
 class AssetStorageForm(forms.ModelForm):
     class Meta:
@@ -96,6 +98,8 @@ class AssetForm(forms.ModelForm):
             self.fields['os'].initial = spec.os
             self.fields['ip_address'].initial = spec.ip_address
             self.fields['mac_address'].initial = spec.mac_address
+            
+        self.old_assigned_to = self.instance.assigned_to if self.instance.pk else None
 
     def save(self, commit=True):
         asset = super().save(commit=False)
@@ -112,6 +116,28 @@ class AssetForm(forms.ModelForm):
             spec.mac_address = self.cleaned_data.get('mac_address')
             spec.save()
             
+            # Auto-create AssetLoan if assigned_to changed
+            if asset.assigned_to and asset.assigned_to != self.old_assigned_to:
+                # End previous active loan if exists
+                active_loans = AssetLoan.objects.filter(asset=asset, return_date__isnull=True)
+                for loan in active_loans:
+                    loan.return_date = timezone.now()
+                    loan.save()
+                
+                # Create new permanent loan
+                AssetLoan.objects.create(
+                    asset=asset,
+                    employee=asset.assigned_to,
+                    is_permanent=True,
+                    condition_out="Auto-assigned from Asset Form"
+                )
+            elif not asset.assigned_to and self.old_assigned_to:
+                # If assigned_to was cleared, end active loans
+                active_loans = AssetLoan.objects.filter(asset=asset, return_date__isnull=True)
+                for loan in active_loans:
+                    loan.return_date = timezone.now()
+                    loan.save()
+
         return asset
 
 from network.models import Subnet
