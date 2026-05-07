@@ -507,6 +507,7 @@
                                     <tr>
                                         <th>Loan Date</th>
                                         <th>Employee</th>
+                                        <th>Type</th>
                                         <th>Previous User</th>
                                         <th>Return Date</th>
                                         <th>Condition</th>
@@ -529,6 +530,13 @@
                                                 </span>
                                                 {% endwith %}
                                             </div>
+                                        </td>
+                                        <td>
+                                            {% if loan.is_permanent %}
+                                                <span class="badge badge-soft-danger">Permanent</span>
+                                            {% else %}
+                                                <span class="badge badge-soft-info">Temporary</span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             {% if loan.previous_user %}

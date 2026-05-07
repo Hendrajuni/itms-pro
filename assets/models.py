@@ -613,6 +613,9 @@ class AssetLoan(models.Model):
     # Digital Signature
     signature_image = models.ImageField(upload_to='signatures/', blank=True, null=True)
     is_digital_sign = models.BooleanField(default=False)
+    
+    # Transfer Type
+    is_permanent = models.BooleanField(default=True, help_text="If checked, ownership of the asset is transferred to this user permanently. If unchecked, it is a temporary loan.")
 
     def save(self, *args, **kwargs):
         if not self.loan_id:
@@ -623,7 +626,8 @@ class AssetLoan(models.Model):
         # Logic: Update Asset assigned_to and Status
         if not self.return_date:
             # Check Out
-            self.asset.assigned_to = self.employee
+            if self.is_permanent:
+                self.asset.assigned_to = self.employee
             self.asset.status = 'IN_USE'
         else:
             # Check In

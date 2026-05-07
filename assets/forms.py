@@ -158,11 +158,18 @@ class AssetNoteForm(forms.ModelForm):
         }
 
 class AssetLoanForm(forms.ModelForm):
+    is_permanent = forms.BooleanField(
+        required=False, 
+        initial=True, 
+        label="Permanent Transfer?", 
+        help_text="If checked, the main asset user will be updated. If unchecked, this is a temporary loan."
+    )
     class Meta:
         model = AssetLoan
-        fields = ['employee', 'loan_date', 'condition_out']
+        fields = ['employee', 'is_permanent', 'loan_date', 'condition_out']
         widgets = {
             'employee': forms.Select(attrs={'class': 'form-select'}),
+            'is_permanent': forms.CheckboxInput(attrs={'class': 'form-check-input', 'checked': 'checked'}),
             'loan_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'condition_out': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
