@@ -421,20 +421,18 @@
                                             {% if asset.sub_location %}
                                             <small class="text-muted fst-italic"><i class="fas fa-level-up-alt fa-rotate-90 me-1"></i>{{ asset.sub_location }}</small>
                                             {% endif %}
-                                            <small class="text-muted">{{ asset.department.name|default:"-" }}</small>
                                         </div>
                                     </td>
 
                                     <td>
-                                        {% if asset.assigned_to %}
-                                        <div class="d-flex align-items-center">
-                                            <div class="d-none d-md-block">
-                                                <span class="fw-bold small text-dark">{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</span>
-                                            </div>
+                                        <div class="d-flex flex-column">
+                                            {% if asset.assigned_to %}
+                                            <span class="fw-bold small text-dark">{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</span>
+                                            {% else %}
+                                            <span class="text-muted small fst-italic">Unassigned</span>
+                                            {% endif %}
+                                            <small class="text-muted">{{ asset.department.name|default:"-" }}</small>
                                         </div>
-                                        {% else %}
-                                        <span class="text-muted small fst-italic">Unassigned</span>
-                                        {% endif %}
                                     </td>
 
                                     <td class="d-none d-xl-table-cell">
