@@ -276,6 +276,11 @@ class Asset(models.Model):
             img.save(buffer, format="PNG")
             self.qr_code_image.save(f'qr_{self.asset_code}.png', ContentFile(buffer.getvalue()), save=False)
 
+        # Auto-assign department and location based on the assigned user
+        if self.assigned_to:
+            if self.assigned_to.department:
+                self.department = self.assigned_to.department
+
         super().save(*args, **kwargs)
 
     def __str__(self):
