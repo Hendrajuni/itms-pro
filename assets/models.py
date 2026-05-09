@@ -131,6 +131,7 @@ class Asset(models.Model):
     # Relations
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='assets')
     location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, related_name='assets')
+    sub_location = models.CharField(max_length=100, blank=True, null=True, help_text="e.g. Kantor PKS, Pabrik")
     vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, related_name='assets')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='assets')
     infrastructure = models.ForeignKey('Infrastructure', on_delete=models.SET_NULL, null=True, blank=True, related_name='assets', help_text="Linked infrastructure (e.g. Server Rack, Cabling)")

@@ -418,6 +418,9 @@
                                     <td class="d-none d-lg-table-cell">
                                         <div class="d-flex flex-column">
                                             <span class="text-dark fw-bold" style="font-size: 0.9rem;">{{ asset.location.name|default:"-" }}</span>
+                                            {% if asset.sub_location %}
+                                            <small class="text-muted fst-italic"><i class="fas fa-level-up-alt fa-rotate-90 me-1"></i>{{ asset.sub_location }}</small>
+                                            {% endif %}
                                             <small class="text-muted">{{ asset.department.name|default:"-" }}</small>
                                         </div>
                                     </td>

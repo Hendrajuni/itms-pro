@@ -68,7 +68,7 @@ class AssetForm(forms.ModelForm):
             'category', 'name', 'status', 'assigned_to', 
             'brand', 'model', 'serial_number',
             'purchase_date', 'purchase_price', 'vendor', 
-            'location', 'photo', 'warranty_end', 'invoice_number'
+            'location', 'sub_location', 'photo', 'warranty_end', 'invoice_number'
         ]
         widgets = {
             'category': forms.Select(attrs={'class': 'form-select'}),
@@ -84,6 +84,7 @@ class AssetForm(forms.ModelForm):
             'invoice_number': forms.TextInput(attrs={'class': 'form-control'}),
             'vendor': forms.Select(attrs={'class': 'form-select'}),
             'location': forms.Select(attrs={'class': 'form-select'}),
+            'sub_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Kantor PKS'}),
             'photo': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
