@@ -95,7 +95,13 @@
             </div>
             <div class="info-item">
                 <label>Assigned User</label>
-                <span>{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username|default:"Unassigned" }}</span>
+                <span>
+                    {% if asset.assigned_to %}
+                        {{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}
+                    {% else %}
+                        Unassigned
+                    {% endif %}
+                </span>
             </div>
             <div class="info-item">
                 <label>Status</label>
