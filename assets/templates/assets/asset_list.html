@@ -6,7 +6,7 @@
 
 {% block content %}
     <!-- Toolbar Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <h3 class="text-dark fw-bold mb-0">
             {% if selected_category %}
                 {{ selected_category.name }}
@@ -14,7 +14,7 @@
                 All Assets
             {% endif %}
         </h3>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
             {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
             <!-- View Mode Dropdown -->
             <div class="dropdown">
@@ -39,7 +39,7 @@
             </div>
 
             <!-- Filter Form -->
-            <form method="get" id="filterForm" class="d-flex position-relative me-2 align-items-center">
+            <form method="get" id="filterForm" class="d-flex flex-wrap gap-2 position-relative align-items-center flex-grow-1 flex-md-grow-0">
                 <input type="hidden" name="mode" value="{{ view_mode }}">
                 <input type="hidden" name="groupby" value="{{ groupby|default:'' }}">
                 <input type="hidden" name="loc" id="filter_loc" value="{{ request.GET.loc }}">
@@ -105,7 +105,7 @@
                     <!-- Search (Preserved) -->
                     <div class="position-relative">
                         <input type="text" name="q" class="form-control shadow-sm border-0 pe-5" placeholder="Search..."
-                            value="{{ request.GET.q|default:'' }}" style="width: 200px; background-color: #f8f9fa;">
+                            value="{{ request.GET.q|default:'' }}" style="min-width: 150px; flex: 1; background-color: #f8f9fa;">
                         <button type="submit" class="btn btn-link btn-sm position-absolute end-0 top-0 text-muted text-decoration-none" style="height: 100%; top: 0;">
                             <i class="fas fa-search"></i>
                         </button>
@@ -120,10 +120,10 @@
             </script>
             {% else %}
                  <!-- Search for Staff -->
-                 <form method="get" class="d-flex position-relative me-2 align-items-center">
+                 <form method="get" class="d-flex flex-wrap position-relative gap-2 align-items-center w-100 w-md-auto">
                     <div class="position-relative">
                         <input type="text" name="q" class="form-control shadow-sm border-0 pe-5" placeholder="Search..."
-                            value="{{ request.GET.q|default:'' }}" style="width: 200px; background-color: #f8f9fa;">
+                            value="{{ request.GET.q|default:'' }}" style="min-width: 150px; flex: 1; background-color: #f8f9fa;">
                         <button type="submit" class="btn btn-link btn-sm position-absolute end-0 top-0 text-muted text-decoration-none" style="height: 100%; top: 0;">
                             <i class="fas fa-search"></i>
                         </button>
@@ -230,7 +230,7 @@
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold text-primary">Asset List</h6>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
                         <!-- Per Page Dropdown -->
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -309,28 +309,28 @@
                                 </th>
                                 
                                 {% if view_mode == 'financial' %}
-                                    <th>User</th>
+                                    <th class="d-none d-md-table-cell">User</th>
                                     <th>
                                         <a href="?{% param_replace sort='category' order='asc' %}" class="text-dark text-decoration-none">Category</a>
                                     </th>
                                     <th class="text-end">
                                         <a href="?{% param_replace sort='price' order='desc' %}" class="text-dark text-decoration-none">Purchase Price</a>
                                     </th>
-                                    <th class="text-end">Current Value</th>
-                                    <th class="text-end">Maint. Cost</th>
+                                    <th class="text-end d-none d-lg-table-cell">Current Value</th>
+                                    <th class="text-end d-none d-xl-table-cell">Maint. Cost</th>
                                 {% elif view_mode == 'lifecycle' %}
-                                    <th>User</th>
+                                    <th class="d-none d-md-table-cell">User</th>
                                     <th>
                                         <a href="?{% param_replace sort='purchase_date' order='asc' %}" class="text-dark text-decoration-none">Purchase Date</a>
                                     </th>
-                                    <th>Age</th>
-                                    <th>Warranty</th>
+                                    <th class="d-none d-lg-table-cell">Age</th>
+                                    <th class="d-none d-xl-table-cell">Warranty</th>
                                     <th>Lifecycle Stage</th>
                                 {% else %}
                                     <th class="d-none d-lg-table-cell">Specs</th>
                                     <th class="d-none d-lg-table-cell">Branch</th>
                                     <th class="d-none d-lg-table-cell">Location</th>
-                                    <th>User</th>
+                                    <th class="d-none d-md-table-cell">User</th>
                                     <th class="d-none d-xl-table-cell">Financial</th>
                                 {% endif %}
                                 
