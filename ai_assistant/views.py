@@ -200,9 +200,9 @@ Authority Level: {role_label}
             return JsonResponse({'reply': assistant_reply})
             
         except requests.exceptions.Timeout:
-            return JsonResponse({'error': "Maaf, server AI sedang sibuk atau butuh waktu terlalu lama untuk berpikir (Timeout). Silakan coba lagi."}, status=504)
+            return JsonResponse({'error': "Maaf, server AI sedang sibuk atau butuh waktu terlalu lama untuk berpikir (Timeout). Silakan coba lagi."}, status=400)
         except requests.exceptions.RequestException as e:
-            return JsonResponse({'error': f"Gagal terhubung ke server AI lokal: {str(e)}"}, status=502)
+            return JsonResponse({'error': f"Gagal terhubung ke server AI: {str(e)}"}, status=400)
             
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON format'}, status=400)
