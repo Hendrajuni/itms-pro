@@ -39,7 +39,7 @@
             .header-bar { height: 4px; background: #2c3e50; }
             .asset-code { font-size: 13px; }
             .asset-name { font-size: 11px; }
-            .qr-section { width: 70px; height: 70px; }
+            .qr-section { width: 85px; height: 85px; }
             .special-info { display: none; }
         {% endif %}
         {% endwith %}
@@ -165,6 +165,10 @@
                 <div class="meta-row">
                     <span class="meta-label">USR</span>
                     <span>{{ asset.assigned_to.username|default:"Unassigned" }}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">DATE</span>
+                    <span>{{ asset.purchase_date|date:"d M Y"|default:"-" }}</span>
                 </div>
 
                 <!-- Special Info for PC/Genset -->

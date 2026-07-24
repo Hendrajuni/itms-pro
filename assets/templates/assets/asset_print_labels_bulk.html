@@ -68,8 +68,8 @@
         }
 
         .qr-section {
-            width: 70px;
-            height: 70px;
+            width: 85px;
+            height: 85px;
             margin-right: 12px;
             flex-shrink: 0;
         }
@@ -178,9 +178,13 @@
                         <span class="meta-label">LOC</span>
                         <span>{{ asset.location.name|default:"-"|truncatechars:18 }}</span>
                     </div>
-                     <div class="meta-row">
+                    <div class="meta-row">
                         <span class="meta-label">USR</span>
                         <span>{{ asset.assigned_to.username|default:"N/A"|truncatechars:12 }}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">DATE</span>
+                        <span>{{ asset.purchase_date|date:"d M Y"|default:"-" }}</span>
                     </div>
                 </div>
                 <!-- Watermark Text via CSS or Element -->
