@@ -11,6 +11,7 @@ import re
 import platform
 from .models import AIConfiguration, ChatSession, ChatMessage, AIDataSkill
 
+@csrf_exempt
 @login_required
 @require_POST
 def chat_api(request):

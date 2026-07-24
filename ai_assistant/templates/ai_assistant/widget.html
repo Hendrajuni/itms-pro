@@ -251,8 +251,9 @@
                 appendMessage('assistant', `<em>Error: ${data.error || 'Failed to get response'}</em>`);
             }
         } catch (error) {
+            console.error("Chat Error:", error);
             typingIndicator.style.display = 'none';
-            appendMessage('assistant', `<em>Error: Could not connect to server.</em>`);
+            appendMessage('assistant', `<em>Error: Could not connect to server. (${error.message})</em>`);
         }
     }
 
