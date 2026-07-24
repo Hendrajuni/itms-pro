@@ -9,7 +9,7 @@
     {% if selected_category %}Kategori: {{ selected_category.name }}{% endif %}
     {% if selected_location %} | Lokasi: {{ selected_location.name }}{% endif %}
     {% if selected_department %} | Dept: {{ selected_department.name }}{% endif %}
-    {% if not selected_category and not selected_location and not selected_department %}Semua Aset{% endif %}
+    {% if not selected_category and not selected_location and not selected_department %}Dikelompokkan per Kategori{% endif %}
     
     {% if mode == 'disposed' %}
         <br><span class="text-danger small">(Hanya Aset Dihapus)</span>
@@ -66,31 +66,54 @@
     .status-BROKEN { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
     .status-MAINTENANCE { background: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
     .status-DISPOSED { background: #e2e3e5; color: #41464b; border: 1px solid #d3d6d8; }
+    /* Landscape orientation */
+    @page { size: landscape; margin: 0; }
+    body { padding: 1.5cm; box-sizing: border-box; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="mb-4">
+    {% regroup assets by category.name as category_list %}
+    {% regroup assets by location.name as location_list %}
     <!-- Summary Info Box (Grid Layout) -->
     <div class="row g-3 mb-4">
-        <div class="col-4">
+        <div class="col-3">
             <div class="summary-box">
                 <div class="summary-label">TOTAL ASET</div>
                 <div class="summary-value">{{ assets.count }} Item</div>
             </div>
         </div>
-        <div class="col-4">
+        <div class="col-3">
             <div class="summary-box">
                 <div class="summary-label">CAKUPAN FILTER</div>
-                <div class="summary-value">
+                <div class="summary-value" style="font-size: 14px;">
                     {% if mode == 'disposed' %}Dihapus (Disposed){% else %}Inventaris Aktif{% endif %}
                 </div>
             </div>
         </div>
-        <div class="col-4">
+        <div class="col-3">
             <div class="summary-box">
-                <div class="summary-label">DIBUAT OLEH</div>
-                <div class="summary-value">{{ user.get_full_name|default:user.username }}</div>
+                <div class="summary-label">KATEGORI ASET</div>
+                <div class="summary-value" style="font-size: 14px;">
+                    {% if category_list|length > 2 %}
+                        Berbagai Kategori
+                    {% else %}
+                        {% for c in category_list %}{{ c.grouper|default:"Tanpa Kategori" }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="summary-box">
+                <div class="summary-label">LOKASI ASET</div>
+                <div class="summary-value" style="font-size: 14px;">
+                    {% if location_list|length > 2 %}
+                        Berbagai Lokasi ({{ location_list|length }} Lokasi)
+                    {% else %}
+                        {% for loc in location_list %}{{ loc.grouper|default:"Tanpa Lokasi" }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -100,8 +123,8 @@
         <thead>
             <tr>
                 <th style="width: 30px; text-align: center;">#</th>
-                <th style="width: 100px;">KODE ASET</th>
-                <th>NAMA / DESKRIPSI</th>
+                <th style="width: 90px; white-space: nowrap;">KODE ASET</th>
+                <th style="width: 150px;">NAMA / DESKRIPSI</th>
                 
                 {% if mode == 'financial' %}
                     <th>KATEGORI</th>
@@ -110,15 +133,19 @@
                     <th style="text-align: right;">TOTAL MAINTENANCE</th>
                 {% elif mode == 'lifecycle' %}
                     <th style="text-align: center;">TGL PEROLEHAN</th>
-                    <th style="text-align: center;">UMUR ASET</th>
+                    <th style="text-align: center; white-space: nowrap;">UMUR ASET</th>
                     <th style="text-align: center;">GARANSI</th>
                     <th style="text-align: center;">STATUS LIFECYCLE</th>
                 {% else %}
                     <!-- Operational (Default) -->
-                    <th style="width: 150px;">MERK / MODEL</th>
-                    <th style="width: 120px;">SERIAL NUMBER</th>
-                    <th style="width: 150px;">LOKASI</th>
-                    <th style="width: 120px;">PENGGUNA</th>
+                    <th style="width: 90px;">MERK / MODEL</th>
+                    <th style="width: 90px;">SERIAL NUMBER</th>
+                    <th style="width: 90px;">PENGGUNA</th>
+                    <th style="width: 90px; text-align: right;">HARGA BELI</th>
+                    <th style="width: 60px; text-align: center;">TGL BELI</th>
+                    <th style="width: 60px; text-align: center; white-space: nowrap;">UMUR</th>
+                    <th style="width: 60px; text-align: center;">GARANSI</th>
+                    <th style="width: 90px;">VENDOR</th>
                 {% endif %}
 
                 {% if mode != 'lifecycle' %}
@@ -130,9 +157,9 @@
             {% for asset in assets %}
             <tr>
                 <td style="text-align: center;">{{ forloop.counter }}</td>
-                <td style="font-family: monospace; font-weight: bold;">{{ asset.asset_code }}</td>
+                <td style="font-family: monospace; font-weight: bold; font-size: 10px; white-space: nowrap;">{{ asset.asset_code }}</td>
                 <td>
-                    <div style="font-weight: bold; color: #2c3e50;">{{ asset.name }}</div>
+                    <div style="font-weight: bold; color: #2c3e50; font-size: 11px;">{{ asset.name }}</div>
                 </td>
 
                 {% if mode == 'financial' %}
@@ -148,7 +175,7 @@
                     </td>
                 {% elif mode == 'lifecycle' %}
                     <td style="text-align: center;">{{ asset.purchase_date|date:"d/m/Y"|default:"-" }}</td>
-                    <td style="text-align: center;">{{ asset.age_usage }}</td>
+                    <td style="text-align: center; white-space: nowrap;">{{ asset.age_usage }}</td>
                     <td style="text-align: center;">
                         {% if asset.warranty_end %}
                             {{ asset.warranty_end|date:"d M Y" }}
@@ -169,9 +196,16 @@
                         {{ asset.brand|default:"-" }}
                         {% if asset.model %}<br><span class="text-muted small">{{ asset.model }}</span>{% endif %}
                     </td>
-                    <td style="font-family: monospace;">{{ asset.serial_number|default:"-" }}</td>
-                    <td>{{ asset.location.name|default:"-" }}</td>
-                    <td>{{ asset.assigned_to.get_full_name|default:"-" }}</td>
+                    <td style="font-family: monospace; font-size: 10px;">{{ asset.serial_number|default:"-" }}</td>
+                    <td>
+                        {{ asset.assigned_to.get_full_name|default:"-" }}
+                        {% if asset.department %}<br><span class="text-muted" style="font-size: 9px;">{{ asset.department.name }}</span>{% endif %}
+                    </td>
+                    <td style="text-align: right; font-size: 10px;">{% if asset.purchase_price %}Rp {{ asset.purchase_price|floatformat:0|intcomma }}{% else %}-{% endif %}</td>
+                    <td style="text-align: center;">{{ asset.purchase_date|date:"d/m/y"|default:"-" }}</td>
+                    <td style="text-align: center; white-space: nowrap;">{{ asset.age_usage|default:"-" }}</td>
+                    <td style="text-align: center;">{% if asset.warranty_end %}{{ asset.warranty_end|date:"d/m/y" }}{% else %}-{% endif %}</td>
+                    <td>{{ asset.vendor.name|default:"-" }}</td>
                 {% endif %}
 
                 {% if mode != 'lifecycle' %}
@@ -192,7 +226,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8" style="text-align: center; padding: 30px; color: #6c757d;">
+                <td colspan="100%" style="text-align: center; padding: 30px; color: #6c757d;">
                     - Tidak ada data aset -
                 </td>
             </tr>

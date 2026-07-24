@@ -71,6 +71,7 @@ urlpatterns = [
     path('contracts/<int:pk>/', views.ContractDetailView.as_view(), name='contract_detail'),
     path('contracts/<int:pk>/update/', views.ContractUpdateView.as_view(), name='contract_update'),
     path('contracts/<int:pk>/delete/', views.ContractDeleteView.as_view(), name='contract_delete'),
+    path('contracts/<int:pk>/renew/', views.ContractRenewView.as_view(), name='contract_renew'),
 
     # Location Command Center
     path('locations/', views.LocationTreeView.as_view(), name='location_tree'),

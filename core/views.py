@@ -88,6 +88,7 @@ def get_dashboard_stats(user):
         # Contracts Expiring Soon (30 Days) OR Recently Expired (Last 30 Days)
         # Fix: Show items that expired recently so they don't disappear immediately
         stats['expiring_contracts'] = Contract.objects.filter(
+            replaced_by__isnull=True,
             end_date__lte=timezone.localdate() + timedelta(days=30),
             end_date__gte=timezone.localdate() - timedelta(days=60) # Keep visible for 60 days after expiry
         ).exclude(status='CANCELLED').order_by('end_date')[:5]

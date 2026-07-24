@@ -108,6 +108,16 @@
         </div>
     </div>
     
+    {% if asset.notes %}
+    <!-- Notes -->
+    <div style="display: flex; align-items: stretch; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;">
+        <div style="background-color: #f0f0f0; padding: 6px 10px; font-weight: bold; font-size: 11px; text-transform: uppercase; border-right: 1px solid #ccc; display: flex; align-items: center; width: 80px; flex-shrink: 0; color: #000; justify-content: center;">
+            Notes
+        </div>
+        <div style="padding: 6px 10px; font-size: 11px; white-space: pre-line; flex: 1; color: #000; display: flex; align-items: center;">{{ asset.notes }}</div>
+    </div>
+    {% endif %}
+
     <!-- Specs -->
     <div class="section-title">Technical Specifications</div>
     <div class="info-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
@@ -116,7 +126,7 @@
         <div class="info-item"><label>OS</label><span>{{ spec.os|default:"-" }}</span></div>
     </div>
     
-    <!-- Storage Info (New) -->
+    <!-- Storage Info -->
     {% if asset.storages.exists %}
     <div style="margin-bottom: 20px;">
         <div class="info-item"><label style="margin-bottom: 5px; font-weight:bold;">Storage Devices</label></div>

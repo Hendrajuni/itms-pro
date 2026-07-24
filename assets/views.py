@@ -34,6 +34,12 @@ class AssetListView(LoginRequiredMixin, ListView):
     ordering = ['-created_at']
     paginate_by = 10
 
+    def get_paginate_by(self, queryset):
+        per_page = self.request.GET.get('per_page')
+        if per_page and per_page.isdigit():
+            return int(per_page)
+        return self.paginate_by
+
     def get_queryset(self):
         queryset = super().get_queryset().select_related('category', 'assigned_to', 'department', 'location', 'location__parent')
         
@@ -1101,6 +1107,7 @@ class VendorDeleteView(LoginRequiredMixin, DeleteView):
         
         # Forward-Looking: Contract Renewals
         context['expiring_contracts'] = Contract.objects.filter(
+            replaced_by__isnull=True,
             end_date__gte=today,
             end_date__lte=today + timedelta(days=90)
         ).order_by('end_date')
@@ -1760,29 +1767,37 @@ class ContractListView(LoginRequiredMixin, ListView):
     template_name = 'assets/contract_list.html'
     context_object_name = 'contracts'
     ordering = ['end_date']
+    paginate_by = 10
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        qs = super().get_queryset().filter(replaced_by__isnull=True)
         
         # Filtering
         contract_type = self.request.GET.get('type')
         vendor_id = self.request.GET.get('vendor')
         search_query = self.request.GET.get('q')
+        status = self.request.GET.get('status')
 
         if contract_type:
-            queryset = queryset.filter(contract_type=contract_type)
-        
+            qs = qs.filter(contract_type=contract_type)
         if vendor_id:
-            queryset = queryset.filter(vendor_id=vendor_id)
+            qs = qs.filter(vendor_id=vendor_id)
+        if status:
+            qs = qs.filter(status=status)
             
         if search_query:
-            queryset = queryset.filter(
+            qs = qs.filter(
                 Q(title__icontains=search_query) | 
                 Q(vendor__name__icontains=search_query) |
                 Q(notes__icontains=search_query)
             )
             
-        return queryset
+        return qs
+
+    def get_paginate_by(self, queryset):
+        if self.request.GET.get('print') == '1':
+            return None
+        return self.paginate_by
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1793,30 +1808,16 @@ class ContractListView(LoginRequiredMixin, ListView):
         
         # KPIS
         today = timezone.now().date()
-        # Note: KPIs should reflect the filtered queryset OR global? Usually global for dashboard cards.
-        # Let's keep cards global (all contracts) to show overall health, 
-        # while the table shows filtered results.
+        base_qs = Contract.objects.filter(replaced_by__isnull=True)
         
-        context['total_value'] = Contract.objects.exclude(status='CANCELLED').aggregate(total=Sum('cost'))['total'] or 0
-        context['active_count'] = Contract.objects.filter(status='ACTIVE').count()
-        context['expiring_soon_count'] = Contract.objects.filter(
+        context['total_value'] = base_qs.exclude(status='CANCELLED').aggregate(total=Sum('cost'))['total'] or 0
+        context['active_count'] = base_qs.filter(status='ACTIVE').count()
+        context['expiring_soon_count'] = base_qs.filter(
             end_date__lte=today + timedelta(days=30),
             end_date__gte=today
         ).count()
         
         return context
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        status = self.request.GET.get('status')
-        type_ = self.request.GET.get('type')
-        
-        if status:
-            qs = qs.filter(status=status)
-        if type_:
-            qs = qs.filter(contract_type=type_)
-            
-        return qs
 
 class ContractDetailView(LoginRequiredMixin, DetailView):
     model = Contract
@@ -1825,8 +1826,7 @@ class ContractDetailView(LoginRequiredMixin, DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add logic here if we link contracts to assets directly (ManyToMany)
-        # For now, just basic details
+        context['history'] = self.object.get_history()
         return context
 
 class ContractCreateView(LoginRequiredMixin, CreateView):
@@ -1853,6 +1853,48 @@ class ContractDeleteView(LoginRequiredMixin, DeleteView):
     model = Contract
     template_name = 'assets/contract_confirm_delete.html'
     success_url = reverse_lazy('contract_list')
+
+class ContractRenewView(LoginRequiredMixin, CreateView):
+    model = Contract
+    form_class = ContractForm
+    template_name = 'assets/contract_form.html'
+    success_url = reverse_lazy('contract_list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        # Get old contract
+        old_contract = get_object_or_404(Contract, pk=self.kwargs['pk'])
+        # Pre-fill
+        initial['title'] = old_contract.title
+        initial['vendor'] = old_contract.vendor_id
+        initial['contract_type'] = old_contract.contract_type
+        initial['billing_cycle'] = old_contract.billing_cycle
+        initial['cost'] = old_contract.cost
+        initial['auto_renew'] = old_contract.auto_renew
+        initial['notify_days_before'] = old_contract.notify_days_before
+        initial['notes'] = old_contract.notes
+        return initial
+
+    def form_valid(self, form):
+        old_contract = get_object_or_404(Contract, pk=self.kwargs['pk'])
+        
+        # Overlap Prevention: Adjust end date of old contract if needed
+        if form.instance.start_date <= old_contract.end_date:
+            old_contract.end_date = form.instance.start_date - timedelta(days=1)
+            
+        # Update old contract status
+        old_contract.status = 'PAID'
+        old_contract.save()
+        
+        form.instance.previous_contract = old_contract
+        messages.success(self.request, f"Contract '{form.instance.title}' renewed successfully.")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_renewal'] = True
+        context['old_contract'] = get_object_or_404(Contract, pk=self.kwargs['pk'])
+        return context
 
 # -----------------------------------------------------------------------------
 # Location / Branch Command Center Views

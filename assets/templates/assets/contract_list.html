@@ -5,7 +5,7 @@
 {% block header_title %}Contracts & Licenses{% endblock %}
 
 {% block content %}
-<div class="row g-4 mb-4">
+<div class="row g-4 mb-4 d-print-none">
     <!-- Total Value -->
     <div class="col-12 col-md-4">
         <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
@@ -66,6 +66,7 @@
             <form method="get" id="filterForm" class="d-flex flex-wrap align-items-center gap-2 w-100 justify-content-lg-end">
                 <input type="hidden" name="type" id="filter_type" value="{{ request.GET.type }}">
                 <input type="hidden" name="vendor" id="filter_vendor" value="{{ request.GET.vendor }}">
+                <input type="hidden" name="status" id="filter_status" value="{{ request.GET.status }}">
                 
                 <!-- Type Dropdown -->
                 <div class="dropdown">
@@ -111,19 +112,40 @@
                     </ul>
                 </div>
 
+                <!-- Status Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 140px;">
+                        <span class="text-truncate fw-bold text-dark me-auto">
+                            {% if request.GET.status %}
+                                {{ request.GET.status|title }}
+                            {% else %}
+                                All Status
+                            {% endif %}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 300px; overflow-y: auto;">
+                        <li><a class="dropdown-item fw-bold {% if not request.GET.status %}active{% endif %}" href="#" onclick="setFilter('status', ''); return false;">All Status</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item {% if request.GET.status == 'ACTIVE' %}active{% endif %}" href="#" onclick="setFilter('status', 'ACTIVE'); return false;">Active</a></li>
+                        <li><a class="dropdown-item {% if request.GET.status == 'EXPIRED' %}active{% endif %}" href="#" onclick="setFilter('status', 'EXPIRED'); return false;">Expired</a></li>
+                        <li><a class="dropdown-item {% if request.GET.status == 'CANCELLED' %}active{% endif %}" href="#" onclick="setFilter('status', 'CANCELLED'); return false;">Cancelled</a></li>
+                    </ul>
+                </div>
+
                 <!-- Search -->
                 <div class="input-group input-group-sm" style="max-width: 200px; min-width: 150px;">
                     <span class="input-group-text bg-light border-0 rounded-pill-start ps-3"><i class="fas fa-search text-muted"></i></span>
                     <input type="text" name="q" class="form-control border-0 bg-light rounded-pill-end ps-1" placeholder="Search..." value="{{ request.GET.q }}">
                 </div>
 
-                {% if request.GET.type or request.GET.vendor or request.GET.q %}
+                {% if request.GET.type or request.GET.vendor or request.GET.status or request.GET.q %}
                     <a href="{% url 'contract_list' %}" class="btn btn-sm btn-light text-danger border shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Clear Filters"><i class="fas fa-times"></i></a>
                 {% endif %}
 
                 <div class="border-start mx-1 h-50 d-none d-lg-block" style="height: 20px;"></div>
 
-                <a href="{% url 'contract_create' %}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm text-nowrap"><i class="fas fa-plus me-1"></i> New Contract</a>
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm text-nowrap d-print-none" onclick="openPrintView()"><i class="fas fa-print me-1"></i> Print</button>
+                <a href="{% url 'contract_create' %}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm text-nowrap d-print-none"><i class="fas fa-plus me-1"></i> New Contract</a>
             </form>
             
             <script>
@@ -131,10 +153,47 @@
                     document.getElementById('filter_' + name).value = val;
                     document.getElementById('filterForm').submit();
                 }
+                function openPrintView() {
+                    let url = new URL(window.location.href);
+                    url.searchParams.set('print', '1');
+                    window.open(url.toString(), '_blank');
+                }
+                
+                // Auto-print if print=1
+                window.addEventListener('load', function() {
+                    const params = new URLSearchParams(window.location.search);
+                    if (params.get('print') === '1') {
+                        setTimeout(() => window.print(), 500);
+                    }
+                });
             </script>
         </div>
     </div>
     <div class="card-body p-0">
+        <style>
+            @media print {
+                body { background: white !important; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+                nav, header, aside, footer, .sidebar, .navbar, .nav-tabs, .breadcrumb { display: none !important; }
+                .d-print-none { display: none !important; }
+                
+                /* Hide chat widget or floating buttons if any */
+                [id*="chat"], .chat-widget, .fixed-bottom, .fab, button[style*="fixed"] { display: none !important; }
+                
+                .card { border: none !important; box-shadow: none !important; margin: 0 !important; }
+                .card-header, .card-body { padding: 0 !important; }
+                .badge { border: 1px solid #000; color: #000 !important; background: transparent !important; padding: 2px 4px !important; font-size: 11px !important; }
+                
+                .table { margin-top: 20px; width: 100% !important; border-collapse: collapse !important; }
+                .table th, .table td { border: 1px solid #ccc !important; padding: 6px !important; color: #000 !important; font-size: 12px !important; }
+                .table th { background-color: #f5f5f5 !important; font-weight: bold !important; text-transform: uppercase; font-size: 11px !important; }
+                
+                /* Hide the card header title if we want a cleaner list */
+                .card-header h5 { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+                
+                @page { margin: 0; size: landscape; }
+                body { padding: 1.5cm; box-sizing: border-box; }
+            }
+        </style>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light">
@@ -144,14 +203,14 @@
                         <th>Duration</th>
                         <th>Cost (IDR)</th>
                         <th>Status</th>
-                        <th class="text-end pe-4">Actions</th>
+                        <th class="text-end pe-4 d-print-none">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for contract in contracts %}
                     <tr>
                         <td class="ps-3">
-                            <div class="fw-bold text-dark">{{ contract.title }}</div>
+                            <a href="{% url 'contract_detail' contract.pk %}" class="fw-bold text-dark text-decoration-none">{{ contract.title }}</a>
                             <div class="small text-muted mb-1"><i class="fas fa-building me-1"></i>{{ contract.vendor.name }}</div>
                             <!-- Service Details -->
                             <div class="d-flex flex-wrap gap-2">
@@ -190,17 +249,22 @@
                                 <span class="badge bg-warning text-dark">Expiring Soon</span>
                             {% elif contract.status == 'CANCELLED' %}
                                 <span class="badge bg-secondary">Cancelled</span>
+                            {% elif contract.status == 'PAID' %}
+                                <span class="badge bg-info text-dark">Paid / Replaced</span>
                             {% else %}
                                 <span class="badge bg-success">Active</span>
                             {% endif %}
                         </td>
-                        <td class="text-end pe-4">
+                        <td class="text-end pe-4 d-print-none">
                             <div class="d-flex justify-content-end gap-2">
                                 {% if contract.document %}
                                 <a href="{{ contract.document.url }}" class="btn btn-light btn-sm btn-icon-only text-primary" target="_blank" title="Download Document">
                                     <i class="fas fa-file-download"></i>
                                 </a>
                                 {% endif %}
+                                <a href="{% url 'contract_renew' contract.pk %}" class="btn btn-light btn-sm btn-icon-only text-success" title="Renew Contract">
+                                    <i class="fas fa-sync-alt"></i>
+                                </a>
                                 <a href="{% url 'contract_detail' contract.pk %}" class="btn btn-light btn-sm btn-icon-only" title="View Details">
                                     <i class="fas fa-eye"></i>
                                 </a>
@@ -221,6 +285,38 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="px-3 py-3 border-top d-flex justify-content-between align-items-center d-print-none">
+            <div class="small text-muted">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} entries
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm m-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.vendor %}&vendor={{ request.GET.vendor }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Previous</a></li>
+                    {% else %}
+                    <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
+                    {% endif %}
+                    
+                    {% for i in paginator.page_range %}
+                        {% if page_obj.number == i %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.vendor %}&vendor={{ request.GET.vendor }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.vendor %}&vendor={{ request.GET.vendor }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Next</a></li>
+                    {% else %}
+                    <li class="page-item disabled"><a class="page-link" href="#">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

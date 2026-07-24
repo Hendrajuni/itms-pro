@@ -9,15 +9,73 @@
         <div class="card shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="m-0 fw-bold">{{ contract.title }}</h5>
-                {% if contract.status == 'ACTIVE' %}
-                    <span class="badge bg-success">Active</span>
-                {% elif contract.status == 'EXPIRED' %}
-                    <span class="badge bg-danger">Expired</span>
-                {% else %}
-                    <span class="badge bg-secondary">{{ contract.status }}</span>
-                {% endif %}
+                <div class="d-flex align-items-center gap-3">
+                    {% if contract.status == 'ACTIVE' %}
+                        <span class="badge bg-success">Active</span>
+                    {% elif contract.status == 'EXPIRED' %}
+                        <span class="badge bg-danger">Expired</span>
+                    {% elif contract.status == 'PAID' %}
+                        <span class="badge bg-info text-dark">Paid / Replaced</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ contract.status }}</span>
+                    {% endif %}
+
+                    {% if not contract.replaced_by %}
+                    <a href="{% url 'contract_renew' contract.pk %}" class="btn btn-sm btn-success d-print-none">
+                        <i class="fas fa-sync-alt me-1"></i>Renew
+                    </a>
+                    {% endif %}
+                    
+                    {% if contract.document %}
+                    <a href="{{ contract.document.url }}" class="btn btn-sm btn-outline-primary d-print-none" target="_blank">
+                        <i class="fas fa-download me-1"></i>Document
+                    </a>
+                    {% endif %}
+                    
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-print-none" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
             </div>
             <div class="card-body">
+                <style>
+                    @media print {
+                        body { background: white !important; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+                        nav, header, aside, footer, .sidebar, .navbar, .nav-tabs, .breadcrumb { display: none !important; }
+                        .d-print-none { display: none !important; }
+                        
+                        /* Hide chat widget or floating buttons if any */
+                        [id*="chat"], .chat-widget, .fixed-bottom, .fab, button[style*="fixed"] { display: none !important; }
+                        
+                        /* ATS Report Styling */
+                        .card { border: none !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; }
+                        .card-header { background: white !important; padding: 0 0 15px 0 !important; border-bottom: 2px solid #222 !important; margin-bottom: 25px !important; }
+                        .card-header h5 { font-size: 24px !important; color: #000 !important; font-weight: bold !important; text-transform: uppercase; letter-spacing: 1px; }
+                        
+                        .card-body { padding: 0 !important; }
+                        .text-muted { color: #555 !important; }
+                        .bg-light { background: transparent !important; border: 1px solid #ddd !important; }
+                        
+                        h6 { font-size: 16px !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding-bottom: 5px !important; margin-top: 30px !important; }
+                        
+                        .badge { border: 1px solid #000 !important; color: #000 !important; background: transparent !important; padding: 4px 8px !important; font-size: 12px !important; font-weight: bold; border-radius: 4px !important; }
+                        
+                        .table-responsive { max-height: none !important; overflow: visible !important; }
+                        .table { width: 100% !important; border-collapse: collapse !important; margin-bottom: 0 !important; }
+                        .table th, .table td { border: 1px solid #ccc !important; padding: 8px !important; color: #000 !important; font-size: 13px !important; }
+                        .table th { background-color: #f5f5f5 !important; font-weight: bold !important; }
+                        
+                        /* Layout adjustments for ATS */
+                        .row { display: flex !important; flex-wrap: wrap !important; width: 100% !important; }
+                        .col-md-6 { width: 50% !important; flex: 0 0 50% !important; max-width: 50% !important; }
+                        
+                        p.fs-5 { font-size: 16px !important; color: #000 !important; }
+                        p.fs-4 { font-size: 18px !important; color: #000 !important; }
+                        
+                        @page { margin: 0; }
+                        body { padding: 2cm; box-sizing: border-box; }
+                    }
+                </style>
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <small class="text-uppercase text-muted fw-bold">Vendor</small>
@@ -50,15 +108,62 @@
                 </div>
                 {% endif %}
 
-                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                {% if history %}
+                <div class="mb-4 mt-4">
+                    <h6 class="text-uppercase text-muted fw-bold mb-3 border-bottom pb-2">Contract History</h6>
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-hover border">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Cost</th>
+                                    <th>Status</th>
+                                    <th class="d-print-none">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for past in history %}
+                                <tr>
+                                    <td>{{ past.start_date|date:"d M Y" }}</td>
+                                    <td>{{ past.end_date|date:"d M Y" }}</td>
+                                    <td>Rp {{ past.cost|intcomma }}</td>
+                                    <td>
+                                        {% if past.status == 'ACTIVE' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% elif past.status == 'EXPIRED' %}
+                                            <span class="badge bg-danger">Expired</span>
+                                        {% elif past.status == 'PAID' %}
+                                            <span class="badge bg-info text-dark">Paid / Replaced</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ past.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="d-print-none">
+                                        <div class="d-flex gap-2">
+                                            <a href="{% url 'contract_detail' past.pk %}" class="btn btn-sm btn-light" title="Lihat Detail Kontrak Ini">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if past.document %}
+                                            <a href="{{ past.document.url }}" class="btn btn-sm btn-light text-primary" target="_blank" title="Unduh Dokumen">
+                                                <i class="fas fa-file-download"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top d-print-none">
                     <a href="{% url 'contract_list' %}" class="btn btn-outline-secondary">Back to List</a>
-                    {% if contract.document %}
-                    <a href="{{ contract.document.url }}" class="btn btn-primary" target="_blank">
-                        <i class="fas fa-download me-2"></i>Download Contract
-                    </a>
-                    {% else %}
-                    <button class="btn btn-light" disabled>No Document</button>
-                    {% endif %}
+                    <div>
+                        <!-- Actions moved to top header -->
+                    </div>
                 </div>
             </div>
         </div>

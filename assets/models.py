@@ -205,16 +205,16 @@ class Asset(models.Model):
         
         parts = []
         if years > 0:
-            parts.append(f"{years} Year{'s' if years != 1 else ''}")
+            parts.append(f"{years} Thn")
         if months > 0:
-            parts.append(f"{months} Month{'s' if months != 1 else ''}")
+            parts.append(f"{months} Bln")
             
         if not parts:
             if delta_days < 30:
-                return f"{delta_days} Days"
-            return "0 Months"
+                return f"{delta_days} Hari"
+            return "0 Bln"
             
-        return ", ".join(parts)
+        return " ".join(parts)
 
     def get_total_maintenance_cost(self):
         # Using default reverse relation name since we haven't confirmed related_name yet.
@@ -738,6 +738,7 @@ class Contract(models.Model):
         ('ACTIVE', 'Active'),
         ('EXPIRED', 'Expired'),
         ('CANCELLED', 'Cancelled'),
+        ('PAID', 'Paid / Replaced'),
     ]
 
     title = models.CharField(max_length=200, help_text="e.g. Microsoft 365 Renewal 2026")
@@ -761,8 +762,19 @@ class Contract(models.Model):
     
     notify_days_before = models.IntegerField(default=30, help_text="Days before expiry to trigger alert")
     
+    previous_contract = models.OneToOneField('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='replaced_by', help_text="The previous contract that this one renews/replaces")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def get_history(self):
+        """Returns a list of previous contracts in chronological order (newest to oldest)."""
+        history = []
+        current = self.previous_contract
+        while current:
+            history.append(current)
+            current = current.previous_contract
+        return history
 
     def save(self, *args, **kwargs):
         # Auto-update status based on date
