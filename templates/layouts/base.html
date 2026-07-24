@@ -56,12 +56,152 @@
         </div>
     </div>
 
-    <!-- Mobile FAB for Scanning (Only Visible on Mobile) -->
-    <a href="{% url 'asset_scanner' %}" class="btn btn-primary rounded-circle shadow-lg d-flex d-md-none" 
-       title="Scan QR Code"
-       style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; align-items: center; justify-content: center; z-index: 1000; padding: 0 !important; line-height: 1 !important;">
-        <i class="fas fa-qrcode fa-xl" style="font-size: 28px;"></i>
-    </a>
+    <!-- Global Speed Dial FAB -->
+    <style>
+        .speed-dial-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .sd-btn-main {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--bs-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s ease;
+            border: none;
+            outline: none;
+        }
+
+        .sd-btn-main:hover {
+            transform: scale(1.05);
+        }
+
+        .speed-dial-container.active .sd-btn-main {
+            background-color: var(--bs-danger);
+            transform: rotate(135deg);
+        }
+
+        .sd-menu {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 12px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px) scale(0.8);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+
+        .speed-dial-container.active .sd-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .sd-item {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: white;
+            color: var(--bs-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+            text-decoration: none;
+            position: relative;
+        }
+
+        .sd-item:hover {
+            transform: scale(1.1);
+            background-color: var(--bs-primary);
+            color: white;
+        }
+
+        /* Tooltip */
+        .sd-item::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            right: 60px;
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(10px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+
+        .sd-item:hover::before {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+        
+        /* Mobile specific adjustments */
+        @media (max-width: 576px) {
+            .sd-item::before {
+                display: block; /* keep tooltips on mobile if tapped, though hover is tricky */
+            }
+        }
+    </style>
+
+    <div class="speed-dial-container" id="globalSpeedDial">
+        <button class="sd-btn-main" onclick="document.getElementById('globalSpeedDial').classList.toggle('active')">
+            <i class="fas fa-plus"></i>
+        </button>
+        
+        <div class="sd-menu">
+            <!-- AI Chat -->
+            <a href="#" class="sd-item text-primary" data-tooltip="AI Assistant" onclick="event.preventDefault(); document.getElementById('globalSpeedDial').classList.remove('active'); window.toggleChatWindow && window.toggleChatWindow();">
+                <i class="fas fa-robot"></i>
+            </a>
+            
+            <!-- Scan QR -->
+            <a href="{% url 'asset_scanner' %}" class="sd-item text-success" data-tooltip="Scan QR Code">
+                <i class="fas fa-qrcode"></i>
+            </a>
+            
+            <!-- Add Asset -->
+            <a href="{% url 'asset_create' %}" class="sd-item text-warning" data-tooltip="Add New Asset">
+                <i class="fas fa-box-open"></i>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Script to close speed dial when clicking outside -->
+    <script>
+        document.addEventListener('click', function(event) {
+            const sdContainer = document.getElementById('globalSpeedDial');
+            if (sdContainer && sdContainer.classList.contains('active') && !sdContainer.contains(event.target)) {
+                sdContainer.classList.remove('active');
+            }
+        });
+    </script>
 
     <!-- GLOBAL SIDE TAB NOTEPAD -->
     <button class="btn btn-warning shadow-lg d-flex align-items-center justify-content-center p-0" 

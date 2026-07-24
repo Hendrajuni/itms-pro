@@ -158,9 +158,7 @@
         </div>
     </div>
     
-    <div id="ai-chat-button" onclick="toggleChatWindow()">
-        <i class="fas fa-comment-dots"></i>
-    </div>
+    <!-- Chat button removed in favor of global Speed Dial in base.html -->
 </div>
 
 <script>
@@ -174,7 +172,8 @@
     
     let isChatOpen = false;
 
-    function toggleChatWindow() {
+    // Make toggleChatWindow globally accessible for the Speed Dial
+    window.toggleChatWindow = function() {
         isChatOpen = !isChatOpen;
         if (isChatOpen) {
             chatWindow.style.display = 'flex';
@@ -183,7 +182,7 @@
         } else {
             chatWindow.style.display = 'none';
         }
-    }
+    };
 
     closeBtn.addEventListener('click', () => {
         isChatOpen = false;
