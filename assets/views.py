@@ -2116,19 +2116,18 @@ class CategoryDeleteView(LoginRequiredMixin, DeleteView):
             return redirect('category_list')
         messages.success(request, "Category deleted successfully.")
         return super().delete(request, *args, **kwargs)
- 
- f r o m   d j a n g o . s h o r t c u t s   i m p o r t   r e d i r e c t ,   g e t _ o b j e c t _ o r _ 4 0 4  
- f r o m   d j a n g o . c o n t r i b   i m p o r t   m e s s a g e s  
- f r o m   d j a n g o . v i e w s   i m p o r t   V i e w  
-  
- c l a s s   A s s e t R e s o l v e C o d e V i e w ( L o g i n R e q u i r e d M i x i n ,   V i e w ) :  
-         d e f   g e t ( s e l f ,   r e q u e s t ,   * a r g s ,   * * k w a r g s ) :  
-                 c o d e   =   r e q u e s t . G E T . g e t ( ' c o d e ' ,   ' ' ) . s t r i p ( )  
-                 i f   c o d e :  
-                         a s s e t   =   A s s e t . o b j e c t s . f i l t e r ( a s s e t _ c o d e = c o d e ) . f i r s t ( )  
-                         i f   a s s e t :  
-                                 r e t u r n   r e d i r e c t ( ' a s s e t _ d e t a i l ' ,   p k = a s s e t . p k )  
-                 m e s s a g e s . e r r o r ( r e q u e s t ,   f ' A s s e t   d e n g a n   k o d e   { c o d e }   t i d a k   d i t e m u k a n . ' )  
-                 r e t u r n   r e d i r e c t ( ' a s s e t _ s c a n n e r ' )  
-  
- 
+
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib import messages
+from django.views import View
+
+class AssetResolveCodeView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        code = request.GET.get('code', '').strip()
+        if code:
+            asset = Asset.objects.filter(asset_code=code).first()
+            if asset:
+                return redirect('asset_detail', pk=asset.pk)
+        messages.error(request, f'Asset dengan kode {code} tidak ditemukan.')
+        return redirect('asset_scanner')
+
