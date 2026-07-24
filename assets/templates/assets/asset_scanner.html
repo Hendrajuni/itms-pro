@@ -35,24 +35,24 @@
                 // Handle the scanned code
                 console.log(`Scan result: ${decodedText}`, decodedResult);
                 
-                // Check if URL belongs to this domain/app
-                // Simple check for /assets/ pattern
-                if (decodedText.includes('/assets/')) {
+                // The QR code contains just the asset code (e.g., PMG-0045/2026/IT)
+                // Let's send it to our resolver view instead of directly redirecting to a URL
+                if (decodedText.length > 3) {
                     // Success feedback
                     document.getElementById('scan-result').classList.remove('d-none');
-                    document.getElementById('result-text').innerText = "Redirecting...";
+                    document.getElementById('result-text').innerText = "Mencari Aset...";
                     
                     // Stop scanning
                     html5QrcodeScanner.clear().then(_ => {
                          // Redirect
-                         window.location.href = decodedText;
+                         window.location.href = "{% url 'asset_resolve_code' %}?code=" + encodeURIComponent(decodedText);
                     }).catch(error => {
                         console.error("Failed to clear scanner", error);
-                        window.location.href = decodedText; // Redirect anyway
+                        window.location.href = "{% url 'asset_resolve_code' %}?code=" + encodeURIComponent(decodedText);
                     });
                     
                 } else {
-                    alert("Invalid ITMS QR Code! Scanned: " + decodedText);
+                    alert("Invalid QR Code! Scanned: " + decodedText);
                 }
             }
             

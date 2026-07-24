@@ -779,7 +779,7 @@ class Contract(models.Model):
     def save(self, *args, **kwargs):
         # Auto-update status based on date
         today = date.today()
-        if self.status != 'CANCELLED':
+        if self.status not in ['CANCELLED', 'PAID']:
             if self.end_date < today:
                 self.status = 'EXPIRED'
             else:
