@@ -3,6 +3,9 @@ services:
   web:
     build: .
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
