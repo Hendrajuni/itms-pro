@@ -89,12 +89,12 @@
         }
     </style>
 </head>
-<body onload="window.print()">
-
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <div class="action-bar no-print">
+    <button onclick="downloadPDF()" class="action-btn" style="background: #e1306c;">📄 Download PDF</button>
     <button onclick="window.print()" class="action-btn print">🖨️ Print</button>
-    <a href="#" onclick="shareWA(); return false;" class="action-btn wa">💬 WhatsApp</a>
-    <a href="#" onclick="shareEmail(); return false;" class="action-btn email">📧 Email</a>
+    <a href="#" onclick="shareWA(); return false;" class="action-btn wa">💬 WA Link</a>
     <button onclick="copyLink()" class="action-btn">🔗 Copy Link</button>
 </div>
 
@@ -102,21 +102,34 @@
     const currentUrl = window.location.href;
     const shareText = `Lihat Laporan Aset: {{ asset.name }} ({{ asset.asset_code }})\n\n`;
 
+    function downloadPDF() {
+        const element = document.querySelector('.container');
+        const opt = {
+            margin:       10,
+            filename:     `Laporan_Aset_{{ asset.asset_code }}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        // Hide action bar during generation just in case
+        document.querySelector('.action-bar').style.display = 'none';
+        
+        html2pdf().set(opt).from(element).save().then(() => {
+            document.querySelector('.action-bar').style.display = 'flex';
+            alert('PDF berhasil diunduh! Silakan seret (drag-and-drop) file PDF tersebut ke WhatsApp Anda.');
+        });
+    }
+
     function shareWA() {
         const url = `https://wa.me/?text=${encodeURIComponent(shareText + currentUrl)}`;
         window.open(url, '_blank');
-    }
-
-    function shareEmail() {
-        const url = `mailto:?subject=${encodeURIComponent('Laporan Aset: ' + '{{ asset.name|escapejs }}')}&body=${encodeURIComponent(shareText + currentUrl)}`;
-        window.location.href = url;
     }
 
     function copyLink() {
         navigator.clipboard.writeText(currentUrl).then(() => {
             alert('Tautan berhasil disalin ke clipboard!');
         }).catch(err => {
-            console.error('Gagal menyalin tautan:', err);
             prompt('Salin tautan ini secara manual:', currentUrl);
         });
     }
