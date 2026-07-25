@@ -81,7 +81,7 @@ class LoginRequiredMiddleware:
                 return self.get_response(request)
                 
         # Check dynamic exempt paths (like public asset reports)
-        if path.startswith('/assets/') and path.endswith('/print/'):
+        if path.startswith('/assets/print/'):
             return self.get_response(request)
         
         # Not authenticated and not exempt -> redirect to login
