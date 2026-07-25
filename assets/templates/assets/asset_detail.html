@@ -17,7 +17,7 @@
         
         {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
         {% if is_enterprise %}
-        <a href="{% url 'asset_detail_print' asset.pk %}" target="_blank" class="btn btn-outline-dark me-2">
+        <a href="{% url 'asset_detail_print' asset.get_print_token %}" target="_blank" class="btn btn-outline-dark me-2">
             <i class="fas fa-print me-1"></i> Print Report
         </a>
         {% endif %}

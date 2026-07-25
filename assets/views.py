@@ -575,6 +575,16 @@ class AssetDetailPrintView(DetailView):
     template_name = 'assets/asset_print_detail.html'
     context_object_name = 'asset'
 
+    def get_object(self, queryset=None):
+        from django.core import signing
+        from django.http import Http404
+        token = self.kwargs.get('token')
+        try:
+            pk = signing.loads(token)
+            return Asset.objects.get(pk=pk)
+        except (signing.BadSignature, Asset.DoesNotExist):
+            raise Http404("Invalid or expired print link.")
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Populate context similar to detail view for report

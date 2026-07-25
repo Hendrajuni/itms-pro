@@ -164,6 +164,10 @@ class Asset(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_print_token(self):
+        from django.core import signing
+        return signing.dumps(self.pk)
+
     def get_current_value(self):
         """
         Calculates Straight-Line Depreciation.
