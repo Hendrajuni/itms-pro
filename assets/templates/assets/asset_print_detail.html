@@ -105,21 +105,19 @@
     function downloadPDF() {
         const element = document.querySelector('.container');
         
-        // Simpan style asli agar tampilan tidak rusak setelah download
-        const originalWidth = element.style.width;
-        const originalMaxWidth = element.style.maxWidth;
-        const originalMargin = element.style.margin;
+        // Simpan style body asli
+        const originalBodyWidth = document.body.style.width;
         
-        // Paksa lebar menjadi 800px agar PDF selalu proporsional dan tidak ada margin kanan yang kosong
-        element.style.width = '800px';
-        element.style.maxWidth = 'none';
-        element.style.margin = '0';
+        // Paksa lebar body menjadi 800px agar html2canvas tidak menangkap ruang putih berlebih (margin kanan besar)
+        // dan tidak memotong gambar jika layar aslinya kecil
+        document.body.style.width = '800px';
         
         const opt = {
             margin:       10,
             filename:     `Laporan_Aset_{{ asset.asset_code }}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, width: 800 },
+            // Gunakan virtual windowWidth 800px agar tidak terpotong (clipping) di layar kecil
+            html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         
@@ -128,12 +126,10 @@
         
         html2pdf().set(opt).from(element).save().then(() => {
             // Kembalikan ke style semula
-            element.style.width = originalWidth;
-            element.style.maxWidth = originalMaxWidth;
-            element.style.margin = originalMargin;
+            document.body.style.width = originalBodyWidth;
             
             document.querySelector('.action-bar').style.display = 'flex';
-            alert('PDF berhasil diunduh! Silakan seret (drag-and-drop) file PDF tersebut ke WhatsApp Anda.');
+            alert('PDF berhasil diunduh dengan rapi! Silakan seret (drag-and-drop) file PDF tersebut ke WhatsApp Anda.');
         });
     }
 
