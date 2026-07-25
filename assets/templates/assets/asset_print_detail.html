@@ -37,10 +37,90 @@
             body { padding: 0; background: white; }
             .container { border: none; padding: 0; }
             @page { margin: 15mm; }
+            .no-print { display: none !important; }
+        }
+
+        /* Action Bar */
+        .action-bar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .action-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+        }
+        .action-btn.wa { background: #25D366; }
+        .action-btn.wa:hover { background: #128C7E; }
+        .action-btn.email { background: #ea4335; }
+        .action-btn.email:hover { background: #c5221f; }
+        .action-btn.print { background: #333; }
+        .action-btn.print:hover { background: #000; }
+        
+        @media screen and (max-width: 600px) {
+            .action-bar {
+                top: auto;
+                bottom: 20px;
+                right: 50%;
+                transform: translateX(50%);
+                flex-wrap: wrap;
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body onload="window.print()">
+
+<div class="action-bar no-print">
+    <button onclick="window.print()" class="action-btn print">🖨️ Print</button>
+    <a href="#" onclick="shareWA(); return false;" class="action-btn wa">💬 WhatsApp</a>
+    <a href="#" onclick="shareEmail(); return false;" class="action-btn email">📧 Email</a>
+    <button onclick="copyLink()" class="action-btn">🔗 Copy Link</button>
+</div>
+
+<script>
+    const currentUrl = window.location.href;
+    const shareText = `Lihat Laporan Aset: {{ asset.name }} ({{ asset.asset_code }})\n\n`;
+
+    function shareWA() {
+        const url = `https://wa.me/?text=${encodeURIComponent(shareText + currentUrl)}`;
+        window.open(url, '_blank');
+    }
+
+    function shareEmail() {
+        const url = `mailto:?subject=${encodeURIComponent('Laporan Aset: ' + '{{ asset.name|escapejs }}')}&body=${encodeURIComponent(shareText + currentUrl)}`;
+        window.location.href = url;
+    }
+
+    function copyLink() {
+        navigator.clipboard.writeText(currentUrl).then(() => {
+            alert('Tautan berhasil disalin ke clipboard!');
+        }).catch(err => {
+            console.error('Gagal menyalin tautan:', err);
+            prompt('Salin tautan ini secara manual:', currentUrl);
+        });
+    }
+</script>
 
 <div class="container">
     <div class="header">
