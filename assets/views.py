@@ -570,7 +570,7 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
         
         return context
 
-class AssetDetailPrintView(LoginRequiredMixin, DetailView):
+class AssetDetailPrintView(DetailView):
     model = Asset
     template_name = 'assets/asset_print_detail.html'
     context_object_name = 'asset'
