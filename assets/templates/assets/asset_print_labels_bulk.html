@@ -41,19 +41,8 @@
             @page { margin: 0; }
         }
 
-        .cut-guide {
-            /* Panduan potong / Cutting marks */
-            border: 1px dashed #888;
-            padding: 2px; /* Dikurangi agar tidak memakan ruang teks */
-            display: flex;
-            flex-direction: column;
-            background: #fff;
-            box-sizing: border-box;
-            height: 100%;
-        }
-
         .label-container {
-            border: 2px solid #000; /* Solid black border */
+            border: 1px solid #ddd;
             border-radius: 4px; /* Soft corners */
             box-sizing: border-box;
             display: flex;
@@ -62,13 +51,12 @@
             overflow: hidden;
             background: #fff;
             position: relative;
-            flex: 1;
         }
 
         /* Top Accent Bar */
         .header-bar {
             height: 4px;
-            background: #000; /* Solid Black */
+            background: #2c3e50; /* Primary Dark Blue */
             width: 100%;
         }
 
@@ -114,19 +102,19 @@
             line-height: 1.2;
             margin-bottom: 4px;
             font-weight: 500;
-            color: #000;
+            color: #333;
         }
 
         .meta-row {
             font-size: 9px;
-            color: #000;
+            color: #555;
             display: flex;
             margin-bottom: 1px;
         }
         
         .meta-label {
             width: 35px;
-            color: #000;
+            color: #888;
             font-weight: 500;
         }
 
@@ -147,11 +135,11 @@
 
         .footer {
             background: #f8f9fa;
-            border-top: 1px solid #000;
+            border-top: 1px solid #eee;
             padding: 3px 0;
             text-align: center;
             font-size: 7px;
-            color: #000;
+            color: #7f8c8d;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -160,7 +148,7 @@
         .brand-tag {
             font-size: 8px;
             font-weight: 700;
-            color: #000;
+            color: #2c3e50;
             text-transform: uppercase;
             margin-bottom: 2px;
         }
@@ -171,39 +159,37 @@
     {% for chunk in chunks %}
     <div class="page">
         {% for asset in chunk %}
-        <div class="cut-guide">
-            <div class="label-container">
-                <div class="header-bar"></div>
-                <div class="main-body">
-                    <div class="qr-section">
-                        {% if asset.qr_code_image %}
-                        <img src="{{ asset.qr_code_image.url }}" alt="QR">
-                        {% else %}
-                        <div style="background:#eee;width:100%;height:100%;"></div>
-                        {% endif %}
-                    </div>
-                    <div class="info-section">
-                        <div class="brand-tag">PT. PMG - PROPERTY</div>
-                        <div class="asset-code">{{ asset.asset_code }}</div>
-                        <div class="asset-name">{{ asset.name|truncatechars:22 }}</div>
-                        
-                        <div class="meta-row">
-                            <span class="meta-label">LOC</span>
-                            <span>{{ asset.location.name|default:"-"|truncatechars:18 }}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-label">USR</span>
-                            <span>{{ asset.assigned_to.username|default:"N/A"|truncatechars:12 }}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-label">DATE</span>
-                            <span>{{ asset.purchase_date|date:"d M Y"|default:"-" }}</span>
-                        </div>
-                    </div>
-                    <!-- Watermark Text via CSS or Element -->
+        <div class="label-container">
+            <div class="header-bar"></div>
+            <div class="main-body">
+                <div class="qr-section">
+                    {% if asset.qr_code_image %}
+                    <img src="{{ asset.qr_code_image.url }}" alt="QR">
+                    {% else %}
+                    <div style="background:#eee;width:100%;height:100%;"></div>
+                    {% endif %}
                 </div>
-                <div class="footer">RETURN TO IT DEPT IF FOUND</div>
+                <div class="info-section">
+                    <div class="brand-tag">PT. PMG - PROPERTY</div>
+                    <div class="asset-code">{{ asset.asset_code }}</div>
+                    <div class="asset-name">{{ asset.name|truncatechars:22 }}</div>
+                    
+                    <div class="meta-row">
+                        <span class="meta-label">LOC</span>
+                        <span>{{ asset.location.name|default:"-"|truncatechars:18 }}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">USR</span>
+                        <span>{{ asset.assigned_to.username|default:"N/A"|truncatechars:12 }}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">DATE</span>
+                        <span>{{ asset.purchase_date|date:"d M Y"|default:"-" }}</span>
+                    </div>
+                </div>
+                <!-- Watermark Text via CSS or Element -->
             </div>
+            <div class="footer">RETURN TO IT DEPT IF FOUND</div>
         </div>
         {% endfor %}
     </div>

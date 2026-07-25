@@ -22,11 +22,11 @@
             .label-container {
                 width: 400px; /* Approx 10.5cm */
                 height: 220px; /* Approx 5.8cm */
-                border: 2px solid #000; /* Solid black border */
+                border: 2px solid #2c3e50; /* Thicker border */
             }
-            .header-bar { height: 6px; background: #000; }
-            .asset-code { font-size: 19px; }
-            .asset-name { font-size: 15px; font-weight: bold; color: #000; }
+            .header-bar { height: 6px; background: #c0392b; /* distinct color? or stick to blue? User said "Special". Let's stick to blue but thicker. */ background: #2c3e50; }
+            .asset-code { font-size: 18px; }
+            .asset-name { font-size: 14px; font-weight: bold; }
             .qr-section { width: 100px; height: 100px; }
             .special-info { display: block; }
         {% else %}
@@ -34,24 +34,15 @@
             .label-container {
                 width: 320px; /* Approx 8.5cm */
                 height: 150px; /* Approx 4cm */
-                border: 2px solid #000; /* Solid black border */
+                border: 1px solid #ddd;
             }
-            .header-bar { height: 5px; background: #000; }
-            .asset-code { font-size: 14px; }
-            .asset-name { font-size: 12px; font-weight: bold; color: #000; }
+            .header-bar { height: 4px; background: #2c3e50; }
+            .asset-code { font-size: 13px; }
+            .asset-name { font-size: 11px; }
             .qr-section { width: 85px; height: 85px; }
             .special-info { display: none; }
         {% endif %}
         {% endwith %}
-
-        .cut-guide {
-            /* Panduan potong / Cutting marks */
-            border: 1px dashed #888;
-            padding: 2px; /* Jarak antara garis potong dan label */
-            display: inline-block;
-            background: #fff;
-            margin: 10px;
-        }
 
         .label-container {
             border-radius: 4px;
@@ -61,6 +52,7 @@
             overflow: hidden;
             background: #fff;
             position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         @media print {
@@ -68,9 +60,6 @@
                 background: white; 
                 padding: 0; 
                 display: block; 
-            }
-            .cut-guide {
-                margin: 0; /* Hindari margin lebih saat diprint agar pas di kertas */
             }
             .label-container {
                 box-shadow: none;
@@ -117,28 +106,29 @@
         .asset-name {
             line-height: 1.2;
             margin-bottom: 5px;
+            color: #333;
         }
 
         .meta-row {
             font-size: 10px;
-            color: #000;
+            color: #555;
             display: flex;
             margin-bottom: 2px;
         }
         
         .meta-label {
             width: 45px;
-            color: #000;
+            color: #888;
             font-weight: 500;
         }
 
         .footer {
             background: #f8f9fa;
-            border-top: 1px solid #000;
+            border-top: 1px solid #eee;
             padding: 4px 0;
             text-align: center;
             font-size: 9px;
-            color: #000;
+            color: #7f8c8d;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -146,15 +136,13 @@
         .brand-tag {
             font-size: 9px;
             font-weight: 700;
-            color: #000;
+            color: #2c3e50;
             text-transform: uppercase;
             margin-bottom: 4px;
         }
     </style>
 </head>
-<body onload="window.print()">
-    <!-- Wrapper pemotong -->
-    <div class="cut-guide">
+<body onload="//window.print()">
     <div class="label-container">
         <div class="header-bar"></div>
         <div class="main-body">
@@ -201,7 +189,6 @@
             </div>
         </div>
         <div class="footer">RETURN TO IT DEPT IF FOUND</div>
-    </div>
     </div>
 </body>
 </html>
