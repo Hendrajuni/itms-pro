@@ -1,7 +1,9 @@
 services:
   # 1. APLIKASI DJANGO
   web:
-    build: .
+    build:
+      context: .
+      network: host
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
     dns:
       - 8.8.8.8
