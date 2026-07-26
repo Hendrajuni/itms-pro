@@ -1766,7 +1766,33 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         # Maintenance History
         context['maintenance_history'] = InfraMaintenance.objects.filter(infrastructure=self.object).order_by('-scheduled_date')
+        # Available assets for quick linking
+        context['unlinked_assets'] = Asset.objects.filter(infrastructure__isnull=True).order_by('name')
         return context
+
+class InfrastructureLinkAssetView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        infrastructure = get_object_or_404(Infrastructure, pk=pk)
+        action = request.POST.get('action')
+        asset_id = request.POST.get('asset_id')
+        
+        if not asset_id:
+            messages.error(request, "No asset selected.")
+            return redirect('infra_detail', pk=pk)
+            
+        asset = get_object_or_404(Asset, pk=asset_id)
+        
+        if action == 'link':
+            asset.infrastructure = infrastructure
+            asset.save()
+            messages.success(request, f"Asset '{asset.name}' linked to {infrastructure.name}.")
+        elif action == 'unlink':
+            if asset.infrastructure == infrastructure:
+                asset.infrastructure = None
+                asset.save()
+                messages.success(request, f"Asset '{asset.name}' unlinked from {infrastructure.name}.")
+                
+        return redirect('infra_detail', pk=pk)
 
 # ==========================================
 # CONTRACT MANAGEMENT (Phase 43)

@@ -212,8 +212,11 @@
 
         <!-- Linked Assets -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Linked Hardware Assets</h6>
+                <button type="button" class="btn btn-sm btn-primary no-print" data-bs-toggle="modal" data-bs-target="#linkAssetModal">
+                    <i class="fas fa-link"></i> Link Asset
+                </button>
             </div>
             <div class="card-body">
                 {% if infrastructure.assets.exists %}
@@ -224,7 +227,7 @@
                                     <th>Asset Name</th>
                                     <th>Status</th>
                                     <th>Assigned To</th>
-                                    <th class="text-end">Action</th>
+                                    <th class="text-end no-print">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -270,10 +273,20 @@
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-end">
-                                        <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
+                                    <td class="text-end no-print">
+                                        <div class="btn-group">
+                                            <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <form action="{% url 'infra_link_asset' infrastructure.pk %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="unlink">
+                                                <input type="hidden" name="asset_id" value="{{ asset.pk }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to unlink this asset?');">
+                                                    <i class="fas fa-unlink"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -319,6 +332,38 @@
                     <i class="fas fa-plus me-1"></i> Schedule Maintenance
                 </a>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Link Asset Modal -->
+<div class="modal fade" id="linkAssetModal" tabindex="-1" aria-labelledby="linkAssetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'infra_link_asset' infrastructure.pk %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="link">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="linkAssetModalLabel"><i class="fas fa-link me-2"></i>Link Hardware Asset</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="assetSelect" class="form-label fw-bold">Select Asset to Link</label>
+                        <select name="asset_id" id="assetSelect" class="form-select" required>
+                            <option value="">-- Choose an available asset --</option>
+                            {% for unlinked_asset in unlinked_assets %}
+                                <option value="{{ unlinked_asset.pk }}">{{ unlinked_asset.asset_code }} - {{ unlinked_asset.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Only assets not currently linked to any infrastructure are shown.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Link Asset</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
