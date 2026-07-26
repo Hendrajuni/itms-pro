@@ -272,6 +272,9 @@
                             </td>
                             <td class="text-end pe-3">
                                 <div class="btn-group">
+                                    <a href="{% url 'infra_print_label' item.pk %}" target="_blank" class="btn btn-sm btn-outline-info" title="Print Label">
+                                        <i class="fas fa-print"></i>
+                                    </a>
                                     <a href="{% url 'infra_detail' item.pk %}" class="btn btn-sm btn-outline-secondary" title="View Detail">
                                         <i class="fas fa-eye"></i>
                                     </a>

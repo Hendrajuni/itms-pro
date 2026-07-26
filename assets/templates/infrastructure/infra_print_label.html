@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Label - {{ infrastructure.infra_id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Centered for screen preview */
+            background-color: #f8f9fa;
+        }
+        .label-container {
+            width: 5cm; /* Standard small square label */
+            height: 5cm;
+            background: white;
+            border: 1px dashed #ccc; /* Cut guide for screen, hidden in print */
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+        }
+        .qr-image {
+            width: 3.5cm;
+            height: 3.5cm;
+            object-fit: contain;
+        }
+        .id-text {
+            font-size: 11pt;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+        
+        @media print {
+            body {
+                background-color: white;
+                height: auto;
+                align-items: flex-start;
+                justify-content: flex-start;
+            }
+            .label-container {
+                border: none; /* No cut lines in final print */
+                page-break-after: always;
+            }
+            @page {
+                size: 5cm 5cm; /* Custom paper size for label printers */
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    <div class="label-container">
+        <img src="{{ infrastructure.get_qr_code_base64 }}" alt="QR Code" class="qr-image">
+        <div class="id-text">{{ infrastructure.infra_id }}</div>
+    </div>
+</body>
+</html>

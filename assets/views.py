@@ -1794,6 +1794,10 @@ class InfrastructureLinkAssetView(LoginRequiredMixin, View):
                 
         return redirect('infra_detail', pk=pk)
 
+class InfrastructurePrintLabelView(LoginRequiredMixin, DetailView):
+    model = Infrastructure
+    template_name = 'infrastructure/infra_print_label.html'
+    context_object_name = 'infrastructure'
 # ==========================================
 # CONTRACT MANAGEMENT (Phase 43)
 # ==========================================
