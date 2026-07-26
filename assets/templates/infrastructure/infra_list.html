@@ -125,6 +125,19 @@
             <a href="{% url 'infra_create' %}" class="btn btn-primary shadow-sm ms-2">
                 <i class="fas fa-plus me-1"></i> Add New
             </a>
+            
+            <div class="dropdown ms-2 shadow-sm d-inline-block">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-layer-group me-1"></i> Bulk Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bulkActionsDropdown">
+                    <li>
+                        <button type="submit" form="bulk-form" class="dropdown-item" name="action" value="labels">
+                            <i class="fas fa-tags me-2 text-dark" style="width: 20px;"></i>Print Labels
+                        </button>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
@@ -189,52 +202,64 @@
 {% else %}
     <!-- List View (Table) -->
     <div class="card shadow mb-4">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-striped align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-3">
-                                <a href="?{% param_replace sort='name' order='asc' %}" class="text-dark text-decoration-none">
-                                    Name {% if current_sort == 'name' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <a href="?{% param_replace sort='type' order='asc' %}" class="text-dark text-decoration-none">
-                                    Type {% if current_sort == 'type' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <a href="?{% param_replace sort='location' order='asc' %}" class="text-dark text-decoration-none">
-                                    Location {% if current_sort == 'location' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                </a>
-                            </th>
-                            <th>Capacity</th>
-                            <th>
-                                <a href="?{% param_replace sort='condition' order='asc' %}" class="text-dark text-decoration-none">
-                                    Condition {% if current_sort == 'condition' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <a href="?{% param_replace sort='last_maint' order='asc' %}" class="text-dark text-decoration-none">
-                                    Last Maint {% if current_sort == 'last_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <a href="?{% param_replace sort='next_maint' order='asc' %}" class="text-dark text-decoration-none">
-                                    Next Maint {% if current_sort == 'next_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                </a>
-                            </th>
-                            <th class="text-end pe-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in infra_assets %}
-                        <tr>
-                            <td class="ps-3">
-                                <div class="d-flex align-items-center">
-                                    {% if item.photo %}
-                                        <img src="{{ item.photo.url }}" class="rounded me-2" width="32" height="32" style="object-fit: cover; cursor: pointer;" title="View Image">
+        <form id="bulk-form" method="post" action="{% url 'infra_print_labels_bulk' %}" target="_blank">
+            {% csrf_token %}
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3" style="width: 40px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                    </div>
+                                </th>
+                                <th>
+                                    <a href="?{% param_replace sort='name' order='asc' %}" class="text-dark text-decoration-none">
+                                        Name {% if current_sort == 'name' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?{% param_replace sort='type' order='asc' %}" class="text-dark text-decoration-none">
+                                        Type {% if current_sort == 'type' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?{% param_replace sort='location' order='asc' %}" class="text-dark text-decoration-none">
+                                        Location {% if current_sort == 'location' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                    </a>
+                                </th>
+                                <th>Capacity</th>
+                                <th>
+                                    <a href="?{% param_replace sort='condition' order='asc' %}" class="text-dark text-decoration-none">
+                                        Condition {% if current_sort == 'condition' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?{% param_replace sort='last_maint' order='asc' %}" class="text-dark text-decoration-none">
+                                        Last Maint {% if current_sort == 'last_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?{% param_replace sort='next_maint' order='asc' %}" class="text-dark text-decoration-none">
+                                        Next Maint {% if current_sort == 'next_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
+                                    </a>
+                                </th>
+                                <th class="text-end pe-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in infra_assets %}
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input bulk-checkbox" type="checkbox" name="selected_items" value="{{ item.pk }}">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if item.photo %}
+                                            <img src="{{ item.photo.url }}" class="rounded me-2" width="32" height="32" style="object-fit: cover; cursor: pointer;" title="View Image">
                                     {% else %}
                                         <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
                                             <i class="fas fa-cube text-muted small"></i>
@@ -272,9 +297,6 @@
                             </td>
                             <td class="text-end pe-3">
                                 <div class="btn-group">
-                                    <a href="{% url 'infra_print_label' item.pk %}" target="_blank" class="btn btn-sm btn-outline-info" title="Print Label">
-                                        <i class="fas fa-print"></i>
-                                    </a>
                                     <a href="{% url 'infra_detail' item.pk %}" class="btn btn-sm btn-outline-secondary" title="View Detail">
                                         <i class="fas fa-eye"></i>
                                     </a>
@@ -289,7 +311,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
+                            <td colspan="9" class="text-center py-5 text-muted">
                                 <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
                                 <p>No infrastructure items found.</p>
                             </td>
@@ -299,8 +321,24 @@
                 </table>
             </div>
         </div>
+        </form>
     </div>
     {% include 'includes/pagination.html' %}
 {% endif %}
 
+{% block extra_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.bulk-checkbox');
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = this.checked);
+            });
+        }
+    });
+</script>
+{% endblock %}
 {% endblock %}

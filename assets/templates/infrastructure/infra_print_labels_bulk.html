@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Print Infra Labels</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            background-color: #f8f9fa;
+            justify-content: flex-start;
+        }
+        .label-container {
+            width: 5cm;
+            height: 5cm;
+            background: white;
+            border: 1px dashed #ccc;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+            page-break-inside: avoid;
+        }
+        .qr-image {
+            width: 3.5cm;
+            height: 3.5cm;
+            object-fit: contain;
+        }
+        .id-text {
+            font-size: 11pt;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+        
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+                display: block;
+            }
+            .label-container {
+                border: none;
+                margin: 0;
+                page-break-after: always;
+            }
+            @page {
+                size: 5cm 5cm;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    {% for infra in infrastructures %}
+    <div class="label-container">
+        <img src="{{ infra.get_qr_code_base64 }}" alt="QR Code" class="qr-image">
+        <div class="id-text">{{ infra.infra_id }}</div>
+    </div>
+    {% empty %}
+    <p>No infrastructures selected for printing.</p>
+    {% endfor %}
+</body>
+</html>

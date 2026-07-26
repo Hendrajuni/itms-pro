@@ -1798,6 +1798,19 @@ class InfrastructurePrintLabelView(LoginRequiredMixin, DetailView):
     model = Infrastructure
     template_name = 'infrastructure/infra_print_label.html'
     context_object_name = 'infrastructure'
+
+class BulkInfraLabelView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        selected_ids = request.POST.getlist('selected_items')
+        
+        if not selected_ids:
+            messages.error(request, "No items selected.")
+            return redirect('infra_list')
+
+        infrastructures = Infrastructure.objects.filter(id__in=selected_ids)
+        return render(request, 'infrastructure/infra_print_labels_bulk.html', {
+            'infrastructures': infrastructures
+        })
 # ==========================================
 # CONTRACT MANAGEMENT (Phase 43)
 # ==========================================
