@@ -368,3 +368,18 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    $(document).ready(function() {
+        // Fix Select2 search focus issue inside Bootstrap Modal
+        $('#linkAssetModal').on('shown.bs.modal', function () {
+            $('#assetSelect').select2({
+                dropdownParent: $('#linkAssetModal'),
+                theme: 'bootstrap-5'
+            });
+        });
+    });
+</script>
+{% endblock %}
