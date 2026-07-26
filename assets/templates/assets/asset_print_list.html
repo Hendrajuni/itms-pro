@@ -154,83 +154,93 @@
             </tr>
         </thead>
         <tbody>
-            {% for asset in assets %}
-            <tr>
-                <td style="text-align: center;">{{ forloop.counter }}</td>
-                <td style="font-family: monospace; font-weight: bold; font-size: 10px; white-space: nowrap;">{{ asset.asset_code }}</td>
-                <td>
-                    <div style="font-weight: bold; color: #2c3e50; font-size: 11px;">{{ asset.name }}</div>
-                </td>
+            {% if category_list %}
+                {% for category in category_list %}
+                    <tr style="background-color: #f1f3f5;">
+                        <td colspan="100%" style="font-weight: bold; font-size: 12px; padding: 8px 12px; color: #2c3e50; border-top: 2px solid #dee2e6;">
+                            {{ category.grouper|default:"TANPA KATEGORI"|upper }} 
+                            <span style="font-weight: normal; color: #6c757d; font-size: 11px; margin-left: 6px;">({{ category.list|length }} Item)</span>
+                        </td>
+                    </tr>
+                    {% for asset in category.list %}
+                    <tr>
+                        <td style="text-align: center;">{{ forloop.counter }}</td>
+                        <td style="font-family: monospace; font-weight: bold; font-size: 10px; white-space: nowrap;">{{ asset.asset_code }}</td>
+                        <td>
+                            <div style="font-weight: bold; color: #2c3e50; font-size: 11px;">{{ asset.name }}</div>
+                        </td>
 
-                {% if mode == 'financial' %}
-                    <td>{{ asset.category.name|default:"-" }}</td>
-                    <td style="text-align: right;">
-                        {% if asset.purchase_price %}Rp {{ asset.purchase_price|floatformat:0|intcomma }}{% else %}-{% endif %}
-                    </td>
-                    <td style="text-align: right;">
-                        Rp {{ asset.current_book_value|floatformat:0|intcomma }}
-                    </td>
-                    <td style="text-align: right;">
-                        Rp {{ asset.get_total_maintenance_cost|floatformat:0|intcomma }}
-                    </td>
-                {% elif mode == 'lifecycle' %}
-                    <td style="text-align: center;">{{ asset.purchase_date|date:"d/m/Y"|default:"-" }}</td>
-                    <td style="text-align: center; white-space: nowrap;">{{ asset.age_usage }}</td>
-                    <td style="text-align: center;">
-                        {% if asset.warranty_end %}
-                            {{ asset.warranty_end|date:"d M Y" }}
+                        {% if mode == 'financial' %}
+                            <td>{{ asset.category.name|default:"-" }}</td>
+                            <td style="text-align: right;">
+                                {% if asset.purchase_price %}Rp {{ asset.purchase_price|floatformat:0|intcomma }}{% else %}-{% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                Rp {{ asset.current_book_value|floatformat:0|intcomma }}
+                            </td>
+                            <td style="text-align: right;">
+                                Rp {{ asset.get_total_maintenance_cost|floatformat:0|intcomma }}
+                            </td>
+                        {% elif mode == 'lifecycle' %}
+                            <td style="text-align: center;">{{ asset.purchase_date|date:"d/m/Y"|default:"-" }}</td>
+                            <td style="text-align: center; white-space: nowrap;">{{ asset.age_usage }}</td>
+                            <td style="text-align: center;">
+                                {% if asset.warranty_end %}
+                                    {{ asset.warranty_end|date:"d M Y" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                 {% if asset.is_eol_candidate %}
+                                    <span class="badge bg-warning text-dark border border-dark">EOL Candidate</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border">Normal</span>
+                                {% endif %}
+                            </td>
                         {% else %}
-                            -
+                            <!-- Operational (Default) -->
+                            <td>
+                                {{ asset.brand|default:"-" }}
+                                {% if asset.model %}<br><span class="text-muted small">{{ asset.model }}</span>{% endif %}
+                            </td>
+                            <td style="font-family: monospace; font-size: 10px;">{{ asset.serial_number|default:"-" }}</td>
+                            <td>
+                                {{ asset.assigned_to.get_full_name|default:"-" }}
+                                {% if asset.department %}<br><span class="text-muted" style="font-size: 9px;">{{ asset.department.name }}</span>{% endif %}
+                            </td>
+                            <td style="text-align: right; font-size: 10px;">{% if asset.purchase_price %}Rp {{ asset.purchase_price|floatformat:0|intcomma }}{% else %}-{% endif %}</td>
+                            <td style="text-align: center;">{{ asset.purchase_date|date:"d/m/y"|default:"-" }}</td>
+                            <td style="text-align: center; white-space: nowrap;">{{ asset.age_usage|default:"-" }}</td>
+                            <td style="text-align: center;">{% if asset.warranty_end %}{{ asset.warranty_end|date:"d/m/y" }}{% else %}-{% endif %}</td>
+                            <td>{{ asset.vendor.name|default:"-" }}</td>
                         {% endif %}
-                    </td>
-                    <td style="text-align: center;">
-                         {% if asset.is_eol_candidate %}
-                            <span class="badge bg-warning text-dark border border-dark">EOL Candidate</span>
-                        {% else %}
-                            <span class="badge bg-light text-dark border">Normal</span>
-                        {% endif %}
-                    </td>
-                {% else %}
-                    <!-- Operational (Default) -->
-                    <td>
-                        {{ asset.brand|default:"-" }}
-                        {% if asset.model %}<br><span class="text-muted small">{{ asset.model }}</span>{% endif %}
-                    </td>
-                    <td style="font-family: monospace; font-size: 10px;">{{ asset.serial_number|default:"-" }}</td>
-                    <td>
-                        {{ asset.assigned_to.get_full_name|default:"-" }}
-                        {% if asset.department %}<br><span class="text-muted" style="font-size: 9px;">{{ asset.department.name }}</span>{% endif %}
-                    </td>
-                    <td style="text-align: right; font-size: 10px;">{% if asset.purchase_price %}Rp {{ asset.purchase_price|floatformat:0|intcomma }}{% else %}-{% endif %}</td>
-                    <td style="text-align: center;">{{ asset.purchase_date|date:"d/m/y"|default:"-" }}</td>
-                    <td style="text-align: center; white-space: nowrap;">{{ asset.age_usage|default:"-" }}</td>
-                    <td style="text-align: center;">{% if asset.warranty_end %}{{ asset.warranty_end|date:"d/m/y" }}{% else %}-{% endif %}</td>
-                    <td>{{ asset.vendor.name|default:"-" }}</td>
-                {% endif %}
 
-                {% if mode != 'lifecycle' %}
-                <td style="text-align: center;">
-                    <span class="status-badge status-{{ asset.status }}">
-                        {% if asset.status == 'IN_USE' %}DIGUNAKAN
-                        {% elif asset.status == 'AVAILABLE' %}TERSEDIA
-                        {% elif asset.status == 'MAINTENANCE' %}PERBAIKAN
-                        {% elif asset.status == 'BROKEN' %}RUSAK
-                        {% elif asset.status == 'LOST' %}HILANG
-                        {% elif asset.status == 'RETIRED' %}PENSIUN
-                        {% elif asset.status == 'DISPOSED' %}DIHAPUS
-                        {% else %}{{ asset.get_status_display|upper }}
+                        {% if mode != 'lifecycle' %}
+                        <td style="text-align: center;">
+                            <span class="status-badge status-{{ asset.status }}">
+                                {% if asset.status == 'IN_USE' %}DIGUNAKAN
+                                {% elif asset.status == 'AVAILABLE' %}TERSEDIA
+                                {% elif asset.status == 'MAINTENANCE' %}PERBAIKAN
+                                {% elif asset.status == 'BROKEN' %}RUSAK
+                                {% elif asset.status == 'LOST' %}HILANG
+                                {% elif asset.status == 'RETIRED' %}PENSIUN
+                                {% elif asset.status == 'DISPOSED' %}DIHAPUS
+                                {% else %}{{ asset.get_status_display|upper }}
+                                {% endif %}
+                            </span>
+                        </td>
                         {% endif %}
-                    </span>
-                </td>
-                {% endif %}
-            </tr>
-            {% empty %}
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+            {% else %}
             <tr>
                 <td colspan="100%" style="text-align: center; padding: 30px; color: #6c757d;">
                     - Tidak ada data aset -
                 </td>
             </tr>
-            {% endfor %}
+            {% endif %}
         </tbody>
     </table>
 

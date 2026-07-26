@@ -389,10 +389,10 @@ class BulkAssetPrintListView(LoginRequiredMixin, View):
             messages.warning(request, "No assets selected.")
             return redirect('asset_list')
             
-        # Get Assets ordered by name
+        # Get Assets ordered by category then name
         assets = Asset.objects.filter(id__in=asset_ids).select_related(
             'category', 'location', 'department', 'assigned_to', 'vendor'
-        ).order_by('name')
+        ).order_by('category__name', 'name')
         
         context = {
             'assets': assets,
@@ -2029,6 +2029,11 @@ class LocationDeleteView(LoginRequiredMixin, DeleteView):
 class AssetPrintListView(AssetListView):
     template_name = 'assets/asset_print_list.html'
     paginate_by = 500  # Large page size for print report
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Force ordering by category name for regrouping in the template
+        return qs.order_by('category__name', 'name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
