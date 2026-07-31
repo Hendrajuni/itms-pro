@@ -258,7 +258,7 @@ class ReadOnlyMiddleware:
             if request.method not in ['GET', 'HEAD', 'OPTIONS']:
                 is_exempt = any(request.path.startswith(url) for url in self.exempt_urls)
                 if not is_exempt:
-                    messages.error(request, 'Read-only access: You do not have permission to perform this action.')
+                    messages.error(request, 'Mode Read-Only: Anda tidak memiliki izin untuk menyimpan perubahan.')
                     from django.shortcuts import redirect
                     return redirect(request.META.get('HTTP_REFERER', '/'))
         return self.get_response(request)
