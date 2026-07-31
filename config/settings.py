@@ -108,6 +108,7 @@ MIDDLEWARE = [
     'core.middleware.MaintenanceMiddleware',
     'core.middleware.NavigationHistoryMiddleware',
     'core.middleware.RestrictAdminMiddleware',
+    'core.middleware.ReadOnlyMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

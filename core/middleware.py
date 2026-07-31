@@ -241,3 +241,25 @@ class RestrictAdminMiddleware:
                 return redirect('home')
 
         return self.get_response(request)
+
+class ReadOnlyMiddleware:
+    '''
+    Restricts users in the 'Auditor' group to read-only access (GET, HEAD, OPTIONS).
+    '''
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.exempt_urls = [
+            '/accounts/login/',
+            '/accounts/logout/',
+        ]
+
+    def __call__(self, request):
+        if request.user.is_authenticated and request.user.groups.filter(name='Auditor').exists():
+            if request.method not in ['GET', 'HEAD', 'OPTIONS']:
+                is_exempt = any(request.path.startswith(url) for url in self.exempt_urls)
+                if not is_exempt:
+                    messages.error(request, 'Read-only access: You do not have permission to perform this action.')
+                    from django.shortcuts import redirect
+                    return redirect(request.META.get('HTTP_REFERER', '/'))
+        return self.get_response(request)
+
