@@ -32,7 +32,7 @@ class SubnetForm(forms.ModelForm):
         self.fields['name'].required = False
         
         # Filter Location for IT Support
-        if self.user and not (self.user.is_superuser or self.user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+        if self.user and not (self.user.is_superuser or self.user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()):
             if self.user.groups.filter(name='IT Support').exists() and hasattr(self.user, 'location') and self.user.location:
                 # Restrict to their branch and descendants
                 root_node = self.user.location.get_root() # Or user.location depending on policy. Using root to be safe for Regional Head logic, but user said "wilayahnya" (their region).

@@ -161,7 +161,7 @@ class NetworkInterfaceForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         # Scoped Subnet dropdown for IT Support
-        if self.user and not (self.user.is_superuser or self.user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+        if self.user and not (self.user.is_superuser or self.user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()):
              if self.user.groups.filter(name='IT Support').exists() and hasattr(self.user, 'location') and self.user.location:
                   # Filter subnets by user's location (including descendants)
                   descendants = self.user.location.get_descendants(include_self=True)

@@ -231,7 +231,7 @@ def get_dashboard_stats(user):
     work_queue = []
     
     # Define Scope
-    is_admin = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+    is_admin = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
     is_it = user.groups.filter(name='IT Support').exists()
     
     from django.db.models import Q
@@ -637,7 +637,7 @@ class GlobalSearchView(LoginRequiredMixin, View):
 
         # --- Scoping Logic ---
         # 1. Admin/Superuser/Manager -> Global Scope
-        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         # 2. Branch IT -> Local Scope (Descendants of their location)
         allowed_locations = []

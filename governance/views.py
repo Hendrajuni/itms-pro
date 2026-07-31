@@ -230,7 +230,7 @@ class DailyLogUpdateView(LoginRequiredMixin, UpdateView):
 
 class DailyLogBulkApproveView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
-        return self.request.user.is_superuser or self.request.user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        return self.request.user.is_superuser or self.request.user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
     def post(self, request, *args, **kwargs):
         log_ids = request.POST.getlist('log_ids')
@@ -768,7 +768,7 @@ class DisposalRequestDetailView(LoginRequiredMixin, DetailView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         # Permission Check
-        if not (request.user.is_superuser or request.user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+        if not (request.user.is_superuser or request.user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()):
              messages.error(request, "You do not have permission to approve/reject requests.")
              return redirect('disposal_list')
 

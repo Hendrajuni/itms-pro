@@ -442,7 +442,7 @@ class OrgChartView(LoginRequiredMixin, TemplateView):
         location_roots = Location.objects.filter(parent__isnull=True).prefetch_related('children')
         
         # IT Support Scope: Restrict Dropdown
-        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()):
             if user.groups.filter(name='IT Support').exists() and hasattr(user, 'location') and user.location:
                 root = user.location.root_node
                 location_roots = location_roots.filter(id=root.id)
@@ -453,7 +453,7 @@ class OrgChartView(LoginRequiredMixin, TemplateView):
         loc_id = self.request.GET.get('loc')
         
         # Auto-enforce scope for IT Support if no filter selected (Default to their region)
-        if not loc_id and not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+        if not loc_id and not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()):
              if hasattr(user, 'location') and user.location:
                   # Default to their root region
                   loc_id = user.location.root_node.id

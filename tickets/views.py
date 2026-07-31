@@ -26,7 +26,7 @@ class TicketListView(LoginRequiredMixin, ListView):
         
         # 1. Base Queryset (Permission Based)
         # 1. Superuser / Manager / Admin -> See All
-        if user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists():
+        if user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists():
              pass # See all
         # 2. IT Support -> Scoped Visibility
         elif user.groups.filter(name='IT Support').exists():
@@ -91,7 +91,7 @@ class TicketListView(LoginRequiredMixin, ListView):
         
         # Scoped Dropdown for IT Support (Restrict to their Region)
         user = self.request.user
-        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()):
             if user.groups.filter(name='IT Support').exists() and hasattr(user, 'location') and user.location:
                 # Find the root of the user's location (e.g. "Riau" for "Kebun Dumai")
                 root = user.location.root_node
@@ -140,7 +140,7 @@ class TicketDetailView(LoginRequiredMixin, DetailView):
         # Helper bools for template
         user = self.request.user
         context['is_it_support'] = user.is_superuser or user.groups.filter(name='IT Support').exists()
-        context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         if context['is_manager']:
              from django.contrib.auth import get_user_model

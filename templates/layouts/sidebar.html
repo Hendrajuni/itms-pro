@@ -17,7 +17,7 @@
             <span class="rail-tooltip">Dashboard</span>
         </a>
 
-        {% if user|has_group:"IT Support" or user|has_group:"Admin" %}
+        {% if user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Auditor" %}
         <a href="{% url 'asset_list' %}" class="rail-item {% if 'assets' in request.path or 'software' in request.path %}active{% endif %}" title="Managed Asset">
             <i class="fas fa-box"></i>
             <span class="rail-tooltip">Managed Asset</span>
@@ -98,7 +98,7 @@
 
 
             <!-- IT MANAGEMENT -->
-            {% if user|has_group:"IT Support" or user|has_group:"Admin" %}
+            {% if user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Auditor" %}
                 <li class="sidebar-header">Modules</li>
 
                 <!-- INVENTORY GROUP -->
@@ -282,7 +282,7 @@
             {% endif %}
 
             <!-- ORGANIZATION -->
-            {% if user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Manager" or user.is_superuser %}
+            {% if user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Manager" or user.is_superuser or user|has_group:"Auditor" %}
                 <li class="sidebar-header">Organization</li>
                 
                 <li class="nav-item">
@@ -302,7 +302,7 @@
                             <li class="nav-item">
                                 <a href="{% url 'org_chart' %}" class="nav-link {% if 'org-chart' in request.path %}active{% endif %}">Organization Chart</a>
                             </li>
-                            {% if user.is_superuser or user|has_group:"Manager" or user|has_group:"Admin" %}
+                            {% if user.is_superuser or user|has_group:"Manager" or user|has_group:"Admin" or user|has_group:"Auditor" %}
                             
                             <li class="nav-item">
                                 <a href="{% url 'user_list' %}" class="nav-link {% if 'users' in request.path %}active{% endif %}">Users</a>
@@ -314,7 +314,7 @@
             {% endif %}
 
             <!-- CONFIGURATION -->
-            {% if user.is_superuser or user|has_group:"Admin" %}
+            {% if user.is_superuser or user|has_group:"Admin" or user|has_group:"Auditor" %}
                 <!-- Administration (System) -->
                 <li class="sidebar-header">System</li>
                 

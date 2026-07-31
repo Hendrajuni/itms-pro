@@ -36,7 +36,7 @@ class MaintenanceMiddleware:
                 if request.user.is_authenticated:
                     # STRICTER CHECK: Only Superusers and specific groups
                     # Removing 'is_staff' check as unrelated users might have it 
-                    is_admin_group = request.user.groups.filter(name__in=['IT Support', 'Admin', 'Manager']).exists()
+                    is_admin_group = request.user.groups.filter(name__in=['IT Support', 'Admin', 'Manager', 'Auditor']).exists()
                     
                     if request.user.is_superuser or is_admin_group:
                         # Allow admins to proceed

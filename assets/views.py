@@ -45,7 +45,7 @@ class AssetListView(LoginRequiredMixin, ListView):
         
         # Scoped Access: IT Support sees only their hierarchy
         user = self.request.user
-        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         is_it_support = user.groups.filter(name='IT Support').exists()
 
         if is_it_support and not is_manager:
@@ -156,7 +156,7 @@ class AssetListView(LoginRequiredMixin, ListView):
         # Pass view mode to template
         context['view_mode'] = self.request.GET.get('mode', 'operational')
         
-        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         is_it_support = user.groups.filter(name='IT Support').exists()
 
         context['is_it_support'] = is_it_support
@@ -993,7 +993,7 @@ class VendorDeleteView(LoginRequiredMixin, DeleteView):
         location_roots = Location.objects.filter(parent__isnull=True).prefetch_related('children').order_by('name')
         
         # Filter Roots based on User Role
-        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         if not is_manager and hasattr(user, 'location') and user.location:
              # If restricted IT Support, only show their branch root
              my_root = user.location.get_root()
@@ -1368,7 +1368,7 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         
         user = self.request.user
-        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         is_it_support = user.groups.filter(name='IT Support').exists()
 
         # 1. Location Data for Filter
@@ -1492,7 +1492,7 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         user = self.request.user
-        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         is_it_support = user.groups.filter(name='IT Support').exists()
 
         # SCOPE ENFORCEMENT
@@ -1965,7 +1965,7 @@ class LocationTreeView(LoginRequiredMixin, TemplateView):
         # We can build a simple tree structure here if needed, or pass flat list
         # Scoped Visibility Logic
         user = self.request.user
-        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_manager = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         is_it_support = user.groups.filter(name='IT Support').exists()
 
         if is_it_support and not is_manager:
@@ -2025,7 +2025,7 @@ class LocationDetailAjaxView(LoginRequiredMixin, DetailView):
         context['total_users'] = staff_qs.count()
         
         user = self.request.user
-        context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         from core.license import check_location_limit
         context['can_add_location'] = check_location_limit()

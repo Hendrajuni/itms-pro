@@ -34,7 +34,7 @@ def alert_new_ticket(sender, instance, created, **kwargs):
         # If unassigned on creation, notify Managers/Admins
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        managers = User.objects.filter(groups__name__in=['Administrator', 'Manager']).distinct()
+        managers = User.objects.filter(groups__name__in=['Administrator', 'Manager', 'Auditor']).distinct()
         
         for manager in managers:
             Notification.objects.create(

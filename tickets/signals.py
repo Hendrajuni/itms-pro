@@ -44,7 +44,7 @@ def notify_it_staff_on_ticket_creation(sender, instance, created, **kwargs):
             should_notify = False
             
             # Scenario A: User is Global Admin / Superuser (Always Notify)
-            if user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists():
+            if user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists():
                 should_notify = True
             
             # Scenario B: User has Location & Ticket has Location

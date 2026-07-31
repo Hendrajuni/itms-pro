@@ -27,7 +27,7 @@ class DowntimeDashboardView(LoginRequiredMixin, TemplateView):
         history_qs = DowntimeEvent.objects.filter(is_resolved=True).select_related('node', 'node__location', 'technician')
 
         # --- SCOPING LOGIC ---
-        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         if not is_global:
             # Filter by User Location (and descendants)
@@ -95,7 +95,7 @@ class ReportDowntimeView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         user = self.request.user
         
         # Check if user is Global Admin/Manager
-        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         if not is_global:
             if hasattr(user, 'location') and user.location:
@@ -232,7 +232,7 @@ class NetworkNodeListView(LoginRequiredMixin, ListView):
         
         # --- SCOPING LOGIC ---
         user = self.request.user
-        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         if not is_global:
             if hasattr(user, 'location') and user.location:
@@ -273,7 +273,7 @@ class NetworkNodeListView(LoginRequiredMixin, ListView):
         # Re-calc scope without search term or filters for "Total Stats"
         qs_base = NetworkNode.objects.all()
         user = self.request.user
-        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         if not is_global and hasattr(user, 'location') and user.location:
              descendants = user.location.get_descendants(include_self=True)
@@ -419,7 +419,7 @@ class SubnetListView(LoginRequiredMixin, ListView):
         
         # --- SCOPING LOGIC ---
         user = self.request.user
-        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        is_global = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         if not is_global:
             if hasattr(user, 'location') and user.location:
@@ -608,13 +608,13 @@ class SubnetTreeDashboardView(LoginRequiredMixin, TemplateView):
         # Apply scope filtering similar to Org Chart
         location_roots = Location.objects.filter(parent__isnull=True).prefetch_related('children')
         
-        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()):
+        if not (user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()):
              if user.groups.filter(name='IT Support').exists() and hasattr(user, 'location') and user.location:
                   root = user.location.get_root()
                   location_roots = location_roots.filter(id=root.id)
         
         context['location_roots'] = location_roots
-        context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager']).exists()
+        context['is_manager'] = user.is_superuser or user.groups.filter(name__in=['Administrator', 'Manager', 'Auditor']).exists()
         
         # Also auto-select location if passed in GET or user default
         loc_id = self.request.GET.get('loc')
