@@ -18,9 +18,9 @@
         </a>
 
         {% if user|has_group:"IT Support" or user|has_group:"Admin" %}
-        <a href="{% url 'asset_list' %}" class="rail-item {% if 'assets' in request.path or 'software' in request.path %}active{% endif %}" title="Inventory">
+        <a href="{% url 'asset_list' %}" class="rail-item {% if 'assets' in request.path or 'software' in request.path %}active{% endif %}" title="Managed Asset">
             <i class="fas fa-box"></i>
-            <span class="rail-tooltip">Inventory</span>
+            <span class="rail-tooltip">Managed Asset</span>
         </a>
 
         <a href="{% url 'infra_list' %}" class="rail-item {% if 'infrastructure' in request.path or 'network' in request.path %}active{% endif %}" title="Infrastructure">
@@ -105,7 +105,7 @@
                 <li class="nav-item">
                     <a class="nav-link collapsed" href="#invSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'assets' in request.path or 'software' in request.path or 'contracts' in request.path or 'disposals' in request.path or 'categories' in request.path %}true{% else %}false{% endif %}">
                         <i class="fas fa-box icon"></i>
-                        <span>Inventory</span>
+                        <span>Managed Asset</span>
                         <i class="fas fa-chevron-right chevron"></i>
                     </a>
                     <div class="collapse {% if 'assets' in request.path or 'software' in request.path or 'contracts' in request.path or 'disposals' in request.path or 'categories' in request.path %}show{% endif %}" id="invSubmenu">
