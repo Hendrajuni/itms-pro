@@ -15,7 +15,7 @@
             {% endif %}
         </h3>
         <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
-            {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+            {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Manager" or user|has_group:"Auditor" %}
             <!-- View Mode Dropdown -->
             <div class="dropdown">
                 <button class="btn btn-white border dropdown-toggle" type="button" id="viewModeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -95,7 +95,7 @@
                 </div>
 
                 <!-- Reset Button -->
-                {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+                {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Manager" or user|has_group:"Auditor" %}
                     {% if request.GET.loc or request.GET.dept or request.GET.q or request.GET.category %}
                     <a href="{% url 'asset_list' %}?mode={{ view_mode }}" class="btn btn-sm btn-light text-danger me-2 border shadow-sm" title="Clear Filters">
                         <i class="fas fa-times"></i>
@@ -131,7 +131,7 @@
                 </form>
             {% endif %}
 
-            {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+            {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Manager" or user|has_group:"Auditor" %}
             <!-- Export / Print Dropdown -->
             <div class="dropdown d-inline-block">
                 <button class="btn btn-success text-white dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -191,7 +191,7 @@
     {% endif %}
 
     <div class="row gx-3">
-    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" %}
+    {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Manager" or user|has_group:"Auditor" %}
     <!-- Filter Sidebar (Desktop) -->
     <div class="col-md-2 d-none d-md-block mb-4">
         <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
