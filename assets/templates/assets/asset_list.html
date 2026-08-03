@@ -297,13 +297,13 @@
                                 <th class="ps-4" style="width: 40px;">
                                     <input type="checkbox" class="form-check-input" id="select-all">
                                 </th>
-                                <th class="">
-                                    <a href="?{% param_replace sort='name' order='asc' %}" class="text-dark text-decoration-none">
+                                <th>
+                                    <a href="?{% if current_sort == 'name' and current_order == 'asc' %}{% param_replace sort='name' order='desc' %}{% else %}{% param_replace sort='name' order='asc' %}{% endif %}" class="text-dark text-decoration-none text-nowrap">
                                         Asset 
                                         {% if current_sort == 'name' %}
-                                            {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                            {% if current_order == 'asc' %}<i class="fas fa-sort-up text-primary ms-1"></i>{% else %}<i class="fas fa-sort-down text-primary ms-1"></i>{% endif %}
                                         {% else %}
-                                            <i class="fas fa-sort text-muted opacity-25"></i>
+                                            <i class="fas fa-sort text-muted opacity-25 ms-1"></i>
                                         {% endif %}
                                     </a>
                                 </th>
@@ -311,18 +311,39 @@
                                 {% if view_mode == 'financial' %}
                                     <th class="d-none d-md-table-cell">User</th>
                                     <th>
-                                        <a href="?{% param_replace sort='category' order='asc' %}" class="text-dark text-decoration-none">Category</a>
-                                    </th>
-                                    <th class="text-end">
-                                        <a href="?{% param_replace sort='price' order='desc' %}" class="text-dark text-decoration-none">Purchase Price</a>
-                                    </th>
+                                    <a href="?{% if current_sort == 'category' and current_order == 'asc' %}{% param_replace sort='category' order='desc' %}{% else %}{% param_replace sort='category' order='asc' %}{% endif %}" class="text-dark text-decoration-none text-nowrap">
+                                        Category 
+                                        {% if current_sort == 'category' %}
+                                            {% if current_order == 'asc' %}<i class="fas fa-sort-up text-primary ms-1"></i>{% else %}<i class="fas fa-sort-down text-primary ms-1"></i>{% endif %}
+                                        {% else %}
+                                            <i class="fas fa-sort text-muted opacity-25 ms-1"></i>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                    <th>
+                                    <a href="?{% if current_sort == 'price' and current_order == 'asc' %}{% param_replace sort='price' order='desc' %}{% else %}{% param_replace sort='price' order='asc' %}{% endif %}" class="text-dark text-decoration-none text-nowrap">
+                                        Purchase Price 
+                                        {% if current_sort == 'price' %}
+                                            {% if current_order == 'asc' %}<i class="fas fa-sort-up text-primary ms-1"></i>{% else %}<i class="fas fa-sort-down text-primary ms-1"></i>{% endif %}
+                                        {% else %}
+                                            <i class="fas fa-sort text-muted opacity-25 ms-1"></i>
+                                        {% endif %}
+                                    </a>
+                                </th>
                                     <th class="text-end d-none d-lg-table-cell">Current Value</th>
                                     <th class="text-end d-none d-xl-table-cell">Maint. Cost</th>
                                 {% elif view_mode == 'lifecycle' %}
                                     <th class="d-none d-md-table-cell">User</th>
                                     <th>
-                                        <a href="?{% param_replace sort='purchase_date' order='asc' %}" class="text-dark text-decoration-none">Purchase Date</a>
-                                    </th>
+                                    <a href="?{% if current_sort == 'purchase_date' and current_order == 'asc' %}{% param_replace sort='purchase_date' order='desc' %}{% else %}{% param_replace sort='purchase_date' order='asc' %}{% endif %}" class="text-dark text-decoration-none text-nowrap">
+                                        Purchase Date 
+                                        {% if current_sort == 'purchase_date' %}
+                                            {% if current_order == 'asc' %}<i class="fas fa-sort-up text-primary ms-1"></i>{% else %}<i class="fas fa-sort-down text-primary ms-1"></i>{% endif %}
+                                        {% else %}
+                                            <i class="fas fa-sort text-muted opacity-25 ms-1"></i>
+                                        {% endif %}
+                                    </a>
+                                </th>
                                     <th class="d-none d-lg-table-cell">Age</th>
                                     <th class="d-none d-xl-table-cell">Warranty</th>
                                     <th>Lifecycle Stage</th>
@@ -335,7 +356,14 @@
                                 {% endif %}
                                 
                                 <th>
-                                    <a href="?{% param_replace sort='status' order='asc' %}" class="text-dark text-decoration-none">Status</a>
+                                    <a href="?{% if current_sort == 'status' and current_order == 'asc' %}{% param_replace sort='status' order='desc' %}{% else %}{% param_replace sort='status' order='asc' %}{% endif %}" class="text-dark text-decoration-none text-nowrap">
+                                        Status 
+                                        {% if current_sort == 'status' %}
+                                            {% if current_order == 'asc' %}<i class="fas fa-sort-up text-primary ms-1"></i>{% else %}<i class="fas fa-sort-down text-primary ms-1"></i>{% endif %}
+                                        {% else %}
+                                            <i class="fas fa-sort text-muted opacity-25 ms-1"></i>
+                                        {% endif %}
+                                    </a>
                                 </th>
                                 
                                 <th class="text-end pe-4">Action</th>
