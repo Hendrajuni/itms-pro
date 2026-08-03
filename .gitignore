@@ -181,3 +181,6 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 template_users.xlsx
+
+# Agents folder
+.agents/
