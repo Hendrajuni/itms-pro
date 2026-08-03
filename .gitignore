@@ -184,3 +184,7 @@ template_users.xlsx
 
 # Agents folder
 .agents/
+
+
+# Graphify output
+graphify-out/
