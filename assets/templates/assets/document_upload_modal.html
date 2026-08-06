@@ -11,7 +11,15 @@
                     <p class="text-muted small">Upload signed inspection forms, invoices, warranty cards, or other related documents.</p>
                     <div class="mb-3">
                         <label class="form-label">Document Title</label>
-                        <input type="text" name="title" class="form-control" placeholder="e.g. Disposal Form Signed" required>
+                        <input type="text" name="title" list="docTitleOptions" class="form-control" placeholder="Select or type your own..." required autocomplete="off">
+                        <datalist id="docTitleOptions">
+                            <option value="Form Inspeksi Rutin">
+                            <option value="Invoice Pembelian Awal">
+                            <option value="Berita Acara Serah Terima (Handover)">
+                            <option value="Kartu Garansi">
+                            <option value="Disposal Form Signed">
+                        </datalist>
+                        <div class="form-text">Choose from the list or type "Other" title directly.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">File</label>
