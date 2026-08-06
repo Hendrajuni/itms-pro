@@ -128,15 +128,7 @@
                                 <a href="{% url 'category_list' %}" class="nav-link {% if 'categories' in request.path %}active{% endif %}">Categories</a>
                             </li>
 
-                            <li class="nav-item">
-                                {% if is_enterprise %}
-                                <a href="{% url 'asset_analytics' %}" class="nav-link {% if 'analytics' in request.path %}active{% endif %}">Analytics</a>
-                                {% else %}
-                                <a href="#" class="nav-link text-muted" onclick="event.preventDefault(); alert('Feature available in Pro Edition');">
-                                    <span>Analytics</span> <i class="fas fa-lock ms-auto text-warning small"></i>
-                                </a>
-                                {% endif %}
-                            </li>
+
                              <li class="nav-item">
                                 {% if is_enterprise %}
                                 <a href="{% url 'disposal_list' %}" class="nav-link {% if 'disposals' in request.path %}active{% endif %}">Disposal Requests</a>

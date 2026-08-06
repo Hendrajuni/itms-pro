@@ -40,16 +40,24 @@
             </div>
 
             <!-- On-Screen Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="fw-bold text-dark mb-1">
-                        {% if selected_location %}
-                            <i class="fas fa-map-marker-alt text-primary me-2"></i>{{ selected_location.name }}
-                        {% else %}
-                            <i class="fas fa-globe text-primary me-2"></i>Global Assets
-                        {% endif %}
-                    </h4>
-                    <span class="text-muted small">Smart Intelligence Dashboard</span>
+            <div class="d-flex justify-content-between align-items-center mb-4 gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div>
+                        <h4 class="fw-bold text-dark mb-1">
+                            {% if selected_location %}
+                                <i class="fas fa-map-marker-alt text-primary me-2"></i>{{ selected_location.name }}
+                            {% else %}
+                                <i class="fas fa-globe text-primary me-2"></i>Global Assets
+                            {% endif %}
+                        </h4>
+                        <span class="text-muted small">Smart Intelligence Dashboard</span>
+                    </div>
+                    {% if is_enterprise %}
+                    <div class="btn-group shadow-sm border ms-3" role="group" style="background-color: white;">
+                        <a href="{% url 'asset_list' %}" class="btn btn-sm btn-white text-muted border-0"><i class="fas fa-list me-1"></i> Data List</a>
+                        <a href="{% url 'asset_analytics' %}" class="btn btn-sm btn-primary active text-white" style="cursor: default;"><i class="fas fa-chart-pie me-1"></i> Analytics</a>
+                    </div>
+                    {% endif %}
                 </div>
                 <div>
                     <!-- Actions -->

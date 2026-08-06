@@ -7,13 +7,21 @@
 {% block content %}
     <!-- Toolbar Header -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-        <h3 class="text-dark fw-bold mb-0">
-            {% if selected_category %}
-                {{ selected_category.name }}
-            {% else %}
-                All Assets
+        <div class="d-flex align-items-center gap-3">
+            <h3 class="text-dark fw-bold mb-0">
+                {% if selected_category %}
+                    {{ selected_category.name }}
+                {% else %}
+                    All Assets
+                {% endif %}
+            </h3>
+            {% if is_enterprise %}
+            <div class="btn-group shadow-sm border" role="group" style="background-color: white;">
+                <a href="{% url 'asset_list' %}" class="btn btn-sm btn-primary active text-white" style="cursor: default;"><i class="fas fa-list me-1"></i> Data List</a>
+                <a href="{% url 'asset_analytics' %}" class="btn btn-sm btn-white text-muted border-0"><i class="fas fa-chart-pie me-1"></i> Analytics</a>
+            </div>
             {% endif %}
-        </h3>
+        </div>
         <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
             {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Manager" or user|has_group:"Auditor" %}
             <!-- View Mode Dropdown -->
