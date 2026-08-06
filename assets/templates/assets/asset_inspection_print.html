@@ -1,0 +1,108 @@
+﻿{% extends 'layouts/print_base.html' %}
+{% load static %}
+{% load asset_tags %}
+
+{% block title %}Inspection Form - {{ asset.asset_code }}{% endblock %}
+
+{% block content %}
+<div class="print-container">
+    <div class="print-header text-center mb-4 pb-3 border-bottom border-2 border-dark">
+        <h2 class="fw-bold mb-1">ASSET INSPECTION & DISPOSAL FORM</h2>
+        <p class="text-muted mb-0">Document Ref: {{ asset.asset_code }} / {{ current_date|default:'' }}</p>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-6">
+            <h5 class="fw-bold border-bottom pb-2 mb-3">Asset Information</h5>
+            <table class="table table-sm table-borderless">
+                <tr><th style="width: 140px;">Asset Code</th><td>: <strong>{{ asset.asset_code }}</strong></td></tr>
+                <tr><th>Asset Name</th><td>: {{ asset.name }}</td></tr>
+                <tr><th>Category</th><td>: {{ asset.category.name|default:"-" }}</td></tr>
+                <tr><th>Brand/Model</th><td>: {{ asset.brand|default:"-" }} / {{ asset.model|default:"-" }}</td></tr>
+                <tr><th>Serial Number</th><td>: {{ asset.serial_number|default:"-" }}</td></tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h5 class="fw-bold border-bottom pb-2 mb-3">Assignment Details</h5>
+            <table class="table table-sm table-borderless">
+                <tr><th style="width: 120px;">Assigned To</th><td>: {{ asset.assigned_to.get_full_name|default:asset.assigned_to.username|default:"Unassigned" }}</td></tr>
+                <tr><th>Department</th><td>: {{ asset.department.name|default:"-" }}</td></tr>
+                <tr><th>Location</th><td>: {{ asset.location.name|default:"-" }}</td></tr>
+                <tr><th>Purchase Date</th><td>: {{ asset.purchase_date|default:"-" }}</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <h5 class="fw-bold border-bottom pb-2 mb-3">Physical & Hardware Inspection Checklist</h5>
+    <table class="table table-bordered border-dark table-sm mb-4">
+        <thead class="table-light">
+            <tr>
+                <th style="width: 50px;" class="text-center">No</th>
+                <th style="width: 250px;">Component / Item</th>
+                <th style="width: 80px;" class="text-center">Good</th>
+                <th style="width: 80px;" class="text-center">Broken</th>
+                <th>Remarks / Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Generic Items -->
+            <tr><td class="text-center">1</td><td>Casing / Body Physical</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            <tr><td class="text-center">2</td><td>Power Supply / Adapter</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            
+            {% if asset.category.name|lower == 'notebook' or asset.category.name|lower == 'pc desktop' %}
+            <tr><td class="text-center">3</td><td>Display / Screen</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            <tr><td class="text-center">4</td><td>Keyboard & Touchpad</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            <tr><td class="text-center">5</td><td>Battery Health</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            <tr><td class="text-center">6</td><td>Storage (HDD/SSD) & Data Wipe</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            <tr><td class="text-center">7</td><td>Memory (RAM)</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            {% endif %}
+
+            {% if 'printer' in asset.category.name|lower %}
+            <tr><td class="text-center">3</td><td>Paper Tray & Rollers</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            <tr><td class="text-center">4</td><td>Cartridge / Toner / Ink Tank</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            <tr><td class="text-center">5</td><td>Print Head Quality</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+            {% endif %}
+            
+            <tr><td class="text-center">-</td><td>Other: _________________</td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td class="text-center"><div style="width:20px;height:20px;border:1px solid #000;margin:auto;"></div></td><td></td></tr>
+        </tbody>
+    </table>
+
+    <div class="mb-4">
+        <h6 class="fw-bold">Conclusion & Recommendation:</h6>
+        <div class="border border-dark p-2" style="height: 100px;">
+            <div class="form-check form-check-inline mt-1">
+                <input class="form-check-input border-dark" type="checkbox" id="c1">
+                <label class="form-check-label" for="c1">Ready for Re-deployment</label>
+            </div>
+            <div class="form-check form-check-inline mt-1 ms-4">
+                <input class="form-check-input border-dark" type="checkbox" id="c2">
+                <label class="form-check-label" for="c2">Requires Repair/Service</label>
+            </div>
+            <div class="form-check form-check-inline mt-1 ms-4">
+                <input class="form-check-input border-dark" type="checkbox" id="c3">
+                <label class="form-check-label" for="c3">Recommended for Disposal</label>
+            </div>
+            <hr class="my-2 border-dark">
+            <span class="text-muted">Comments:</span>
+        </div>
+    </div>
+
+    <div class="row mt-5 text-center">
+        <div class="col-4">
+            <p class="mb-5">Inspected By (IT Staff):</p>
+            <p class="mb-0 fw-bold border-bottom border-dark d-inline-block px-4">_______________________</p>
+            <p class="mt-1">Date: ___ / ___ / 20__</p>
+        </div>
+        <div class="col-4">
+            <p class="mb-5">Acknowledged By (User):</p>
+            <p class="mb-0 fw-bold border-bottom border-dark d-inline-block px-4">_______________________</p>
+            <p class="mt-1">Date: ___ / ___ / 20__</p>
+        </div>
+        <div class="col-4">
+            <p class="mb-5">Approved By (Manager):</p>
+            <p class="mb-0 fw-bold border-bottom border-dark d-inline-block px-4">_______________________</p>
+            <p class="mt-1">Date: ___ / ___ / 20__</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

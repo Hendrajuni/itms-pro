@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from django.utils import timezone
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage, Location, PartHistory
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage, Location, PartHistory, AssetDocument
 
 
 class AssetStorageForm(forms.ModelForm):
@@ -399,4 +399,14 @@ class VendorForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@vendor.com'}),
             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+62...'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+class AssetDocumentForm(forms.ModelForm):
+    class Meta:
+        model = AssetDocument
+        fields = ['title', 'document', 'notes']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Disposal Form, Invoice'}),
+            'document': forms.FileInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Additional notes...'}),
         }

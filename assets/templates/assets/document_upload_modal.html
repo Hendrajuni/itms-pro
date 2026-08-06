@@ -1,0 +1,32 @@
+﻿<div class="modal fade" id="uploadDocumentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Asset Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'asset_document_upload' asset.id %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted small">Upload signed inspection forms, invoices, warranty cards, or other related documents.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Document Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Disposal Form Signed" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">File</label>
+                        <input type="file" name="document" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-2"></i>Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

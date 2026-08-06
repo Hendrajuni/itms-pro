@@ -1,7 +1,8 @@
 {% extends 'layouts/base.html' %}
 {% load static humanize rbac_tags %}
 
-{% block title %}Asset Detail - {{ asset.asset_code }} | ITMS{% endblock %}
+{% block title %}Asset Detail - {{ asset.asset_code }} | ITMS{% include "assets/document_upload_modal.html" %}
+{% endblock %}
 
 {% block content %}
 <!-- Page Header with Actions -->
@@ -21,6 +22,9 @@
             <i class="fas fa-print me-1"></i> Print Report
         </a>
         {% endif %}
+        <a href="{% url 'asset_inspection_print' asset.pk %}" target="_blank" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-file-signature me-1"></i> Print Inspection
+        </a>
         <a href="{% url 'asset_update' asset.pk %}" class="btn btn-outline-primary me-2">
             <i class="fas fa-edit me-1"></i> Edit Asset
         </a>
@@ -770,4 +774,5 @@
     </div>
 </div>
 </div>
+{% include "assets/document_upload_modal.html" %}
 {% endblock %}

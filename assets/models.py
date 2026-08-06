@@ -804,3 +804,17 @@ class Contract(models.Model):
         return self.title
 
 
+
+class AssetDocument(models.Model):
+    asset = models.ForeignKey('Asset', on_delete=models.CASCADE, related_name='documents')
+    title = models.CharField(max_length=255, help_text="e.g., Disposal Form, Invoice, Warranty Card")
+    document = models.FileField(upload_to='assets/documents/')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.title} - {self.asset.asset_code}"

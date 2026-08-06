@@ -10,6 +10,10 @@ urlpatterns = [
     path('storage/<int:pk>/delete/', views.AssetStorageDeleteView.as_view(), name='asset_storage_delete'),
     path('scanner/', views.AssetScannerView.as_view(), name='asset_scanner'),
     path('resolve-code/', views.AssetResolveCodeView.as_view(), name='asset_resolve_code'),
+    
+    path('<int:pk>/inspection/print/', views.AssetInspectionPrintView.as_view(), name='asset_inspection_print'),
+    path('<int:asset_id>/document/add/', views.AssetDocumentUploadView.as_view(), name='asset_document_upload'),
+    path('document/<int:pk>/delete/', views.AssetDocumentDeleteView.as_view(), name='asset_document_delete'),
     path('<int:pk>/print-label/', views.AssetLabelView.as_view(), name='asset_print_label'),
     path('print-labels/', views.BulkAssetLabelView.as_view(), name='asset_print_labels_bulk'),
     path('print-list-bulk/', views.BulkAssetPrintListView.as_view(), name='asset_print_list_bulk'),

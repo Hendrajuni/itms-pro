@@ -20,10 +20,10 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, InfrastructureType, Contract, Location, Department, Category, AssetStorage, Vendor, PartHistory
+from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, InfrastructureType, Contract, Location, Department, Category, AssetStorage, Vendor, PartHistory, AssetDocument
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
-from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm, PartHistoryForm, VendorForm
+from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm, PartHistoryForm, VendorForm, AssetDocumentForm
 from django.db.models import Sum, Q, Count, F
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -2189,3 +2189,32 @@ class AssetResolveCodeView(LoginRequiredMixin, View):
         messages.error(request, f'Asset dengan kode {code} tidak ditemukan.')
         return redirect('asset_scanner')
 
+
+
+# --- Asset Inspection and Document Management ---
+
+class AssetInspectionPrintView(LoginRequiredMixin, DetailView):
+    model = Asset
+    template_name = 'assets/asset_inspection_print.html'
+    context_object_name = 'asset'
+
+class AssetDocumentUploadView(LoginRequiredMixin, CreateView):
+    model = AssetDocument
+    form_class = AssetDocumentForm
+    template_name = 'assets/document_upload_modal.html'
+
+    def form_valid(self, form):
+        form.instance.asset_id = self.kwargs['asset_id']
+        form.instance.uploaded_by = self.request.user
+        messages.success(self.request, 'Document uploaded successfully.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('asset_detail', kwargs={'pk': self.kwargs['asset_id']}) + '#documents'
+
+class AssetDocumentDeleteView(LoginRequiredMixin, DeleteView):
+    model = AssetDocument
+
+    def get_success_url(self):
+        messages.success(self.request, 'Document deleted successfully.')
+        return reverse('asset_detail', kwargs={'pk': self.object.asset_id}) + '#documents'
