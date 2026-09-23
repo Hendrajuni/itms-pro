@@ -24,27 +24,7 @@
         </div>
         <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
             {% if user.is_superuser or user|has_group:"IT Support" or user|has_group:"Admin" or user|has_group:"Manager" or user|has_group:"Auditor" %}
-            <!-- View Mode Dropdown -->
-            <div class="dropdown">
-                <button class="btn btn-white border dropdown-toggle" type="button" id="viewModeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    {% if view_mode == 'financial' %}
-                        <i class="fas fa-file-invoice-dollar me-2 text-success"></i>Financial
-                    {% elif view_mode == 'lifecycle' %}
-                        <i class="fas fa-recycle me-2 text-warning"></i>Lifecycle
-                    {% elif view_mode == 'disposed' %}
-                        <i class="fas fa-trash me-2 text-danger"></i>Disposed Assets
-                    {% else %}
-                        <i class="fas fa-list me-2 text-primary"></i>Operational
-                    {% endif %}
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="viewModeDropdown">
-                    <li><a class="dropdown-item" href="?{% param_replace mode='operational' %}"><i class="fas fa-list me-2 text-muted"></i>Operational</a></li>
-                    <li><a class="dropdown-item" href="?{% param_replace mode='financial' %}"><i class="fas fa-file-invoice-dollar me-2 text-muted"></i>Financial</a></li>
-                    <li><a class="dropdown-item" href="?{% param_replace mode='lifecycle' %}"><i class="fas fa-recycle me-2 text-muted"></i>Lifecycle</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="?{% param_replace mode='disposed' %}"><i class="fas fa-trash me-2 text-muted"></i>Disposed Assets</a></li>
-                </ul>
-            </div>
+            
 
             <!-- Filter Form -->
             <form method="get" id="filterForm" class="d-flex flex-wrap gap-2 position-relative align-items-center flex-grow-1 flex-md-grow-0">
@@ -239,6 +219,27 @@
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold text-primary">Asset List</h6>
                     <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
+            <!-- View Mode Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-white border dropdown-toggle" type="button" id="viewModeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    {% if view_mode == 'financial' %}
+                        <i class="fas fa-file-invoice-dollar me-2 text-success"></i>Financial
+                    {% elif view_mode == 'lifecycle' %}
+                        <i class="fas fa-recycle me-2 text-warning"></i>Lifecycle
+                    {% elif view_mode == 'disposed' %}
+                        <i class="fas fa-trash me-2 text-danger"></i>Disposed Assets
+                    {% else %}
+                        <i class="fas fa-list me-2 text-primary"></i>Operational
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="viewModeDropdown">
+                    <li><a class="dropdown-item" href="?{% param_replace mode='operational' %}"><i class="fas fa-list me-2 text-muted"></i>Operational</a></li>
+                    <li><a class="dropdown-item" href="?{% param_replace mode='financial' %}"><i class="fas fa-file-invoice-dollar me-2 text-muted"></i>Financial</a></li>
+                    <li><a class="dropdown-item" href="?{% param_replace mode='lifecycle' %}"><i class="fas fa-recycle me-2 text-muted"></i>Lifecycle</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="?{% param_replace mode='disposed' %}"><i class="fas fa-trash me-2 text-muted"></i>Disposed Assets</a></li>
+                </ul>
+            </div>
                         <!-- Per Page Dropdown -->
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
