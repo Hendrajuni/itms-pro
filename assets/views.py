@@ -32,7 +32,7 @@ class AssetListView(LoginRequiredMixin, ListView):
     template_name = 'assets/asset_list.html'
     context_object_name = 'assets'
     ordering = ['-created_at']
-    paginate_by = 10
+    paginate_by = 20
 
     def get_paginate_by(self, queryset):
         per_page = self.request.GET.get('per_page')
