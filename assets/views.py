@@ -807,126 +807,140 @@ class AssetSmartAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateV
     template_name = 'assets/smart_analytics.html'
 
     def test_func(self):
-        return is_enterprise()
-    
+        # Allow any authenticated user, but we'll scope data later
+        return self.request.user.is_authenticated
+
     def handle_no_permission(self):
-        if self.request.user.is_authenticated:
-             messages.error(self.request, "This feature requires the Enterprise Edition.")
-             return redirect('asset_list')
-        return super().handle_no_permission()
+        from django.contrib import messages
+        from django.shortcuts import redirect
+        messages.error(self.request, "You don't have permission to view Analytics.")
+        return redirect('dashboard')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         
-        # 1. Location Tree
+        # 1. Location Tree & Scope
         context['location_roots'] = Location.objects.filter(parent=None)
-        
-        # Selected Location Filter
         selected_loc_id = self.request.GET.get('loc')
         selected_location = None
+        
         assets = Asset.objects.all()
+        infrastructures = Infrastructure.objects.all()
 
         if selected_loc_id:
             try:
                 selected_location = Location.objects.get(pk=selected_loc_id)
                 context['selected_location'] = selected_location
                 
-                # Fetch descendants (using custom get_descendants which returns list of objects)
-                # Since get_descendants returns objects, we extract IDs
+                # Expand tree logic
+                current = selected_location
+                expanded = []
+                while current:
+                    expanded.append(current.id)
+                    current = getattr(current, 'parent', None)
+                context['expanded_location_ids'] = expanded
+                
+                # Fetch descendants
                 descendants = selected_location.get_descendants(include_self=True)
                 descendant_ids = [loc.id for loc in descendants]
                 assets = assets.filter(location_id__in=descendant_ids)
+                infrastructures = infrastructures.filter(location_id__in=descendant_ids)
                 
             except Location.DoesNotExist:
                 pass
         
-        # 2. Key Performance Indicators (KPIs)
+        # Base Data
         total_assets = assets.count()
         total_value = assets.aggregate(Sum('purchase_price'))['purchase_price__sum'] or 0
         
-        assets_in_use = assets.filter(status='IN_USE').count()
-        utilization_rate = round((assets_in_use / total_assets * 100), 1) if total_assets > 0 else 0
+        # --- TAB 1: OVERVIEW & PROCUREMENT ---
+        context['total_assets'] = total_assets
+        context['total_value'] = total_value
         
-        assets_broken = assets.filter(status='BROKEN').count()
-        
-        context.update({
-            'total_assets': total_assets,
-            'total_value': total_value,
-            'utilization_rate': utilization_rate,
-            'assets_broken': assets_broken,
-        })
-
-        # 3. Charts Data
         # Category Composition
         cat_data = assets.values('category__name').annotate(count=Count('id')).order_by('-count')
         context['chart_category_labels'] = json.dumps([item['category__name'] for item in cat_data])
         context['chart_category_data'] = json.dumps([item['count'] for item in cat_data])
         
-        # Regional Distribution (Top 5 Locations)
-        reg_data = assets.values('location__name').annotate(count=Count('id')).order_by('-count')[:5]
-        context['chart_region_labels'] = json.dumps([item['location__name'] for item in reg_data])
-        context['chart_region_count'] = json.dumps([item['count'] for item in reg_data])
+        # Recent Procurements (Last 10)
+        recent_purchases = assets.filter(purchase_date__isnull=False).select_related('assigned_to', 'department', 'category').order_by('-purchase_date')[:10]
+        context['recent_purchases'] = recent_purchases
+        
+        # Procurement Trend (CAPEX Last 6 Months)
+        from collections import defaultdict
+        import datetime
+        from django.utils import timezone
+        
+        capex_monthly = defaultdict(float)
+        six_months_ago = timezone.now().date() - datetime.timedelta(days=180)
+        recent_assets = assets.filter(purchase_date__gte=six_months_ago, purchase_price__isnull=False)
+        
+        for a in recent_assets:
+            month_label = a.purchase_date.strftime("%b %Y")
+            capex_monthly[month_label] += float(a.purchase_price)
+            
+        sorted_capex_months = sorted(capex_monthly.keys(), key=lambda d: datetime.datetime.strptime(d, "%b %Y"))
+        context['capex_labels'] = json.dumps(sorted_capex_months)
+        context['capex_data'] = json.dumps([capex_monthly[m] for m in sorted_capex_months])
+        context['total_recent_capex'] = sum(capex_monthly.values())
 
-        # 4. Financials & Optimization (Python Processing)
-        # We fetch related data to avoid N+1 problems
-        asset_list = assets.select_related('location', 'category').prefetch_related('maintenances')
+        # --- TAB 2: MAINTENANCE & OPEX ---
+        # OPEX Logic
+        opex_monthly = defaultdict(float)
         
-        financial_top = []
+        asset_maints = AssetMaintenance.objects.filter(asset__in=assets, status='Completed')
+        for m in asset_maints:
+            if m.completed_date:
+                month_label = m.completed_date.strftime("%b %Y")
+                opex_monthly[month_label] += float(m.cost or 0)
+                
+        infra_maints = InfraMaintenance.objects.filter(infrastructure__in=infrastructures, status='Completed')
+        for m in infra_maints:
+            if m.completed_date:
+                month_label = m.completed_date.strftime("%b %Y")
+                opex_monthly[month_label] += float(m.cost or 0)
+                
+        sorted_opex_months = sorted(opex_monthly.keys(), key=lambda d: datetime.datetime.strptime(d, "%b %Y"))
+        sorted_opex_months = sorted_opex_months[-6:] if len(sorted_opex_months) > 6 else sorted_opex_months
+        
+        context['opex_labels'] = json.dumps(sorted_opex_months)
+        context['opex_data'] = json.dumps([opex_monthly[m] for m in sorted_opex_months])
+        context['total_opex'] = sum(opex_monthly.values())
+        context['assets_broken'] = assets.filter(status='BROKEN').count()
+        
+        # Money Pits Check (Cost > 50% Price)
         money_pits = []
-        eol_candidates = []
-        current_val_sum = 0
-        
-        today = timezone.now().date()
-        
-        for asset in asset_list:
-            # Current Value
-            curr_val = asset.get_current_value()
-            current_val_sum += curr_val
-            asset.cached_current_value = curr_val # Attach to object for template
-            
-            financial_top.append(asset)
-            
-            # EOL Check (Example: > 4 years old)
-            if asset.purchase_date:
-                age_days = (today - asset.purchase_date).days
-                if age_days > (365 * 4):
-                    eol_candidates.append(asset)
-            
-            # Money Pit Check (Maintenance Cost > 50% Purchase Price)
-            # Note: maintenance 'cost' field is Decimal
-            maint_cost = sum(m.cost for m in asset.maintenances.all()) if asset.maintenances.exists() else 0
-            purchase = asset.purchase_price or 1 # Avoid div by zero
+        asset_list = assets.prefetch_related('maintenances')
+        for a in asset_list:
+            maint_cost = sum(m.cost for m in a.maintenances.all()) if a.maintenances.exists() else 0
+            purchase = a.purchase_price or 1
             if purchase > 1:
                 ratio = (float(maint_cost) / float(purchase)) * 100
                 if ratio > 50:
-                    asset.total_maint_cost = maint_cost
-                    asset.maintenance_ratio = ratio
-                    money_pits.append(asset)
-
-        # Sort Top Assets
-        financial_top.sort(key=lambda x: x.cached_current_value, reverse=True)
-        
-        context['financial_total_depreciated_value'] = current_val_sum
-        context['financial_top_assets'] = financial_top[:20]
+                    a.total_maint_cost = maint_cost
+                    a.maintenance_ratio = ratio
+                    money_pits.append(a)
         context['money_pit_assets'] = money_pits
-        
-        context['eol_candidates_count'] = len(eol_candidates)
-        context['eol_candidates_value'] = sum((a.purchase_price or 0) for a in eol_candidates)
-        
-        # Contracts (Expiring in 90 days)
-        # context['expiring_contracts'] = Contract.objects.filter(end_date__lte=today + timedelta(days=90), end_date__gte=today)
+        context['money_pit_count'] = len(money_pits)
 
-        # Forecast Dummy Data (Total Value projection)
-        current_year = today.year
-        context['forecast_labels'] = json.dumps([str(current_year), str(current_year+1), str(current_year+2)])
-        val_float = float(total_value)
-        context['forecast_data'] = json.dumps([val_float*0.1, val_float*0.15, val_float*0.05])
+        # --- TAB 3: LIFECYCLE & CONTRACTS ---
+        today = timezone.now().date()
+        eol_candidates = []
+        for a in asset_list:
+            if a.purchase_date:
+                age_days = (today - a.purchase_date).days
+                if age_days > (365 * 4):
+                    eol_candidates.append(a)
+        context['eol_candidates_count'] = len(eol_candidates)
         
-        # Stock Status
-        context['stock_active'] = assets_in_use
-        context['stock_idle'] = assets.filter(status='AVAILABLE').count()
+        # Pending Disposals (Mock or fetch from disposal model if it exists, here we use disposed status)
+        context['pending_disposals_count'] = assets.filter(status='DISPOSED').count()
         
+        # Expiring Contracts (Next 90 Days)
+        context['expiring_contracts'] = Contract.objects.filter(end_date__lte=today + datetime.timedelta(days=90), end_date__gte=today)
+        context['expiring_contracts_count'] = context['expiring_contracts'].count()
+
         return context
 
 class VendorListView(LoginRequiredMixin, ListView):
@@ -2218,3 +2232,129 @@ class AssetDocumentDeleteView(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.success(self.request, 'Document deleted successfully.')
         return reverse('asset_detail', kwargs={'pk': self.object.asset_id}) + '#documents'
+
+from django.http import JsonResponse
+from django.views import View
+
+class CapexDataAPI(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        period = request.GET.get('period', '6m')
+        loc_id = request.GET.get('loc')
+        
+        from .models import Asset, Location
+        assets = Asset.objects.all()
+        if loc_id:
+            try:
+                selected_location = Location.objects.get(pk=loc_id)
+                descendants = selected_location.get_descendants(include_self=True)
+                descendant_ids = [loc.id for loc in descendants]
+                assets = assets.filter(location_id__in=descendant_ids)
+            except Location.DoesNotExist:
+                pass
+                
+        import datetime
+        from django.utils import timezone
+        today = timezone.now().date()
+        
+        if period == '3m':
+            start_date = today - datetime.timedelta(days=90)
+        elif period == '6m':
+            start_date = today - datetime.timedelta(days=180)
+        elif period == '1y':
+            start_date = today - datetime.timedelta(days=365)
+        elif period == 'all':
+            start_date = None
+        else: # ytd
+            start_date = datetime.date(today.year, 1, 1)
+
+        if start_date:
+            recent_assets = assets.filter(purchase_date__gte=start_date, purchase_price__isnull=False)
+        else:
+            recent_assets = assets.filter(purchase_price__isnull=False)
+            
+        from collections import defaultdict
+        capex_monthly = defaultdict(float)
+        
+        for a in recent_assets:
+            if a.purchase_date:
+                month_label = a.purchase_date.strftime("%b %Y")
+                capex_monthly[month_label] += float(a.purchase_price)
+                
+        sorted_capex_months = sorted(capex_monthly.keys(), key=lambda d: datetime.datetime.strptime(d, "%b %Y"))
+        
+        return JsonResponse({
+            'labels': sorted_capex_months,
+            'data': [capex_monthly[m] for m in sorted_capex_months],
+            'total': sum(capex_monthly.values())
+        })
+
+class MaintenancePivotAPI(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        loc_id = request.GET.get('loc')
+        
+        from maintenance.models import AssetMaintenance
+        from assets.models import Location
+        
+        maintenances = AssetMaintenance.objects.select_related('asset', 'asset__category', 'asset__location', 'asset__department', 'asset__assigned_to', 'technician', 'vendor').all()
+        
+        if loc_id:
+            try:
+                selected_location = Location.objects.get(pk=loc_id)
+                descendants = selected_location.get_descendants(include_self=True)
+                descendant_ids = [loc.id for loc in descendants]
+                maintenances = maintenances.filter(asset__location_id__in=descendant_ids)
+            except Location.DoesNotExist:
+                pass
+                
+        year_filter = request.GET.get('year')
+        if year_filter and year_filter != 'all':
+            maintenances = maintenances.filter(scheduled_date__year=int(year_filter))
+                
+        data = []
+        for m in maintenances:
+            data.append({
+                "Asset": m.asset.name if m.asset else "Unknown",
+                "Asset ID": m.asset.asset_code if m.asset else "-",
+                "Category": m.asset.category.name if m.asset and m.asset.category else "Uncategorized",
+                "Location": m.asset.location.name if m.asset and m.asset.location else "Unknown",
+                "Department": m.asset.department.name if m.asset and m.asset.department else "-",
+                "User": m.asset.assigned_to.get_full_name() or m.asset.assigned_to.username if m.asset and m.asset.assigned_to else "-",
+                "Type": m.maintenance_type,
+                "Status": m.status,
+                "Technician": m.technician.get_full_name() or m.technician.username if m.technician else "-",
+                "Vendor": m.vendor.name if m.vendor else "-",
+                "Cost": float(m.cost) if m.cost else 0.0,
+                "Year": m.scheduled_date.strftime("%Y") if m.scheduled_date else "",
+                "Month": m.scheduled_date.strftime("%b %Y") if m.scheduled_date else "",
+                "Date": m.scheduled_date.strftime("%Y-%m-%d") if m.scheduled_date else ""
+            })
+            
+        # Add PartHistory records
+        from assets.models import PartHistory
+        parts = PartHistory.objects.select_related('asset', 'asset__category', 'asset__location', 'asset__department', 'asset__assigned_to', 'vendor').all()
+        
+        if loc_id and 'descendant_ids' in locals():
+            parts = parts.filter(asset__location_id__in=descendant_ids)
+            
+        if year_filter and year_filter != 'all':
+            parts = parts.filter(action_date__year=int(year_filter))
+            
+        for p in parts:
+            data.append({
+                "Asset": p.asset.name if p.asset else "Unknown",
+                "Asset ID": p.asset.asset_code if p.asset else "-",
+                "Category": p.asset.category.name if p.asset and p.asset.category else "Uncategorized",
+                "Location": p.asset.location.name if p.asset and p.asset.location else "Unknown",
+                "Department": p.asset.department.name if p.asset and p.asset.department else "-",
+                "User": p.asset.assigned_to.get_full_name() or p.asset.assigned_to.username if p.asset and p.asset.assigned_to else "-",
+                "Type": "Part Replacement",
+                "Status": "Completed",
+                "Technician": "-",
+                "Vendor": p.vendor.name if p.vendor else "-",
+                "Cost": float(p.cost) if p.cost else 0.0,
+                "Year": p.action_date.strftime("%Y") if p.action_date else "",
+                "Month": p.action_date.strftime("%b %Y") if p.action_date else "",
+                "Date": p.action_date.strftime("%Y-%m-%d") if p.action_date else ""
+            })
+            
+        return JsonResponse(data, safe=False)

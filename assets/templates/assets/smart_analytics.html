@@ -2,380 +2,388 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Smart Asset Intelligence - ITMS{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css">
+<style>
+    /* Styling for PivotTable to look modern */
+    .pvtUi { font-family: 'Inter', sans-serif; font-size: 13px; }
+    .pvtTable { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    .pvtTable th, .pvtTable td { padding: 10px; border: 1px solid #eaecf4; }
+    .pvtTable thead tr th, .pvtTable tbody tr th { background-color: #f8f9fc; color: #4e73df; font-weight: 600; text-align: left; }
+    .pvtTotal, .pvtGrandTotal { font-weight: bold; background-color: #f8f9fc !important; }
+    .pvtAxisContainer, .pvtVals { background-color: #f8f9fc; border: 1px solid #eaecf4; border-radius: 5px; padding: 10px; margin-bottom: 10px; }
+    .pvtAttr { background-color: #fff !important; border: 1px solid #d1d3e2 !important; border-radius: 4px !important; padding: 5px 10px !important; color: #5a5c69 !important; font-weight: 600 !important; }
+    .pvtTriangle { display: none; }
+    
+    @media print {
+        .pvtUi > tbody > tr:not(:last-child) { display: none !important; } /* Hide drag drop UI */
+        .pvtAxisContainer, .pvtVals { display: none !important; }
+        .pvtTable { width: 100% !important; margin: 0 !important; }
+        .pvtTable th, .pvtTable td { border: 1px solid #000 !important; font-size: 12pt; padding: 8px !important; }
+        .card { box-shadow: none !important; border: none !important; }
+        .card-header { display: none !important; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row h-100 g-0">
-    <!-- SIDEBAR: Location Tree -->
-    <div class="col-md-3 col-lg-2 bg-white border-end h-100 d-none d-md-block overflow-auto shadow-sm" style="min-height: 80vh;">
-        <div class="p-3 border-bottom">
-            <h6 class="fw-bold text-uppercase text-muted mb-0 small">
-                <i class="fas fa-sitemap me-2"></i>Location Tree
-            </h6>
-        </div>
-        <div class="p-2">
-            <div class="tree-menu">
-                <ul class="list-unstyled mb-0">
-                    <!-- Global Link -->
-                    <li class="mb-1">
-                        <a href="?loc=" class="d-flex align-items-center rounded px-2 py-1 text-decoration-none {% if not selected_location %}bg-primary text-white fw-bold{% else %}text-dark hover-bg-light{% endif %}">
-                            <i class="fas fa-globe me-2"></i> Global / All
-                        </a>
-                    </li>
 
-                    {% for root in location_roots %}
-                        {% include "assets/partials/location_tree_item.html" with node=root %}
-                    {% endfor %}
-                </ul>
-            </div>
+<!-- AESTHETIC ENHANCEMENTS & PRINT MEDIA -->
+<style>
+    .nav-tabs-custom .nav-link {
+        color: #6c757d;
+        border: none;
+        border-bottom: 3px solid transparent;
+        font-weight: 600;
+        padding: 1rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+    .nav-tabs-custom .nav-link.active {
+        color: #4e73df;
+        border-bottom: 3px solid #4e73df;
+        background: transparent;
+    }
+    .mini-grid-ribbon {
+        background: #f8f9fc;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #e3e6f0;
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #858796;
+        letter-spacing: 0.05em;
+    }
+    .stat-value {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #3a3b45;
+    }
+
+    /* Resizable Chart Containers */
+    .resizable-container {
+        resize: horizontal;
+        overflow: hidden;
+        min-width: 350px;
+        max-width: 100%;
+        padding-right: 10px;
+        padding-bottom: 10px;
+    }
+    
+    /* Print Styles */
+    @media print {
+        @page { size: A4 portrait; margin: 1.5cm; }
+        body { font-size: 11pt; background: #fff !important; }
+        
+        /* Hide Clutter */
+        #accordionSidebar, nav.navbar, .btn, .nav-tabs-custom, .location-tree-sidebar, footer {
+            display: none !important;
+        }
+
+        /* Show Print Header */
+        .print-header { display: block !important; border-bottom: 2px solid #224abe; padding-bottom: 10px; margin-bottom: 20px; }
+        .print-header h2 { color: #224abe; font-weight: bold; margin: 0; }
+        
+        /* Force Tabs to Stack vertically */
+        .tab-content > .tab-pane { display: block !important; opacity: 1 !important; page-break-after: always; }
+        
+        /* Charts Adjustment for Print */
+        .chart-container { max-height: 250px !important; width: 100% !important; }
+        
+        /* Fix Table Borders */
+        table { border-collapse: collapse !important; width: 100% !important; }
+        th, td { border: 1px solid #ddd !important; padding: 8px !important; }
+    }
+    .print-header { display: none; }
+</style>
+
+<div class="row h-100">
+    <!-- LEFT SIDEBAR: LOCATION TREE (Hidden on Print) -->
+    <div class="col-md-3 col-lg-2 border-end bg-white pt-3 location-tree-sidebar" style="min-height: calc(100vh - 70px);">
+        <h6 class="text-uppercase fw-bold text-muted mb-3 px-3">
+            <i class="fas fa-sitemap me-2"></i>Location Tree
+        </h6>
+        <div class="list-group list-group-flush" id="locationTree">
+            <a href="{% url 'asset_analytics' %}" class="list-group-item list-group-item-action fw-bold border-0 {% if not selected_location %}bg-primary text-white rounded{% endif %}">
+                <i class="fas fa-globe me-2"></i>Global / All
+            </a>
+            {% for root_node in location_roots %}
+                {% include "assets/partials/location_tree_item.html" with node=root_node current_loc=selected_location %}
+            {% endfor %}
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
-    <div class="col-md-9 col-lg-10 h-100 overflow-auto bg-light">
-        <div class="p-4" id="main-print-container">
-            <!-- PRINT ONLY HEADER -->
-            <div class="d-none d-print-block text-center mb-4">
-                <h2 class="fw-bold text-dark" style="color: #2c3e50 !important; border-bottom: 2px solid #2c3e50; padding-bottom: 10px;">Smart Asset Intelligence Report</h2>
+    <!-- MAIN CONTENT -->
+    <div class="col-md-9 col-lg-10 p-0">
+        <!-- Print Header (Hidden on Screen) -->
+        <div class="print-header">
+            <h2>IT Asset Analytics Report</h2>
+            <p><strong>Location Scope:</strong> {% if selected_location %}{{ selected_location.name }}{% else %}Global{% endif %}</p>
+        </div>
+
+        <div class="bg-white px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0 fw-bold text-gray-800">
+                    <i class="fas fa-globe text-primary me-2"></i>
+                    {% if selected_location %}{{ selected_location.name }}{% else %}Global Assets{% endif %}
+                </h4>
+                <div class="text-muted small mt-1">Smart Intelligence Dashboard</div>
             </div>
-
-            <!-- On-Screen Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4 gap-3">
-                <div class="d-flex align-items-center gap-3">
-                    <div>
-                        <h4 class="fw-bold text-dark mb-1">
-                            {% if selected_location %}
-                                <i class="fas fa-map-marker-alt text-primary me-2"></i>{{ selected_location.name }}
-                            {% else %}
-                                <i class="fas fa-globe text-primary me-2"></i>Global Assets
-                            {% endif %}
-                        </h4>
-                        <span class="text-muted small">Smart Intelligence Dashboard</span>
-                    </div>
-                    {% if is_enterprise %}
-                    <div class="btn-group shadow-sm border ms-3" role="group" style="background-color: white;">
-                        <a href="{% url 'asset_list' %}" class="btn btn-sm btn-white text-muted border-0"><i class="fas fa-list me-1"></i> Data List</a>
-                        <a href="{% url 'asset_analytics' %}" class="btn btn-sm btn-primary active text-white" style="cursor: default;"><i class="fas fa-chart-pie me-1"></i> Analytics</a>
-                    </div>
-                    {% endif %}
+            
+            <div class="d-flex align-items-center">
+                <!-- Toggle Data List / Analytics -->
+                <div class="btn-group bg-light rounded-pill border p-1 me-3 shadow-sm">
+                    <a href="{% url 'asset_list' %}{% if selected_location %}?loc={{ selected_location.id }}{% endif %}" class="btn btn-sm rounded-pill text-muted fw-bold px-3 border-0">
+                        <i class="fas fa-list me-1"></i> Data List
+                    </a>
+                    <a href="{% url 'asset_analytics' %}{% if selected_location %}?loc={{ selected_location.id }}{% endif %}" class="btn btn-sm btn-primary rounded-pill fw-bold shadow-sm px-3 border-0">
+                        <i class="fas fa-chart-pie me-1"></i> Analytics
+                    </a>
                 </div>
-                <div>
-                    <!-- Actions -->
-                    <button class="btn btn-white border shadow-sm btn-sm me-2" onclick="window.print()"><i class="fas fa-print me-1"></i> Print</button>
-                    <a href="{% url 'asset_export' %}?loc={{ selected_location.id|default:'' }}" class="btn btn-success btn-sm shadow-sm"><i class="fas fa-file-excel me-1"></i> Export Data</a>
-                </div>
+                <!-- Action Buttons -->
+                <button class="btn btn-outline-secondary btn-sm me-2" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> Print
+                </button>
             </div>
+        </div>
 
-            <!-- SMART TABS -->
-            <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold" id="pills-overview-tab" data-bs-toggle="pill" data-bs-target="#pills-overview" type="button" role="tab">
-                        <i class="fas fa-chart-pie me-2"></i>Overview
-                    </button>
+        <div class="p-4">
+            <!-- TAB NAVIGATION -->
+            <ul class="nav nav-tabs nav-tabs-custom mb-4" id="analyticsTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="tab-overview" data-bs-toggle="tab" href="#pane-overview" role="tab">
+                        Overview & Procurement
+                    </a>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold" id="pills-financial-tab" data-bs-toggle="pill" data-bs-target="#pills-financial" type="button" role="tab">
-                        <i class="fas fa-wallet me-2"></i>Financials
-                    </button>
+                <li class="nav-item">
+                    <a class="nav-link" id="tab-maintenance" data-bs-toggle="tab" href="#pane-maintenance" role="tab">
+                        Maintenance & OPEX
+                    </a>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold" id="pills-optimization-tab" data-bs-toggle="pill" data-bs-target="#pills-optimization" type="button" role="tab">
-                        <i class="fas fa-balance-scale me-2"></i>Optimization
-                    </button>
+                <li class="nav-item">
+                    <a class="nav-link" id="tab-lifecycle" data-bs-toggle="tab" href="#pane-lifecycle" role="tab">
+                        Lifecycle & Contracts
+                    </a>
                 </li>
-
             </ul>
 
-            <div class="tab-content" id="pills-tabContent">
-                
-                <!-- TAB 1: OVERVIEW -->
-                <div class="tab-pane fade show active" id="pills-overview" role="tabpanel">
-                    <!-- KPI Cards -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-3">
-                            <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
-                                <div class="card-body">
-                                    <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Assets</div>
-                                    <div class="h3 mb-0 fw-bold text-gray-800">{{ total_assets|intcomma }}</div>
-                                </div>
-                            </div>
+            <div class="tab-content">
+                <!-- TAB 1: OVERVIEW & PROCUREMENT -->
+                <div class="tab-pane fade show active" id="pane-overview" role="tabpanel">
+                    <!-- Mini Pivot-Grid Ribbon -->
+                    <div class="mini-grid-ribbon d-flex justify-content-around mb-4 shadow-sm">
+                        <div class="text-center">
+                            <div class="stat-label">Total Assets</div>
+                            <div class="stat-value">{{ total_assets }}</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
-                                <div class="card-body">
-                                    <div class="text-xs fw-bold text-success text-uppercase mb-1">Asset Value</div>
-                                    <div class="h3 mb-0 fw-bold text-gray-800">Rp {{ total_value|intcomma }}</div>
-                                </div>
-                            </div>
+                        <div class="border-end"></div>
+                        <div class="text-center">
+                            <div class="stat-label">Asset Value</div>
+                            <div class="stat-value">Rp {{ total_value|floatformat:"0"|intcomma }}</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
-                                <div class="card-body">
-                                    <div class="text-xs fw-bold text-warning text-uppercase mb-1">Utilization Rate</div>
-                                    <div class="h3 mb-0 fw-bold text-gray-800">{{ utilization_rate }}%</div>
-                                    <small class="text-muted">Active / Total</small>
-                                </div>
-                            </div>
+                        <div class="border-end"></div>
+                        <div class="text-center">
+                            <div class="stat-label">New Purchases (6 Mos)</div>
+                            <div class="stat-value">{{ recent_purchases|length }}</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
-                                <div class="card-body">
-                                    <div class="text-xs fw-bold text-danger text-uppercase mb-1">Needs Attention</div>
-                                    <div class="h3 mb-0 fw-bold text-gray-800">{{ assets_broken }}</div>
-                                    <small class="text-muted">Broken Status</small>
-                                </div>
-                            </div>
+                        <div class="border-end"></div>
+                        <div class="text-center">
+                            <div class="stat-label">CAPEX Spend (6 Mos)</div>
+                            <div class="stat-value text-success" id="capexTotalText">Rp {{ total_recent_capex|floatformat:"0"|intcomma }}</div>
                         </div>
                     </div>
 
                     <!-- Charts Row -->
-                    <div class="row g-3">
-                        <div class="col-lg-6">
-                            <div class="card shadow-sm border-0 h-100">
-                                <div class="card-header bg-white py-3 border-0">
-                                    <h6 class="m-0 fw-bold text-primary">Asset Composition (Category)</h6>
+                    <div class="row g-4 mb-4 flex-md-nowrap">
+                        <div class="resizable-container" style="flex: 0 0 auto; width: 45%; min-width: 30%; max-width: 70%; resize: horizontal; overflow: hidden;">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-0 pt-3">
+                                    <h6 class="fw-bold text-dark m-0">Asset Composition</h6>
                                 </div>
-                                <div class="card-body">
-                                    <canvas id="categoryChart" style="max-height: 300px;"></canvas>
+                                <div class="card-body chart-container" style="position: relative; height:320px;">
+                                    <canvas id="categoryChart"></canvas>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-6">
-                            <div class="card shadow-sm border-0 h-100">
-                                <div class="card-header bg-white py-3 border-0">
-                                    <h6 class="m-0 fw-bold text-primary">Regional Distribution (Audit)</h6>
+                        <div style="flex: 1 1 auto; overflow: hidden; min-width: 30%;">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold text-dark m-0">Monthly Procurement Spend (CAPEX)</h6>
+                                    <select id="capexPeriodSelect" onchange="updateCapex(this.value)" class="form-select form-select-sm shadow-none" style="width: auto; cursor: pointer; border-color: #eaecf4;">
+                                        <option value="3m">Last 3 Months</option>
+                                        <option value="6m" selected>Last 6 Months</option>
+                                        <option value="ytd">This Year (YTD)</option>
+                                        <option value="1y">Last 1 Year</option>
+                                        <option value="all">All Time</option>
+                                    </select>
                                 </div>
-                                <div class="card-body">
-                                    <canvas id="regionChart" style="max-height: 300px;"></canvas>
+                                <div class="card-body chart-container" style="position: relative; height:280px;">
+                                    <canvas id="capexChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Row -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom pt-3">
+                            <h6 class="fw-bold text-dark m-0">Recent Procurements</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light text-muted small text-uppercase">
+                                        <tr>
+                                            <th class="ps-4">Asset Name</th>
+                                            <th>Category</th>
+                                            <th>Assigned To</th>
+                                            <th>Purchase Date</th>
+                                            <th class="text-end pe-4">Price</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for asset in recent_purchases %}
+                                        <tr>
+                                            <td class="ps-4 fw-bold text-dark">{{ asset.name }} <br><small class="text-muted">{{ asset.asset_code }}</small></td>
+                                            <td>{{ asset.category.name }}</td>
+                                            <td>
+                                                {% if asset.assigned_to %}
+                                                    <span class="text-dark">{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</span><br>
+                                                    <small class="text-muted">{{ asset.department.name|default:"-" }}</small>
+                                                {% else %}
+                                                    <span class="text-muted fst-italic">Unassigned</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ asset.purchase_date|date:"M d, Y" }}</td>
+                                            <td class="text-end pe-4 text-success fw-bold">Rp {{ asset.purchase_price|floatformat:"0"|intcomma }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr><td colspan="4" class="text-center text-muted py-4">No recent procurements found.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: MAINTENANCE & OPEX -->
+                <div class="tab-pane fade" id="pane-maintenance" role="tabpanel">
+                    <!-- Mini Pivot-Grid Ribbon -->
+                    <div class="mini-grid-ribbon d-flex justify-content-around mb-4 shadow-sm">
+                        <div class="text-center">
+                            <div class="stat-label">Total OPEX (Selected Period)</div>
+                            <div class="stat-value text-danger">Rp {{ total_opex|floatformat:"0"|intcomma }}</div>
+                        </div>
+                        <div class="border-end"></div>
+                        <div class="text-center">
+                            <div class="stat-label">Broken Assets</div>
+                            <div class="stat-value text-warning">{{ assets_broken }}</div>
+                        </div>
+                        <div class="border-end"></div>
+                        <div class="text-center">
+                            <div class="stat-label">Money Pits Detected</div>
+                            <div class="stat-value text-danger">{{ money_pit_count }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Pivot Table -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-bottom pt-3 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold text-dark m-0"><i class="fas fa-table me-2"></i>Interactive Maintenance Pivot</h6>
+                            <div class="d-flex align-items-center">
+                                <select id="pivotYearSelect" class="form-select form-select-sm shadow-none me-2" style="width: auto; cursor: pointer; border-color: #eaecf4;" onchange="loadMaintenancePivot()">
+                                    <option value="all">Semua Tahun</option>
+                                    <option value="2026">2026</option>
+                                    <option value="2025">2025</option>
+                                    <option value="2024">2024</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary me-2 text-nowrap py-1 px-2" style="font-size: 0.8rem;" onclick="savePivotLayout()" title="Save Current Pivot Layout"><i class="fas fa-save me-1"></i>Save Layout</button>
+                                <button class="btn btn-sm btn-outline-secondary me-2 text-nowrap py-1 px-2" style="font-size: 0.8rem;" onclick="resetPivotLayout()" title="Reset Pivot Layout to Default"><i class="fas fa-undo me-1"></i>Reset</button>
+                                <button class="btn btn-sm btn-outline-success me-2 text-nowrap py-1 px-2" style="font-size: 0.8rem;" onclick="exportPivotToExcel()"><i class="fas fa-file-excel me-1"></i>Export</button>
+                                <button class="btn btn-sm btn-outline-primary text-nowrap py-1 px-2" style="font-size: 0.8rem;" onclick="loadMaintenancePivot()"><i class="fas fa-sync me-1"></i>Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="pivotOutput" class="w-100 overflow-auto" style="min-height: 400px;">
+                                <div class="text-center text-muted py-5">
+                                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                                    <p>Loading pivot data...</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- TAB 2: FINANCIALS -->
-                <div class="tab-pane fade" id="pills-financial" role="tabpanel">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-0 h-100">
-                                <i class="fas fa-coins fa-2x me-3 opacity-50"></i>
-                                <div>
-                                    <div class="small fw-bold text-uppercase opacity-75">Cur. Depreciated Value (Est.)</div>
-                                    <div class="h3 fw-bold mb-0">Rp {{ financial_total_depreciated_value|intcomma }}</div>
-                                </div>
-                            </div>
+                <!-- TAB 3: LIFECYCLE & CONTRACTS -->
+                <div class="tab-pane fade" id="pane-lifecycle" role="tabpanel">
+                    <!-- Mini Pivot-Grid Ribbon -->
+                    <div class="mini-grid-ribbon d-flex justify-content-around mb-4 shadow-sm">
+                        <div class="text-center">
+                            <div class="stat-label">EOL Candidates (>4 yrs)</div>
+                            <div class="stat-value text-warning">{{ eol_candidates_count }}</div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-0 h-100">
-                                <i class="fas fa-calendar-times fa-2x me-3 opacity-50"></i>
-                                <div>
-                                    <div class="small fw-bold text-uppercase opacity-75">Budget Plan: End of Life (>4 Years)</div>
-                                    <div class="h3 fw-bold mb-0">{{ eol_candidates_count }} Units</div>
-                                    <small>Est. Replacement Cost: Rp {{ eol_candidates_value|intcomma }}</small>
-                                </div>
-                            </div>
+                        <div class="border-end"></div>
+                        <div class="text-center">
+                            <div class="stat-label">Pending Disposals</div>
+                            <div class="stat-value">{{ pending_disposals_count }}</div>
+                        </div>
+                        <div class="border-end"></div>
+                        <div class="text-center">
+                            <div class="stat-label">Expiring Contracts (90 Days)</div>
+                            <div class="stat-value text-danger">{{ expiring_contracts_count }}</div>
                         </div>
                     </div>
 
-                    <!-- NEW: Predictive Analytics Section -->
-                    <div class="row g-4 mb-4">
-                        <!-- 1. CAPEX FORECAST -->
-                        <div class="col-lg-8">
-                            <div class="card shadow-sm border-0 h-100">
-                                <div class="card-header bg-white py-3">
-                                    <h6 class="m-0 fw-bold text-dark"><i class="fas fa-chart-line text-success me-2"></i>3-Year CAPEX Budget Forecast (Replacements)</h6>
+                    <div class="row g-4">
+                        <!-- Left: Disposals -->
+                        <div class="col-md-7 resizable-container" style="flex: 1 1 auto; width: 55%;">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom pt-3">
+                                    <h6 class="fw-bold text-dark m-0">Disposal Pipeline</h6>
                                 </div>
-                                <div class="card-body">
-                                    <div style="height: 250px; position: relative;">
-                                        <canvas id="forecastChart"></canvas>
-                                    </div>
-                                    <div class="mt-3 text-center small text-muted">
-                                        Projected replacement costs based on EOL (4-Year Useful Life).
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="table-light text-muted small text-uppercase">
+                                                <tr>
+                                                    <th class="ps-4">Asset Name</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- If using AssetDisposal, update loop. Here mock via status=DISPOSED -->
+                                                <tr><td colspan="2" class="text-center text-muted py-4">Disposal records will appear here.</td></tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 2. CONTRACT RADAR -->
-                        <div class="col-lg-4">
-                            <div class="card shadow-sm border-0 h-100">
-                                <div class="card-header bg-white py-3">
-                                     <h6 class="m-0 fw-bold text-dark"><i class="fas fa-bell text-warning me-2"></i>Renewal Radar (90 Days)</h6>
+                        <!-- Right: Contracts Radar -->
+                        <div class="col-md-5 resizable-container" style="flex: 1 1 auto; width: 40%;">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom pt-3">
+                                    <h6 class="fw-bold text-warning m-0"><i class="fas fa-radar me-2"></i>Renewal Radar (Next 90 Days)</h6>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="list-group list-group-flush">
                                         {% for contract in expiring_contracts %}
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
                                             <div>
                                                 <div class="fw-bold text-dark">{{ contract.name }}</div>
-                                                <small class="text-danger"><i class="fas fa-clock me-1"></i>Exp: {{ contract.end_date|date:"d M Y" }}</small>
+                                                <div class="small text-muted">{{ contract.vendor.name }}</div>
                                             </div>
-                                            <span class="badge bg-warning text-dark">Check</span>
+                                            <div class="text-end">
+                                                <span class="badge bg-warning text-dark mb-1">{{ contract.end_date|timeuntil }} left</span>
+                                                <div class="small text-muted">Expires: {{ contract.end_date|date:"M d, Y" }}</div>
+                                            </div>
                                         </div>
                                         {% empty %}
-                                        <div class="text-center py-5 text-muted">
-                                            <i class="fas fa-check-circle fa-2x mb-2 text-success opacity-50"></i>
-                                            <p class="mb-0">No upcoming renewals.</p>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 3. MONEY PITS (REPAIR VS REPLACE) -->
-                    <div class="card shadow-sm border-0 mb-4 border-start border-danger border-4">
-                       <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                           <h6 class="m-0 fw-bold text-danger"><i class="fas fa-heart-broken me-2"></i>"Money Pit" Alert (Repair vs Replace)</h6>
-                           <span class="badge bg-danger">Critical Attention Needed</span>
-                       </div>
-                       <div class="card-body">
-                           <p class="text-muted small mb-3">
-                               <i class="fas fa-info-circle me-1"></i> Assets listed below have spent <strong>>50%</strong> of their purchase price on maintenance repairs. It is recommended to <strong>replace</strong> these units instead of repairing them further.
-                           </p>
-                           <div class="table-responsive">
-                               <table class="table table-hover align-middle mb-0">
-                                   <thead class="bg-light">
-                                       <tr>
-                                           <th>Asset</th>
-                                           <th class="text-end">Purchase Price</th>
-                                           <th class="text-end">Total Repair Cost</th>
-                                           <th class="text-center">Cost Ratio</th>
-                                           <th class="text-center">Recommendation</th>
-                                       </tr>
-                                   </thead>
-                                   <tbody>
-                                       {% for asset in money_pit_assets %}
-                                       <tr>
-                                           <td>
-                                               <div class="fw-bold text-dark">{{ asset.name }}</div>
-                                               <small class="text-muted">{{ asset.asset_code }}</small>
-                                           </td>
-                                           <td class="text-end">Rp {{ asset.purchase_price|intcomma }}</td>
-                                           <td class="text-end text-danger fw-bold">Rp {{ asset.total_maint_cost|intcomma }}</td>
-                                           <td class="text-center">
-                                               <span class="badge bg-danger">{{ asset.maintenance_ratio|floatformat:1 }}%</span>
-                                           </td>
-                                           <td class="text-center">
-                                                <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-sm btn-outline-danger">
-                                                    <i class="fas fa-search me-1"></i> Inspect
-                                                </a>
-                                           </td>
-                                       </tr>
-                                       {% empty %}
-                                       <tr>
-                                           <td colspan="5" class="text-center py-4 text-success fw-bold">
-                                               <i class="fas fa-shield-alt me-2"></i> Good News! No "Money Pit" assets detected.
-                                           </td>
-                                       </tr>
-                                       {% endfor %}
-                                   </tbody>
-                               </table>
-                           </div>
-                       </div>
-                    </div>
-
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <h6 class="fw-bold text-primary mb-0">Top 20 High Value Assets (Current Value)</h6>
-                        </div>
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light text-uppercase small text-muted">
-                                <tr>
-                                    <th>Asset</th>
-                                    <th>Purchased</th>
-                                    <th class="text-end">Original Price</th>
-                                    <th class="text-end">Current Value (Est.)</th>
-                                    <th class="text-center">Health</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for asset in financial_top_assets %}
-                                <tr>
-                                    <td>
-                                        <div class="fw-bold text-dark">{{ asset.name }}</div>
-                                        <div class="small text-muted">{{ asset.asset_code }}</div>
-                                    </td>
-                                    <td>{{ asset.purchase_date|date:"Y-m-d" }}</td>
-                                    <td class="text-end">Rp {{ asset.purchase_price|intcomma }}</td>
-                                    <td class="text-end fw-bold text-success">Rp {{ asset.cached_current_value|intcomma }}</td>
-                                    <td class="text-center">
-                                        <span class="badge bg-{% if asset.status == 'In Use' %}success{% elif asset.status == 'BROKEN' %}danger{% else %}secondary{% endif %} bg-opacity-10 text-{% if asset.status == 'In Use' %}success{% elif asset.status == 'BROKEN' %}danger{% else %}secondary{% endif %}">
-                                            {{ asset.get_status_display }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="5" class="text-center py-4 text-muted">No financial data available.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- TAB 3: OPTIMIZATION -->
-                <div class="tab-pane fade" id="pills-optimization" role="tabpanel">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <h6 class="text-muted text-uppercase mb-3">Efficiency Matrix</h6>
-                                    <div class="row">
-                                        <div class="col-6 border-end">
-                                            <div class="display-4 fw-bold text-success">{{ stock_active }}</div>
-                                            <div class="text-muted small">In Use (Active)</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="display-4 fw-bold {% if stock_idle > 5 %}text-danger{% else %}text-muted{% endif %}">{{ stock_idle }}</div>
-                                            <div class="text-muted small">In Stock (Idle)</div>
-                                        </div>
-                                    </div>
-                                    {% if stock_idle > 5 %}
-                                        <div class="alert alert-danger mt-3 mb-0 small py-2">
-                                            <i class="fas fa-exclamation-circle me-1"></i> Consider redistributing idle stock!
-                                        </div>
-                                    {% else %}
-                                        <div class="alert alert-success mt-3 mb-0 small py-2">
-                                            <i class="fas fa-check-circle me-1"></i> Stock levels are healthy.
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Disposal Pipeline -->
-                        <div class="col-md-6">
-                            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
-                                <div class="card-body">
-                                    <h6 class="text-danger text-uppercase fw-bold mb-3">Disposal Pipeline (Pending)</h6>
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <div>
-                                            <div class="display-5 fw-bold text-dark">{{ disposal_pending_count }}</div>
-                                            <div class="text-muted small">Items Pending Approval</div>
-                                        </div>
-                                        <div class="text-end">
-                                            <div class="h4 fw-bold text-secondary mb-0">Rp {{ disposal_pending_value|intcomma }}</div>
-                                            <div class="text-muted small">Total Asset Value</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <hr>
-                                    
-                                    <h6 class="text-muted small text-uppercase mb-2">Recent Requests</h6>
-                                    <div class="list-group list-group-flush">
-                                        {% for req in disposal_recent_list %}
-                                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <div class="fw-bold text-dark small">{{ req.asset.name }}</div>
-                                                <div class="text-muted text-xs">{{ req.reason }} ({{ req.method }})</div>
-                                            </div>
-                                            <a href="{% url 'disposal_print' req.id %}" target="_blank" class="btn btn-xs btn-outline-danger" title="Print Surat Pengajuan">
-                                                <i class="fas fa-print"></i>
-                                            </a>
-                                        </div>
-                                        {% empty %}
-                                        <div class="text-muted small text-center py-2">No pending disposals.</div>
+                                        <div class="text-center text-muted py-4"><i class="fas fa-check-circle text-success me-2"></i>No upcoming renewals.</div>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -383,178 +391,298 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- TAB 4: INTELLIGENCE (REMOVED) -->
 
             </div>
         </div>
     </div>
 </div>
 
-<!-- SCRIPTS -->
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.body.setAttribute('data-date', new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
-    // 1. Category Chart (Doughnut)
+    // 1. Asset Composition (Doughnut)
     const catCtx = document.getElementById('categoryChart').getContext('2d');
+    
+    // Combine labels with counts
+    const rawLabels = {{ chart_category_labels|safe }};
+    const rawData = {{ chart_category_data|safe }};
+    const combinedLabels = rawLabels.map((label, index) => label + ' (' + rawData[index] + ')');
+    
+    // Plugin to draw text in the middle
+    const centerTextPlugin = {
+        id: 'centerText',
+        beforeDraw: function(chart) {
+            if (chart.config.type !== 'doughnut') return;
+            var ctx = chart.ctx;
+            ctx.restore();
+            
+            var meta = chart.getDatasetMeta(0);
+            if (!meta.data || !meta.data.length) return;
+            var centerX = meta.data[0].x;
+            var centerY = meta.data[0].y;
+
+            var fontSize = (chart.height / 120).toFixed(2);
+            ctx.font = "bold " + fontSize + "em Inter, sans-serif";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#3a3b45";
+            var text = "{{ total_assets }}";
+            ctx.fillText(text, centerX - (ctx.measureText(text).width / 2), centerY - 10);
+            
+            ctx.font = "normal " + (fontSize/2.5).toFixed(2) + "em Inter, sans-serif";
+            ctx.fillStyle = "#858796";
+            var subtext = "Aset";
+            ctx.fillText(subtext, centerX - (ctx.measureText(subtext).width / 2), centerY + (fontSize * 14) - 5);
+            ctx.save();
+        }
+    };
+    Chart.register(centerTextPlugin);
+    
     new Chart(catCtx, {
         type: 'doughnut',
         data: {
-            labels: {{ chart_category_labels|safe }},
+            labels: combinedLabels,
             datasets: [{
-                data: {{ chart_category_data|safe }},
+                data: rawData,
                 backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'],
-                hoverBorderColor: "rgba(234, 236, 244, 1)",
+                hoverBorderColor: "#fff",
+                borderWidth: 2
             }],
         },
         options: {
             maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'right' }
-            },
+            plugins: { legend: { position: 'right' } },
             cutout: '70%',
         }
     });
 
-    // 2. Region Chart (Bar)
-    const regionCtx = document.getElementById('regionChart').getContext('2d');
-    new Chart(regionCtx, {
+    // 2. CAPEX Chart (Bar)
+    const capexCtx = document.getElementById('capexChart').getContext('2d');
+    window.capexChartInstance = new Chart(capexCtx, {
         type: 'bar',
         data: {
-            labels: {{ chart_region_labels|safe }},
+            labels: {{ capex_labels|safe }},
             datasets: [{
-                label: 'Asset Count',
-                data: {{ chart_region_count|safe }},
-                backgroundColor: '#36b9cc',
-                borderRadius: 5,
+                label: 'Procurement Spend (Rp)',
+                data: {{ capex_data|safe }},
+                backgroundColor: '#1cc88a',
+                borderRadius: 4,
             }]
         },
         options: {
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true }
+                y: { ticks: { callback: function(value) { return 'Rp ' + value.toLocaleString(); } } }
             },
-            plugins: {
-                legend: { display: false }
-            }
+            plugins: { legend: { display: false } }
         }
     });
 
-    // 3. Forecast Chart (Bar)
-    const forecastCtx = document.getElementById('forecastChart').getContext('2d');
-    new Chart(forecastCtx, {
-        type: 'bar',
-        data: {
-            labels: {{ forecast_labels|safe }},
-            datasets: [{
-                label: 'Projected Spend (Rp)',
-                data: {{ forecast_data|safe }},
-                backgroundColor: '#e74a3b',
-                borderRadius: 5,
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            scales: {
-                y: { 
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'Rp ' + value.toLocaleString();
-                        }
-                    }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                         label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
-                            }
-                            return label;
-                        }
-                    }
-                }
+    // OPEX Chart has been replaced by PivotTable.
+
+    // Fetch and update CAPEX Chart dynamically
+    window.updateCapex = function(period) {
+        var locId = '{{ selected_location.id|default:"" }}';
+        var url = "{% url 'api_capex_data' %}?period=" + period;
+        if (locId) { url += "&loc=" + locId; }
+        
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-        }
-    });
-</script>
-
-<style>
-    .hover-bg-light:hover { background-color: #f8f9fa; }
-    .tree-menu .toggle-icon { cursor: pointer; width: 20px; text-align: center; }
-
-    /* PRINT STYLING - REFINED */
-    @media print {
-        @page { size: A4; margin: 15mm; }
-        body { background-color: white !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-print-color-adjust: exact; color: #333; }
-        
-        /* Hide Non-Essential Elements */
-        .sidebar, .navbar, .btn, .d-none, .d-md-block, .tree-menu, .nav-pills, .alert-info, .alert-warning, .modal, footer {
-            display: none !important;
-        }
-        
-        /* Layout Reset */
-        .container, .container-fluid, .row, .col-md-3, .col-lg-2, .col-md-9, .col-lg-10, .col-lg-6, .col-md-6 {
-            width: 100% !important; max-width: 100% !important; flex: none !important; margin: 0 !important; padding: 0 !important; float: none !important;
-        }
-
-        /* Card Styling for Print */
-        .card { 
-            border: 1px solid #eee !important; 
-            box-shadow: none !important; 
-            break-inside: avoid; 
-            margin-bottom: 20px !important;
-            page-break-inside: avoid;
-        }
-        .card-header { 
-            background-color: #f8f9fa !important; 
-            border-bottom: 1px solid #ddd !important; 
-            color: #000 !important;
-            padding: 10px !important;
-        }
-        .card-body { padding: 15px !important; }
-        
-        /* Visual Tweaks */
-        h4 { font-size: 18pt; margin-bottom: 5px; color: #2c3e50 !important; }
-        h6 { font-size: 12pt; font-weight: bold; color: #2c3e50 !important; }
-        .text-muted { color: #666 !important; }
-        
-        /* KPI Cards - Force 2x2 Grid or List */
-        .row.g-3.mb-4 { display: flex; flex-wrap: wrap; gap: 10px; }
-        .row.g-3.mb-4 > div { width: 48% !important; flex: 0 0 48%; }
-        
-        /* Tab Content - Show All */
-        .tab-content > .tab-pane { display: block !important; opacity: 1 !important; visibility: visible !important; }
-        
-        /* Section Spacing & Breaks */
-        #pills-overview { margin-bottom: 20px; }
-        #pills-financial { page-break-before: always; }
-        #pills-optimization { page-break-before: always; }
-        
-        /* Charts */
-        canvas { max-height: 300px !important; width: 100% !important; margin-bottom: 20px; }
-        
-        /* Custom Header */
-        /* Removed CSS generated content to prevent duplication */
-        
-        .d-print-block { display: none; }
-        @media print {
-            .d-print-block { display: block !important; }
-            .d-print-none { display: none !important; }
-        }
-        
-        /* Footer/Timestamp */
-        body:after {
-            content: "Generated by ITMS Pro - " attr(data-date);
-            position: fixed; bottom: 0; right: 0; color: #aaa; font-size: 9pt;
-        }
+        })
+        .then(response => {
+            if (!response.ok) {
+                alert("Gagal: HTTP error " + response.status);
+                throw new Error("HTTP error " + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if(!window.capexChartInstance) {
+                alert("Chart instance belum siap!");
+                return;
+            }
+            
+            window.capexChartInstance.data.labels = data.labels;
+            window.capexChartInstance.data.datasets[0].data = data.data;
+            window.capexChartInstance.update();
+            
+            let totalEl = document.getElementById('capexTotalText');
+            if (totalEl) {
+                totalEl.innerText = 'Rp ' + data.total.toLocaleString('id-ID');
+            }
+        })
+        .catch(error => {
+            alert("Gagal memuat data: " + error.message);
+            console.error('Error fetching CAPEX data:', error);
+        });
+    };
+    
+    // Fallback jQuery bindings if Select2 is hijacking the events
+    if (typeof jQuery !== "undefined") {
+        jQuery(document).ready(function($) {
+            $('#capexPeriodSelect').on('change', function() {
+                updateCapex($(this).val());
+            });
+        });
     }
-</style>
+
+    
+    window.savePivotLayout = function() {
+        var showToast = function(msg, isError) {
+            var toastContainer = document.getElementById('pivotToastContainer');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'pivotToastContainer';
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                toastContainer.style.zIndex = '1055';
+                document.body.appendChild(toastContainer);
+            }
+            
+            var bgClass = isError ? 'text-bg-danger' : 'text-bg-success';
+            var iconClass = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
+            
+            var toastEl = document.createElement('div');
+            toastEl.className = 'toast align-items-center border-0 ' + bgClass;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            
+            toastEl.innerHTML = `
+              <div class="d-flex">
+                <div class="toast-body fw-bold">
+                  <i class="fas ${iconClass} me-2"></i> ${msg}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            `;
+            toastContainer.appendChild(toastEl);
+            
+            var bsToast = new bootstrap.Toast(toastEl, {delay: 3000});
+            bsToast.show();
+            
+            toastEl.addEventListener('hidden.bs.toast', function () {
+                toastEl.remove();
+            });
+        };
+
+        if (window.lastPivotConfig) {
+            localStorage.setItem("itmsPivotConfig", JSON.stringify(window.lastPivotConfig));
+            showToast("Profil Layout Pivot berhasil disimpan!", false);
+        } else {
+            showToast("Silakan ubah susunan Pivot terlebih dahulu.", true);
+        }
+    };
+
+    window.resetPivotLayout = function() {
+        localStorage.removeItem("itmsPivotConfig");
+        loadMaintenancePivot();
+    };
+
+    // Export Pivot to Excel
+    window.exportPivotToExcel = function() {
+        var table = document.querySelector(".pvtTable");
+        if (!table) {
+            alert("Tabel Pivot belum siap atau tidak ditemukan.");
+            return;
+        }
+        
+        var clone = table.cloneNode(true);
+        var html = clone.outerHTML;
+        
+        var uri = 'data:application/vnd.ms-excel;base64,';
+        var template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>{table}</body></html>';
+        var base64 = function(s) { return window.btoa(unescape(encodeURIComponent(s))) };
+        var format = function(s, c) { return s.replace(/{(\w+)}/g, function(m, p) { return c[p]; }) };
+        
+        var ctx = {worksheet: 'OPEX Report', table: html};
+        var link = document.createElement("a");
+        link.download = "OPEX_Maintenance_Report.xls";
+        link.href = uri + base64(format(template, ctx));
+        link.click();
+    };
+
+    // Maintenance Pivot Loader
+    window.loadMaintenancePivot = function() {
+        var locId = '{{ selected_location.id|default:"" }}';
+        var year = document.getElementById('pivotYearSelect') ? document.getElementById('pivotYearSelect').value : 'all';
+        var url = "{% url 'api_maintenance_pivot' %}?year=" + year;
+        if (locId) { url += "&loc=" + locId; }
+        
+        document.getElementById('pivotOutput').innerHTML = '<div class="text-center text-muted py-5"><div class="spinner-border text-primary mb-3" role="status"></div><p>Loading pivot data...</p></div>';
+        
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            var derivers = $.pivotUtilities.derivers;
+            var renderers = $.pivotUtilities.renderers;
+            var sum = $.pivotUtilities.aggregatorTemplates.sum;
+            var numberFormat = $.pivotUtilities.numberFormat;
+            
+            var rpFormat = numberFormat({digitsAfterDecimal: 0, decimalSep: ",", thousandsSep: ".", prefix: "Rp "});
+
+            var pivotConfig = {
+                renderers: renderers,
+                cols: ["Year", "Month"],
+                rows: ["Category"],
+                vals: ["Cost"],
+                aggregatorName: "Total Cost (Rp)",
+                aggregators: {
+                    "Total Cost (Rp)": function() { return sum(rpFormat)(["Cost"]); },
+                    "Count": $.pivotUtilities.aggregators["Count"]
+                },
+                rendererName: "Table",
+                onRefresh: function(config) {
+                    var config_copy = JSON.parse(JSON.stringify(config));
+                    delete config_copy["aggregators"];
+                    delete config_copy["renderers"];
+                    window.lastPivotConfig = config_copy;
+                }
+            };
+
+            var savedConfig = localStorage.getItem("itmsPivotConfig");
+            if (savedConfig) {
+                try {
+                    var parsed = JSON.parse(savedConfig);
+                    pivotConfig.cols = parsed.cols || pivotConfig.cols;
+                    pivotConfig.rows = parsed.rows || pivotConfig.rows;
+                    pivotConfig.vals = parsed.vals || pivotConfig.vals;
+                    if (parsed.aggregatorName) pivotConfig.aggregatorName = parsed.aggregatorName;
+                    if (parsed.rendererName) pivotConfig.rendererName = parsed.rendererName;
+                    if (parsed.inclusions) pivotConfig.inclusions = parsed.inclusions;
+                    if (parsed.exclusions) pivotConfig.exclusions = parsed.exclusions;
+                } catch(e) { console.error("Error parsing saved pivot config", e); }
+            }
+
+            $("#pivotOutput").pivotUI(data, pivotConfig);
+        })
+        .catch(err => {
+            document.getElementById('pivotOutput').innerHTML = '<div class="alert alert-danger">Failed to load pivot data.</div>';
+            console.error(err);
+        });
+    };
+    
+    // Automatically load when switching to Maintenance tab
+    document.addEventListener("DOMContentLoaded", function() {
+        var maintenanceTab = document.querySelector('button[data-bs-target="#pane-maintenance"]');
+        if (maintenanceTab) {
+            maintenanceTab.addEventListener('shown.bs.tab', function (e) {
+                if ($("#pivotOutput").is(':empty') || $("#pivotOutput").html().includes("Loading")) {
+                    loadMaintenancePivot();
+                }
+            });
+        } else {
+            loadMaintenancePivot();
+        }
+    });
+
+</script>
 {% endblock %}

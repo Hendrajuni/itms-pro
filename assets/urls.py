@@ -97,4 +97,6 @@ urlpatterns = [
     path('categories/add/', views.CategoryCreateView.as_view(), name='category_create'),
     path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category_update'),
     path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
+    path('api/capex/', views.CapexDataAPI.as_view(), name='api_capex_data'),
+    path('api/maintenance-pivot/', views.MaintenancePivotAPI.as_view(), name='api_maintenance_pivot'),
 ]
