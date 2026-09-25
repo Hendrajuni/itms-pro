@@ -221,11 +221,11 @@ class Asset(models.Model):
         return " ".join(parts)
 
     def get_total_maintenance_cost(self):
-        maint_agg = self.maintenances.aggregate(total=models.Sum('cost'))
+        maint_agg = self.maintenances.filter(status='Completed').aggregate(total=models.Sum('cost'))
         return maint_agg['total'] or 0
         
     def get_combined_maintenance_cost(self):
-        maint_agg = self.maintenances.aggregate(total=models.Sum('cost'))
+        maint_agg = self.maintenances.filter(status='Completed').aggregate(total=models.Sum('cost'))
         maint_cost = maint_agg['total'] or 0
         
         part_agg = self.part_history.aggregate(total=models.Sum('cost'))
@@ -415,6 +415,20 @@ class AuditItem(models.Model):
     def __str__(self):
         return f"Audit {self.session_id} - {self.asset.asset_code}"
 
+
+class InfraPartHistory(models.Model):
+    infrastructure = models.ForeignKey('Infrastructure', on_delete=models.CASCADE, related_name='part_history')
+    part_name = models.CharField(max_length=100)
+    action_date = models.DateField()
+    description = models.TextField()
+    cost = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Infrastructure Part History"
+        verbose_name_plural = "Infrastructure Part Histories"
+        ordering = ['-action_date']
+
 class PartHistory(models.Model):
     # Restored legacy model to fix IntegrityError on deletion
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='part_history')
@@ -499,6 +513,7 @@ class Infrastructure(models.Model):
     location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
     
     capacity = models.CharField(max_length=100, blank=True, null=True, help_text="e.g. 42U, 1200VA")
+    manufacturing_date = models.DateField(blank=True, null=True, verbose_name='Manufacturing Date', help_text="Tanggal dan Tahun Pembuatan")
     photo = models.ImageField(upload_to='infrastructure/photos/', blank=True, null=True)
     
     condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='GOOD')

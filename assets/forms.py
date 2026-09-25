@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from django.utils import timezone
-from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage, Location, PartHistory, AssetDocument
+from .models import Asset, InfraPartHistory, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, Contract, AssetStorage, Location, PartHistory, AssetDocument
 
 
 class AssetStorageForm(forms.ModelForm):
@@ -293,7 +293,7 @@ class CloudAssetForm(forms.ModelForm):
 class InfrastructureForm(forms.ModelForm):
     class Meta:
         model = Infrastructure
-        fields = ['name', 'type', 'location', 'capacity', 'photo', 'condition', 'last_maintenance_date', 'next_maintenance_date', 'notes', 'latitude', 'longitude']
+        fields = ['name', 'type', 'location', 'capacity', 'photo', 'condition', 'last_maintenance_date', 'next_maintenance_date', 'manufacturing_date', 'notes', 'latitude', 'longitude']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'type': forms.Select(attrs={'class': 'form-select'}),
@@ -303,6 +303,7 @@ class InfrastructureForm(forms.ModelForm):
             'condition': forms.Select(attrs={'class': 'form-select'}),
             'last_maintenance_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'next_maintenance_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'manufacturing_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001', 'placeholder': 'Latitude (e.g. -6.200000)'}),
             'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001', 'placeholder': 'Longitude (e.g. 106.816666)'}),
@@ -409,4 +410,17 @@ class AssetDocumentForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Disposal Form, Invoice'}),
             'document': forms.FileInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Additional notes...'}),
+        }
+
+
+class InfraPartHistoryForm(forms.ModelForm):
+    class Meta:
+        model = InfraPartHistory
+        fields = ['part_name', 'action_date', 'description', 'cost', 'vendor']
+        widgets = {
+            'part_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'action_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'cost': forms.NumberInput(attrs={'class': 'form-control'}),
+            'vendor': forms.Select(attrs={'class': 'form-select'}),
         }

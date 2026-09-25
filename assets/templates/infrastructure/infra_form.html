@@ -44,6 +44,12 @@
                                 {{ form.capacity }}
                             </div>
                         </div>
+                        <div class="col-md-6">
+                             <div class="mb-3">
+                                <label class="form-label">Manufacturing Date</label>
+                                {{ form.manufacturing_date }}
+                            </div>
+                        </div>
                     </div>
 
                      <div class="row">
@@ -124,7 +130,7 @@
 
                             var map = L.map('map-picker').setView([defaultLat, defaultLng], zoom);
 
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
                                 attribution: 'OpenStreetMap'
                             }).addTo(map);
 

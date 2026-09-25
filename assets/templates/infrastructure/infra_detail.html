@@ -1,7 +1,39 @@
 {% extends 'layouts/base.html' %}
 {% load static humanize %}
 
-{% block title %}{{ infrastructure.name }} - Datasheet{% endblock %}
+{% block title %}{{ infrastructure.name }} - Datasheet
+
+<!-- Print Modal -->
+<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="GET" action="{% url 'infra_print_datasheet' infrastructure.pk %}" target="_blank">
+          <div class="modal-header">
+            <h5 class="modal-title" id="printModalLabel"><i class="fas fa-print me-2"></i>Print Options</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Select the reporting period for the datasheet. The total service costs will be calculated based on the selected period.</p>
+            <div class="mb-3">
+                <label for="yearFilter" class="form-label fw-bold">Reporting Period</label>
+                <select class="form-select" id="yearFilter" name="year">
+                    <option value="all">All Time (Complete History)</option>
+                    {% for year in available_years %}
+                        <option value="{{ year }}">{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-info text-white" onclick="#printModal.modal('hide');"><i class="fas fa-file-pdf me-1"></i> Generate PDF</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -69,6 +101,38 @@
 
     .print-header { display: none; }
 </style>
+
+
+<!-- Print Modal -->
+<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="GET" action="{% url 'infra_print_datasheet' infrastructure.pk %}" target="_blank">
+          <div class="modal-header">
+            <h5 class="modal-title" id="printModalLabel"><i class="fas fa-print me-2"></i>Print Options</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Select the reporting period for the datasheet. The total service costs will be calculated based on the selected period.</p>
+            <div class="mb-3">
+                <label for="yearFilter" class="form-label fw-bold">Reporting Period</label>
+                <select class="form-select" id="yearFilter" name="year">
+                    <option value="all">All Time (Complete History)</option>
+                    {% for year in available_years %}
+                        <option value="{{ year }}">{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-info text-white" onclick="#printModal.modal('hide');"><i class="fas fa-file-pdf me-1"></i> Generate PDF</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block content %}
@@ -89,7 +153,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
     <h1 class="h3 mb-0 text-gray-800">Infrastructure Detail</h1>
     <div class="d-flex gap-2">
-        <button onclick="window.print()" class="btn btn-info text-white">
+        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#printModal">
             <i class="fas fa-print me-1"></i> Print Datasheet
         </button>
         <a href="{% url 'infra_update' infrastructure.pk %}" class="btn btn-primary">
@@ -167,6 +231,10 @@
                                 <td>{{ infrastructure.capacity|default:"-" }}</td>
                             </tr>
                             <tr>
+                                <th class="text-muted">Manufacturing Date</th>
+                                <td>{{ infrastructure.manufacturing_date|date:"d M Y"|default:"-" }}</td>
+                            </tr>
+                            <tr>
                                 <th class="text-muted">Condition</th>
                                 <td>
                                      {% if infrastructure.condition == 'GOOD' or infrastructure.condition == 'EXCELLENT' %}
@@ -201,9 +269,9 @@
                         
                         <div class="mt-4">
                             <h6 class="font-weight-bold text-muted small text-uppercase">Notes</h6>
-                            <p class="text-muted bg-light p-3 rounded small border">
+                            <div class="text-muted bg-light p-3 rounded small border">
                                 {{ infrastructure.notes|default:"No notes available."|linebreaks }}
-                            </p>
+                            </div>
                         </div>
                      </div>
                 </div>
@@ -312,7 +380,7 @@
             <div class="card-body p-0">
                 {% if maintenance_history %}
                     <ul class="list-group list-group-flush">
-                    {% for logs in maintenance_history %}
+                    {% for logs in maintenance_history|slice:":5" %}
                         <li class="list-group-item">
                             <div class="d-flex w-100 justify-content-between">
                                 <small class="text-muted">{{ logs.scheduled_date|date:"d M Y" }}</small>
@@ -331,6 +399,39 @@
                  <a href="{% url 'infra_maintenance_create' %}?infra={{ infrastructure.pk }}" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-plus me-1"></i> Schedule Maintenance
                 </a>
+            </div>
+        </div>
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Part Replacements</h6>
+                <a href="{% url 'infra_part_history_add' infrastructure.pk %}" class="btn btn-sm btn-outline-primary py-0 no-print">
+                    <i class="fas fa-plus"></i> Add
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if part_history %}
+                    <ul class="list-group list-group-flush">
+                    {% for part in part_history|slice:":5" %}
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ part.part_name }}</h6>
+                                    <small class="text-muted">{{ part.action_date|date:"d M Y" }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="d-block text-success fw-bold">Rp {{ part.cost|default:0|floatformat:0|intcomma }}</span>
+                                    <a href="{% url 'infra_part_history_delete' part.pk %}" class="text-danger small no-print" onclick="return confirm('Delete this part?');"><i class="fas fa-trash"></i></a>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                    <div class="card-footer bg-light text-end py-2">
+                        <small class="text-muted fw-bold">Total: Rp {{ total_parts_cost|floatformat:0|intcomma }}</small>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-4 my-0">No part replacements recorded.</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -367,6 +468,38 @@
         </div>
     </div>
 </div>
+
+
+<!-- Print Modal -->
+<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="GET" action="{% url 'infra_print_datasheet' infrastructure.pk %}" target="_blank">
+          <div class="modal-header">
+            <h5 class="modal-title" id="printModalLabel"><i class="fas fa-print me-2"></i>Print Options</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Select the reporting period for the datasheet. The total service costs will be calculated based on the selected period.</p>
+            <div class="mb-3">
+                <label for="yearFilter" class="form-label fw-bold">Reporting Period</label>
+                <select class="form-select" id="yearFilter" name="year">
+                    <option value="all">All Time (Complete History)</option>
+                    {% for year in available_years %}
+                        <option value="{{ year }}">{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-info text-white" onclick="#printModal.modal('hide');"><i class="fas fa-file-pdf me-1"></i> Generate PDF</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -382,4 +515,36 @@
         });
     });
 </script>
+
+
+<!-- Print Modal -->
+<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="GET" action="{% url 'infra_print_datasheet' infrastructure.pk %}" target="_blank">
+          <div class="modal-header">
+            <h5 class="modal-title" id="printModalLabel"><i class="fas fa-print me-2"></i>Print Options</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Select the reporting period for the datasheet. The total service costs will be calculated based on the selected period.</p>
+            <div class="mb-3">
+                <label for="yearFilter" class="form-label fw-bold">Reporting Period</label>
+                <select class="form-select" id="yearFilter" name="year">
+                    <option value="all">All Time (Complete History)</option>
+                    {% for year in available_years %}
+                        <option value="{{ year }}">{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-info text-white" onclick="#printModal.modal('hide');"><i class="fas fa-file-pdf me-1"></i> Generate PDF</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

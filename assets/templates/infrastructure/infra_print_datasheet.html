@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+{% load humanize %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Infrastructure Datasheet - {{ infrastructure.infra_id }}</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Arial', 'Helvetica', sans-serif; color: #000; background: #fff; -webkit-print-color-adjust: exact; }
+        .container { max-width: 210mm; margin: 0 auto; border: 1px solid #000; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-text { font-size: 26px; font-weight: 900; color: #000; letter-spacing: -0.5px; }
+        
+        .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        .qr-box { width: 80px; height: 80px; margin-bottom: 5px; }
+        .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .report-title { font-size: 14px; font-weight:bold; color: #000; }
+        .report-date { font-size: 11px; color: #000; }
+        
+        .main-info { display: flex; gap: 30px; margin-bottom: 25px; }
+        .photo-box { width: 140px; height: 140px; border: 1px solid #333; display: flex; justify-content: center; align-items: center; background: #f0f0f0; }
+        .photo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        
+        .info-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .info-item label { display: block; font-size: 10px; color: #444; text-transform: uppercase; margin-bottom: 3px; font-weight: 700; }
+        .info-item span { display: block; font-size: 13px; font-weight: 600; color: #000; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+        
+        .section-title { background: #eee; padding: 6px 10px; font-size: 12px; font-weight: 800; text-transform: uppercase; margin-top: 25px; margin-bottom: 10px; border-left: 5px solid #000; color: #000; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+        th { text-align: left; background: #f0f0f0; padding: 6px; border-bottom: 2px solid #000; font-weight: 800; color: #000; }
+        td { padding: 6px; border-bottom: 1px solid #ccc; color: #000; }
+        
+        .footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #000; font-size: 10px; color: #000; text-align: center; font-weight: bold;}
+        
+        @media print {
+            body { padding: 0; background: white; }
+            .container { border: none; padding: 0; }
+            @page { margin: 15mm; }
+            .no-print { display: none !important; }
+        }
+
+        /* Action Bar */
+        .action-bar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .action-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .action-btn.close {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="action-bar no-print">
+        <button class="action-btn" onclick="window.print()">🖨️ Print Document</button>
+        <button class="action-btn close" onclick="window.close()">❌ Close</button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-section" style="display: flex; align-items: center; gap: 15px;">
+                {% if site_settings.logo %}
+                    <img src="{{ site_settings.logo.url }}" alt="Company Logo" style="height: 50px; width: auto; object-fit: contain;">
+                {% endif %}
+                <div>
+                    <div class="logo-text">{{ site_settings.site_name|default:"ITMS Pro"|upper }}</div>
+                    <div style="font-size:12px; font-weight:bold; margin-top:2px;">{{ site_settings.company_name|upper }}</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="qr-box">
+                    <img src="{{ infrastructure.get_qr_code_base64 }}" alt="QR">
+                </div>
+                <div class="report-title">INFRASTRUCTURE DATASHEET</div>
+                <div class="report-date">Generated: {% now "d M Y H:i" %}</div>
+            </div>
+        </div>
+
+        <!-- Main Info -->
+        <div class="section-title">INFRASTRUCTURE SUMMARY</div>
+        <div class="main-info">
+            <div class="photo-box">
+                {% if infrastructure.photo %}
+                    <img src="{{ infrastructure.photo.url }}" alt="Photo">
+                {% else %}
+                    <span style="color:#999; font-size:12px;">NO IMAGE</span>
+                {% endif %}
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Infrastructure ID</label>
+                    <span>{{ infrastructure.infra_id }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Name</label>
+                    <span>{{ infrastructure.name }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Type / Category</label>
+                    <span>{{ infrastructure.infra_type.name|default:infrastructure.get_type_display }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Location</label>
+                    <span>{{ infrastructure.location.name|default:"-" }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Condition</label>
+                    <span>{{ infrastructure.get_condition_display }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Capacity / Spec</label>
+                    <span>{{ infrastructure.capacity|default:"-" }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Manufacturing Date</label>
+                    <span>{{ infrastructure.manufacturing_date|date:"F j, Y"|default:"-" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Coordinates</label>
+                    <span>{% if infrastructure.latitude %}{{ infrastructure.latitude }}, {{ infrastructure.longitude }}{% else %}-{% endif %}</span>
+                </div>
+                <div class="info-item">
+                    <label>Last Maintenance</label>
+                    <span>{{ infrastructure.last_maintenance_date|date:"F j, Y"|default:"-" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Next Maintenance</label>
+                    <span>{{ infrastructure.next_maintenance_date|date:"F j, Y"|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        {% if infrastructure.notes %}
+        <div style="display: flex; align-items: stretch; margin-bottom: 25px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;">
+            <div style="background-color: #f0f0f0; padding: 6px 10px; font-weight: bold; font-size: 11px; text-transform: uppercase; border-right: 1px solid #ccc; display: flex; align-items: center; width: 80px; flex-shrink: 0; color: #000; justify-content: center;">
+                Notes
+            </div>
+            <div style="padding: 6px 10px; font-size: 11px; white-space: pre-line; flex: 1; color: #000; display: flex; align-items: center;">{{ infrastructure.notes }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Linked Assets -->
+        <div class="section-title">Linked Hardware Assets</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Asset ID</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in infrastructure.assets.all %}
+                <tr>
+                    <td>{{ a.asset_code }}</td>
+                    <td>{{ a.name }}</td>
+                    <td>{{ a.category.name|default:"-" }}</td>
+                    <td>{{ a.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #666; font-style: italic;">No hardware assets linked to this infrastructure.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+
+        <!-- Part Replacements -->
+        <div class="section-title">Part Replacements</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Part Name</th>
+                    <th>Vendor</th>
+                    <th>Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for part in filtered_parts %}
+                <tr>
+                    <td>{{ part.action_date|date:"d M Y" }}</td>
+                    <td>{{ part.part_name }}</td>
+                    <td>{{ part.vendor.name|default:"-" }}</td>
+                    <td>Rp {{ part.cost|floatformat:0|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #666; font-style: italic;">No part replacements recorded.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <!-- Maintenance History -->
+        <div class="section-title">Maintenance History</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Vendor / Executed By</th>
+                    <th>Cost</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for maint in filtered_maint %}
+                <tr>
+                    <td>{{ maint.scheduled_date|date:"d M Y" }}</td>
+                    <td>{{ maint.get_maintenance_type_display }}</td>
+                    <td>
+                        {% if maint.vendor %}
+                            {{ maint.vendor.name }}
+                        {% elif maint.technician %}
+                            {{ maint.technician.get_full_name|default:maint.technician.username }} (Internal)
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if maint.status == 'Completed' %}
+                            Rp {{ maint.cost|floatformat:0|intcomma }}
+                        {% else %}
+                            <span style="color: #999; font-style: italic;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ maint.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666; font-style: italic;">No maintenance history recorded.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 15px; margin-bottom: 30px;">
+            <table style="width: auto; border: none; font-size: 11px;">
+                <tr>
+                    <td style="text-align: right; padding-right: 15px; border: none; font-weight: bold;">Total Maintenance Cost:</td>
+                    <td style="text-align: right; border: none; font-family: monospace;">Rp {{ total_maintenance_cost|default:0|floatformat:0|intcomma }}</td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; padding-right: 15px; border: none; font-weight: bold;">Total Parts Cost:</td>
+                    <td style="text-align: right; border: none; font-family: monospace;">Rp {{ total_parts_cost|default:0|floatformat:0|intcomma }}</td>
+                </tr>
+                <tr style="border-top: 2px solid #000;">
+                    <td style="text-align: right; padding-right: 15px; padding-top: 8px; border: none; font-weight: 900; font-size: 13px;">TOTAL SERVICE COST:</td>
+                    <td style="text-align: right; padding-top: 8px; border: none; font-family: monospace; font-weight: 900; font-size: 13px;">Rp {{ total_service_cost|default:0|floatformat:0|intcomma }}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="footer">
+            IT Management System • Internal Document • Confidential
+        </div>
+    </div>
+</body>
+</html>

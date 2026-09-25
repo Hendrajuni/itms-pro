@@ -23,7 +23,8 @@ from openpyxl.utils import get_column_letter
 from .models import Asset, AssetSpecification, NetworkInterface, AssetLoan, Software, SoftwareAllocation, CloudAsset, Infrastructure, InfrastructureType, Contract, Location, Department, Category, AssetStorage, Vendor, PartHistory, AssetDocument
 from governance.models import DailyLog, Project
 from maintenance.models import AssetMaintenance, InfraMaintenance
-from .forms import AssetForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm, PartHistoryForm, VendorForm, AssetDocumentForm
+from .models import InfraPartHistory
+from .forms import AssetForm, InfraPartHistoryForm, AssetNoteForm, NetworkInterfaceFormSet, AssetStorageFormSet, SoftwareAllocationFormSet, AssetLoanForm, AssetMaintenanceForm, InfraMaintenanceForm, SoftwareForm, SoftwareAllocationForm, CloudAssetForm, InfrastructureForm, ContractForm, LocationForm, PartHistoryForm, VendorForm, AssetDocumentForm
 from django.db.models import Sum, Q, Count, F
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -1809,6 +1810,20 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         # Maintenance History
         context['maintenance_history'] = InfraMaintenance.objects.filter(infrastructure=self.object).order_by('-scheduled_date')
+        # Part History
+        part_history = self.object.part_history.all().order_by('-action_date')
+        context['part_history'] = part_history
+        from django.db.models import Sum
+        context['total_parts_cost'] = part_history.aggregate(total=Sum('cost'))['total'] or 0
+        
+        # Generate available years for filtering print report
+        from django.db.models import Exists, OuterRef
+        maint_years = self.object.maintenances.values_list('scheduled_date__year', flat=True).distinct()
+        part_years = self.object.part_history.values_list('action_date__year', flat=True).distinct()
+        
+        all_years = set(list(maint_years) + list(part_years))
+        context['available_years'] = sorted([y for y in all_years if y is not None], reverse=True)
+        
         # Available assets for quick linking
         context['unlinked_assets'] = Asset.objects.filter(infrastructure__isnull=True).order_by('name')
         return context
@@ -1836,6 +1851,44 @@ class InfrastructureLinkAssetView(LoginRequiredMixin, View):
                 messages.success(request, f"Asset '{asset.name}' unlinked from {infrastructure.name}.")
                 
         return redirect('infra_detail', pk=pk)
+
+
+class InfrastructurePrintDatasheetView(LoginRequiredMixin, DetailView):
+    model = Infrastructure
+    template_name = 'infrastructure/infra_print_datasheet.html'
+    context_object_name = 'infrastructure'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.db.models import Sum
+        
+        year = self.request.GET.get('year')
+        
+        parts_qs = self.object.part_history.all()
+        maint_qs = self.object.maintenances.all()
+        
+        if year and year.isdigit():
+            parts_qs = parts_qs.filter(action_date__year=int(year))
+            maint_qs = maint_qs.filter(scheduled_date__year=int(year))
+            context['filter_year'] = year
+        else:
+            context['filter_year'] = 'All Time'
+            
+        context['filtered_parts'] = parts_qs.order_by('-action_date')
+        context['filtered_maint'] = maint_qs.order_by('-scheduled_date')
+        
+        # Calculate parts cost
+        total_parts = parts_qs.aggregate(total=Sum('cost'))['total'] or 0
+        context['total_parts_cost'] = total_parts
+        
+        # Calculate maintenance cost
+        total_maint = maint_qs.filter(status='Completed').aggregate(total=Sum('cost'))['total'] or 0
+        context['total_maintenance_cost'] = total_maint
+        
+        # Total Service Cost
+        context['total_service_cost'] = total_parts + total_maint
+        
+        return context
 
 class InfrastructurePrintLabelView(LoginRequiredMixin, DetailView):
     model = Infrastructure
@@ -2387,3 +2440,31 @@ class MaintenancePivotAPI(LoginRequiredMixin, View):
             })
             
         return JsonResponse(data, safe=False)
+
+
+class InfraPartHistoryCreateView(LoginRequiredMixin, CreateView):
+    model = InfraPartHistory
+    form_class = InfraPartHistoryForm
+    template_name = 'assets/part_history_form.html'
+    
+    def form_valid(self, form):
+        infra = get_object_or_404(Infrastructure, pk=self.kwargs['infra_id'])
+        form.instance.infrastructure = infra
+        messages.success(self.request, f"Part replacement added for '{infra.name}'.")
+        return super().form_valid(form)
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['infrastructure'] = get_object_or_404(Infrastructure, pk=self.kwargs['infra_id'])
+        context['is_infra'] = True
+        return context
+        
+    def get_success_url(self):
+        return reverse_lazy('infra_detail', kwargs={'pk': self.kwargs['infra_id']})
+
+class InfraPartHistoryDeleteView(LoginRequiredMixin, DeleteView):
+    model = InfraPartHistory
+    
+    def get_success_url(self):
+        messages.success(self.request, "Part history record deleted successfully.")
+        return reverse_lazy('infra_detail', kwargs={'pk': self.object.infrastructure.pk})
