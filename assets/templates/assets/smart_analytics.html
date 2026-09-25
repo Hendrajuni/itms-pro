@@ -427,7 +427,7 @@
                                                     </td>
                                                     <td>{{ a.category.name }}</td>
                                                     <td class="text-center">
-                                                        <span class="badge bg-danger text-white rounded-pill">{{ a.maintenances.count }}x</span>
+                                                        <span class="badge bg-danger text-white rounded-pill">{{ a.total_repairs }}x</span>
                                                     </td>
                                                     <td class="text-end text-danger fw-bold">
                                                         Rp {{ a.get_combined_maintenance_cost|floatformat:"0"|intcomma }}

@@ -911,7 +911,7 @@ class AssetSmartAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateV
         
         # Money Pits Check (Cost > 50% Price)
         money_pits = []
-        asset_list = assets.prefetch_related('maintenances')
+        asset_list = assets.prefetch_related('maintenances', 'part_history')
         for a in asset_list:
             maint_cost = sum(m.cost for m in a.maintenances.all()) if a.maintenances.exists() else 0
             purchase = a.purchase_price or 1
@@ -942,7 +942,8 @@ class AssetSmartAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateV
                     eol_candidates.append(a)
                     
                 # Reliability Logic
-                maint_count = a.maintenances.count()
+                maint_count = a.maintenances.count() + a.part_history.count()
+                a.total_repairs = maint_count
                 # Assuming get_combined_maintenance_cost() is available
                 cost = a.get_combined_maintenance_cost()
                 
