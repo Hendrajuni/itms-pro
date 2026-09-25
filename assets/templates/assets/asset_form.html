@@ -50,13 +50,24 @@
                             {{ form.serial_number.errors }}
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label small fw-bold text-muted">Status</label>
                             {{ form.status }}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label small fw-bold text-muted">Assigned To</label>
                             {{ form.assigned_to }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted d-flex justify-content-between w-100">
+                                <span>Linked Infrastructure</span>
+                                {% if form.instance.infrastructure %}
+                                <a href="{% url 'infra_detail' form.instance.infrastructure.pk %}" target="_blank" class="text-primary" title="View Infrastructure">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                {% endif %}
+                            </label>
+                            {{ form.infrastructure }}
                         </div>
                     </div>
                 </div>

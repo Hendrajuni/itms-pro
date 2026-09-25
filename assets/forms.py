@@ -68,7 +68,7 @@ class AssetForm(forms.ModelForm):
             'category', 'name', 'status', 'assigned_to', 
             'brand', 'model', 'serial_number',
             'purchase_date', 'purchase_price', 'vendor', 
-            'location', 'sub_location', 'photo', 'warranty_end', 'invoice_number'
+            'location', 'sub_location', 'photo', 'warranty_end', 'invoice_number', 'infrastructure'
         ]
         widgets = {
             'category': forms.Select(attrs={'class': 'form-select'}),
@@ -86,6 +86,7 @@ class AssetForm(forms.ModelForm):
             'location': forms.Select(attrs={'class': 'form-select'}),
             'sub_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Kantor PKS'}),
             'photo': forms.FileInput(attrs={'class': 'form-control'}),
+            'infrastructure': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
