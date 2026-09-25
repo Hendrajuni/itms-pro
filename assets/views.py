@@ -288,7 +288,7 @@ class AssetExportView(AssetListView):
                 
                 ws.cell(row=row_num, column=6, value=dep_val).number_format = '#,##0'
                 ws.cell(row=row_num, column=7, value=cur_val).number_format = '#,##0'
-                ws.cell(row=row_num, column=8, value=asset.get_total_maintenance_cost()).number_format = '#,##0'
+                ws.cell(row=row_num, column=8, value=asset.get_combined_maintenance_cost()).number_format = '#,##0'
                 
             elif view_mode == 'lifecycle':
                 ws.cell(row=row_num, column=1, value=asset.asset_code)
@@ -547,7 +547,7 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
         
         # Calculate Total Costs
         total_parts_cost = part_history.aggregate(total=Sum('cost'))['total'] or 0
-        total_maintenance_cost = self.object.maintenances.aggregate(total=Sum('cost'))['total'] or 0
+        total_maintenance_cost = self.object.get_total_maintenance_cost()
         purchase_price = self.object.purchase_price or 0
         
         context['total_parts_cost'] = total_parts_cost
@@ -596,7 +596,7 @@ class AssetDetailPrintView(DetailView):
         
         # Calculate Total Costs
         total_parts_cost = part_history.aggregate(total=Sum('cost'))['total'] or 0
-        total_maintenance_cost = self.object.maintenances.aggregate(total=Sum('cost'))['total'] or 0
+        total_maintenance_cost = self.object.get_total_maintenance_cost()
         purchase_price = self.object.purchase_price or 0
         
         context['total_parts_cost'] = total_parts_cost

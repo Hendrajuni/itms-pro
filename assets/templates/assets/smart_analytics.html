@@ -86,8 +86,9 @@
         .print-header { display: block !important; border-bottom: 2px solid #224abe; padding-bottom: 10px; margin-bottom: 20px; }
         .print-header h2 { color: #224abe; font-weight: bold; margin: 0; }
         
-        /* Force Tabs to Stack vertically */
-        .tab-content > .tab-pane { display: block !important; opacity: 1 !important; page-break-after: always; }
+        /* Only print the active tab */
+        .tab-content > .tab-pane { display: none !important; }
+        .tab-content > .tab-pane.active { display: block !important; opacity: 1 !important; page-break-after: auto; }
         
         /* Charts Adjustment for Print */
         .chart-container { max-height: 250px !important; width: 100% !important; }
@@ -120,7 +121,10 @@
         <!-- Print Header (Hidden on Screen) -->
         <div class="print-header">
             <h2>IT Asset Analytics Report</h2>
-            <p><strong>Location Scope:</strong> {% if selected_location %}{{ selected_location.name }}{% else %}Global{% endif %}</p>
+            <p>
+                <strong>Location Scope:</strong> {% if selected_location %}{{ selected_location.name }}{% else %}Global / All{% endif %}<br>
+                <strong>Generated On:</strong> {% now "d M Y H:i" %}
+            </p>
         </div>
 
         <div class="bg-white px-4 py-3 border-bottom d-flex justify-content-between align-items-center">

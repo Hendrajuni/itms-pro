@@ -174,7 +174,7 @@
                                 Rp {{ asset.current_book_value|floatformat:0|intcomma }}
                             </td>
                             <td style="text-align: right;">
-                                Rp {{ asset.get_total_maintenance_cost|floatformat:0|intcomma }}
+                                Rp {{ asset.get_combined_maintenance_cost|floatformat:0|intcomma }}
                             </td>
                         {% elif mode == 'lifecycle' %}
                             <td style="text-align: center;">{{ asset.purchase_date|date:"d/m/Y"|default:"-" }}</td>

@@ -430,7 +430,7 @@
                                         Rp {{ asset.current_book_value|floatformat:0|intcomma }}
                                     </td>
                                     <td class="text-end text-danger">
-                                        Rp {{ asset.get_total_maintenance_cost|floatformat:0|intcomma }}
+                                        Rp {{ asset.get_combined_maintenance_cost|floatformat:0|intcomma }}
                                     </td>
 
                                 {% elif view_mode == 'lifecycle' %}

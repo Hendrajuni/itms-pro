@@ -221,12 +221,17 @@ class Asset(models.Model):
         return " ".join(parts)
 
     def get_total_maintenance_cost(self):
-        # Using default reverse relation name since we haven't confirmed related_name yet.
-        # But wait, AssetMaintenance model (duplicate) was removed, checking MaintenanceBase
-        # If accessing the maintenance app's AssetMaintenance, it usually has a ForeignKey.
-        # Assuming related_name='maintenances' based on previous context.
-        aggregated = self.maintenances.aggregate(total=models.Sum('cost'))
-        return aggregated['total'] or 0
+        maint_agg = self.maintenances.aggregate(total=models.Sum('cost'))
+        return maint_agg['total'] or 0
+        
+    def get_combined_maintenance_cost(self):
+        maint_agg = self.maintenances.aggregate(total=models.Sum('cost'))
+        maint_cost = maint_agg['total'] or 0
+        
+        part_agg = self.part_history.aggregate(total=models.Sum('cost'))
+        part_cost = part_agg['total'] or 0
+        
+        return maint_cost + part_cost
 
     def is_eol_candidate(self):
         if not self.purchase_date:
