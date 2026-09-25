@@ -275,23 +275,7 @@
 
                 <!-- TAB 2: MAINTENANCE & OPEX -->
                 <div class="tab-pane fade" id="pane-maintenance" role="tabpanel">
-                    <!-- Mini Pivot-Grid Ribbon -->
-                    <div class="mini-grid-ribbon d-flex justify-content-around mb-4 shadow-sm">
-                        <div class="text-center">
-                            <div class="stat-label">Total OPEX (Selected Period)</div>
-                            <div class="stat-value text-danger">Rp {{ total_opex|floatformat:"0"|intcomma }}</div>
-                        </div>
-                        <div class="border-end"></div>
-                        <div class="text-center">
-                            <div class="stat-label">Broken Assets</div>
-                            <div class="stat-value text-warning">{{ assets_broken }}</div>
-                        </div>
-                        <div class="border-end"></div>
-                        <div class="text-center">
-                            <div class="stat-label">Money Pits Detected</div>
-                            <div class="stat-value text-danger">{{ money_pit_count }}</div>
-                        </div>
-                    </div>
+
 
                     <!-- Interactive Pivot Table -->
                     <div class="card border-0 shadow-sm mb-4">
@@ -341,6 +325,125 @@
                         </div>
                     </div>
 
+                    <!-- ASSET HEALTH & RELIABILITY MATRIX -->
+                    <div class="row g-4 mb-4">
+                        <!-- Live Status Breakdown -->
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom pt-3">
+                                    <h6 class="fw-bold text-dark m-0"><i class="fas fa-chart-pie me-2 text-primary"></i>Live Status Breakdown</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        {% for status, count in status_breakdown.items %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                            <span>
+                                                {% if status == 'In Use' %}<i class="fas fa-circle text-success me-2 small"></i>
+                                                {% elif status == 'Available' %}<i class="fas fa-circle text-info me-2 small"></i>
+                                                {% elif status == 'Maintenance' %}<i class="fas fa-circle text-warning me-2 small"></i>
+                                                {% elif status == 'Broken' %}<i class="fas fa-circle text-danger me-2 small"></i>
+                                                {% else %}<i class="fas fa-circle text-secondary me-2 small"></i>{% endif %}
+                                                {{ status }}
+                                            </span>
+                                            <span class="badge bg-light text-dark border rounded-pill">{{ count }}</span>
+                                        </li>
+                                        {% empty %}
+                                        <li class="list-group-item text-center text-muted">No data available</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset Health Board (Combined) -->
+                        <div class="col-md-8">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom pt-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold text-dark m-0"><i class="fas fa-heartbeat me-2 text-primary"></i>Asset Health Board</h6>
+                                    <select class="form-select form-select-sm shadow-none w-auto border bg-light fw-bold text-secondary" id="healthBoardToggle" onchange="toggleHealthBoard()" style="font-size: 0.85rem; cursor: pointer;">
+                                        <option value="reliable">🏆 Most Reliable Assets</option>
+                                        <option value="problematic">⚠️ High Attention (Money Pits)</option>
+                                    </select>
+                                </div>
+                                <div class="card-body p-0">
+                                    <!-- Reliable Table -->
+                                    <div id="reliable-list" class="table-responsive">
+                                        <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                                            <thead class="table-light text-muted">
+                                                <tr>
+                                                    <th>Asset ID & Name</th>
+                                                    <th>User / Dept</th>
+                                                    <th>Category</th>
+                                                    <th>Age</th>
+                                                    <th class="text-center">Repairs</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for a in most_reliable %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold text-dark">{{ a.name }}</div>
+                                                        <div class="small text-muted">{{ a.asset_code }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div>{{ a.assigned_to|default:"-" }}</div>
+                                                        <div class="small text-muted">{{ a.department.name|default:"" }}</div>
+                                                    </td>
+                                                    <td>{{ a.category.name }}</td>
+                                                    <td>{{ a.age_usage }}</td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"><i class="fas fa-check me-1"></i>0</span>
+                                                    </td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr><td colspan="5" class="text-center text-muted py-4">No highly reliable assets found yet.</td></tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- Problematic Table -->
+                                    <div id="problematic-list" class="table-responsive d-none">
+                                        <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                                            <thead class="table-light text-muted">
+                                                <tr>
+                                                    <th>Asset ID & Name</th>
+                                                    <th>User / Dept</th>
+                                                    <th>Category</th>
+                                                    <th class="text-center">Total Repairs</th>
+                                                    <th class="text-end">Total Maint. Cost</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for a in most_problematic %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold text-dark">{{ a.name }}</div>
+                                                        <div class="small text-muted">{{ a.asset_code }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div>{{ a.assigned_to|default:"-" }}</div>
+                                                        <div class="small text-muted">{{ a.department.name|default:"" }}</div>
+                                                    </td>
+                                                    <td>{{ a.category.name }}</td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-danger text-white rounded-pill">{{ a.maintenances.count }}x</span>
+                                                    </td>
+                                                    <td class="text-end text-danger fw-bold">
+                                                        Rp {{ a.get_combined_maintenance_cost|floatformat:"0"|intcomma }}
+                                                    </td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr><td colspan="5" class="text-center text-muted py-4">No problematic assets detected.</td></tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row g-4">
                         <!-- Left: Disposals -->
                         <div class="col-md-7 resizable-container" style="flex: 1 1 auto; width: 55%;">
@@ -378,11 +481,15 @@
                                         {% for contract in expiring_contracts %}
                                         <div class="list-group-item d-flex justify-content-between align-items-center py-3">
                                             <div>
-                                                <div class="fw-bold text-dark">{{ contract.name }}</div>
+                                                <div class="fw-bold text-dark">{{ contract.title }}</div>
                                                 <div class="small text-muted">{{ contract.vendor.name }}</div>
                                             </div>
                                             <div class="text-end">
-                                                <span class="badge bg-warning text-dark mb-1">{{ contract.end_date|timeuntil }} left</span>
+                                                {% if contract.days_remaining < 0 %}
+                                                <span class="badge bg-danger text-white mb-1">Expired</span>
+                                                {% else %}
+                                                <span class="badge bg-warning text-dark mb-1">{{ contract.days_remaining }} days left</span>
+                                                {% endif %}
                                                 <div class="small text-muted">Expires: {{ contract.end_date|date:"M d, Y" }}</div>
                                             </div>
                                         </div>
@@ -688,5 +795,18 @@
         }
     });
 
+</script>
+
+<script>
+    function toggleHealthBoard() {
+        const val = document.getElementById('healthBoardToggle').value;
+        if (val === 'reliable') {
+            document.getElementById('reliable-list').classList.remove('d-none');
+            document.getElementById('problematic-list').classList.add('d-none');
+        } else {
+            document.getElementById('problematic-list').classList.remove('d-none');
+            document.getElementById('reliable-list').classList.add('d-none');
+        }
+    }
 </script>
 {% endblock %}

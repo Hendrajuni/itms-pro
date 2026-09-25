@@ -927,19 +927,47 @@ class AssetSmartAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateV
         # --- TAB 3: LIFECYCLE & CONTRACTS ---
         today = timezone.now().date()
         eol_candidates = []
+        reliable_assets = []
+        problematic_assets = []
+        status_counts = defaultdict(int)
+        
         for a in asset_list:
+            # Status Counts
+            status_counts[a.get_status_display()] += 1
+            
+            # Age and Reliability
             if a.purchase_date:
                 age_days = (today - a.purchase_date).days
                 if age_days > (365 * 4):
                     eol_candidates.append(a)
+                    
+                # Reliability Logic
+                maint_count = a.maintenances.count()
+                # Assuming get_combined_maintenance_cost() is available
+                cost = a.get_combined_maintenance_cost()
+                
+                # Reliable: Older than 2 years, 0 cost
+                if age_days > (365 * 2) and cost == 0:
+                    reliable_assets.append(a)
+                
+                # Problematic: High cost or frequent maintenance in short time
+                if maint_count >= 3 or (float(cost) > float(a.purchase_price or 1) * 0.4):
+                    problematic_assets.append(a)
+
         context['eol_candidates_count'] = len(eol_candidates)
-        
-        # Pending Disposals (Mock or fetch from disposal model if it exists, here we use disposed status)
         context['pending_disposals_count'] = assets.filter(status='DISPOSED').count()
-        
-        # Expiring Contracts (Next 90 Days)
-        context['expiring_contracts'] = Contract.objects.filter(end_date__lte=today + datetime.timedelta(days=90), end_date__gte=today)
+        context['expiring_contracts'] = Contract.objects.filter(end_date__lte=today + datetime.timedelta(days=90)).exclude(status__in=['CANCELLED', 'PAID']).order_by('end_date')
         context['expiring_contracts_count'] = context['expiring_contracts'].count()
+        
+        # Sort and limit reliability lists
+        context['status_breakdown'] = dict(status_counts)
+        # Sort reliable by age (oldest first)
+        reliable_assets.sort(key=lambda x: (today - x.purchase_date).days if x.purchase_date else 0, reverse=True)
+        context['most_reliable'] = reliable_assets[:5]
+        
+        # Sort problematic by cost (highest first)
+        problematic_assets.sort(key=lambda x: x.get_combined_maintenance_cost(), reverse=True)
+        context['most_problematic'] = problematic_assets[:5]
 
         return context
 
