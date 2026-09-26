@@ -86,14 +86,14 @@
                         </div>
                     </div>
 
-                    <div class="info-row"><div class="info-label"><i class="fas fa-fingerprint"></i> ID</div><div class="info-value">{{ infrastructure.infra_id }} <i class="far fa-copy text-muted ms-1 cursor-pointer"></i></div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-fingerprint"></i> ID</div><div class="info-value">{{ infrastructure.infra_id }} <i class="far fa-copy text-primary ms-1 cursor-pointer" onclick="navigator.clipboard.writeText('{{ infrastructure.infra_id }}'); alert('ID disalin!');"></i></div></div>
                     <div class="info-row"><div class="info-label"><i class="fas fa-tag"></i> Type</div><div class="info-value"><span class="badge badge-soft-primary px-3 py-1 rounded-pill">{{ infrastructure.infra_type.name|default:infrastructure.get_type_display }}</span></div></div>
                     <div class="info-row"><div class="info-label"><i class="fas fa-map-marker-alt"></i> Location</div><div class="info-value">{{ infrastructure.location.name }} <i class="fas fa-map text-primary ms-1"></i></div></div>
-                    <div class="info-row"><div class="info-label"><i class="fas fa-location-arrow"></i> Coordinates</div><div class="info-value">{{ infrastructure.latitude|default:"-" }}, {{ infrastructure.longitude|default:"-" }} <i class="far fa-copy text-muted ms-1"></i></div></div>
-                    <div class="info-row"><div class="info-label"><i class="fas fa-database"></i> Capacity/Spec</div><div class="info-value">{{ infrastructure.capacity_specs|default:"-" }}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-location-arrow"></i> Coordinates</div><div class="info-value">{% if infrastructure.latitude and infrastructure.longitude %}<a href="https://maps.google.com/?q={{ infrastructure.latitude }},{{ infrastructure.longitude }}" target="_blank" class="text-decoration-none text-dark hover-primary">{{ infrastructure.latitude }}, {{ infrastructure.longitude }}</a> <i class="far fa-copy text-primary ms-1 cursor-pointer" onclick="navigator.clipboard.writeText('{{ infrastructure.latitude }}, {{ infrastructure.longitude }}'); alert('Koordinat disalin!');" title="Copy Coordinates"></i>{% else %}-{% endif %}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-database"></i> Capacity/Spec</div><div class="info-value">{{ infrastructure.capacity|default:"-" }}</div></div>
                     <div class="info-row"><div class="info-label"><i class="far fa-calendar-alt"></i> Mfg Date</div><div class="info-value">{{ infrastructure.manufacturing_date|date:"d M Y"|default:"-" }}</div></div>
-                    <div class="info-row"><div class="info-label"><i class="fas fa-wrench"></i> Last Maint</div><div class="info-value">{{ infrastructure.last_maintenance|date:"d M Y"|default:"-" }}</div></div>
-                    <div class="info-row"><div class="info-label"><i class="far fa-calendar-check"></i> Next Maint</div><div class="info-value">{{ infrastructure.next_maintenance|date:"d M Y"|default:"-" }}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-wrench"></i> Last Maint</div><div class="info-value">{% if auto_last_maint %}{{ auto_last_maint|date:"d M Y" }}{% else %}-{% endif %}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="far fa-calendar-check"></i> Next Maint</div><div class="info-value">{% if auto_next_maint %}{{ auto_next_maint|date:"d M Y" }}{% else %}-{% endif %}</div></div>
 
                     <div class="row mt-4">
                         <div class="col-12">
@@ -238,10 +238,10 @@
         <div class="premium-card p-4 shadow-sm flex-grow-1 d-flex flex-column">
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
                 <h6 class="fw-bold m-0 text-primary"><i class="fas fa-chart-line me-2"></i> Total Spend by Year/Month</h6>
-                <select class="form-select form-select-sm w-auto rounded-pill px-3 fw-bold text-muted bg-light border-0" id="chartYearFilter">
-                    <option value="all">Semua Tahun</option>
+                <select class="form-select form-select-sm w-auto rounded-pill px-3 fw-bold text-muted bg-light border-0" id="chartYearFilter" onchange="window.location.href='?chart_year=' + this.value;">
+                    <option value="all" {% if selected_chart_year == 'all' %}selected{% endif %}>Semua Tahun</option>
                     {% for year in available_years %}
-                    <option value="{{ year }}">Tahun {{ year }}</option>
+                    <option value="{{ year }}" {% if selected_chart_year == year|stringformat:"s" %}selected{% endif %}>Tahun {{ year }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -283,8 +283,13 @@
                             <td><span class="badge badge-soft-success px-3 py-1 rounded-pill">In Use</span></td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:28px; height:28px; font-size:0.7rem;">{{ asset.assigned_to.first_name|first|default:"P" }}</div>
-                                    <span class="fw-bold text-dark">{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username|default:"PMG Company" }}</span>
+                                    {% if asset.assigned_to %}
+                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:28px; height:28px; font-size:0.7rem;">{{ asset.assigned_to.first_name|first|default:asset.assigned_to.username|first|default:"U"|upper }}</div>
+                                        <span class="fw-bold text-dark">{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</span>
+                                    {% else %}
+                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:28px; height:28px; font-size:0.7rem;">P</div>
+                                        <span class="fw-bold text-dark">PMG Company</span>
+                                    {% endif %}
                                 </div>
                             </td>
                             <td class="text-end">

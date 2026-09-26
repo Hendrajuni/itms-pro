@@ -1832,7 +1832,16 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Maintenance History
-        context['maintenance_history'] = InfraMaintenance.objects.filter(infrastructure=self.object).order_by('-scheduled_date')
+        maintenances = InfraMaintenance.objects.filter(infrastructure=self.object).order_by('-scheduled_date')
+        context['maintenance_history'] = maintenances
+        
+        # Auto-calculate Last and Next Maintenance
+        last_maint = maintenances.filter(status='Completed', completed_date__isnull=False).order_by('-completed_date').first()
+        context['auto_last_maint'] = last_maint.completed_date if last_maint else None
+        
+        next_maint = maintenances.filter(status='Scheduled', scheduled_date__isnull=False).order_by('scheduled_date').first()
+        context['auto_next_maint'] = next_maint.scheduled_date if next_maint else None
+
         # Part History
         part_history = self.object.part_history.all().order_by('-action_date')
         context['part_history'] = part_history
@@ -1856,6 +1865,10 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
         all_years = set(list(maint_years) + list(part_years))
         context['available_years'] = sorted([y for y in all_years if y is not None], reverse=True)
         
+        # Filter by selected year
+        chart_year = self.request.GET.get('chart_year', 'all')
+        context['selected_chart_year'] = chart_year
+        
         # Total Spend by Year/Month Analytics
         from collections import defaultdict
         spend_dict = defaultdict(float)
@@ -1865,14 +1878,16 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
         for m in maintenances:
             date_val = m.completed_date or m.scheduled_date
             if date_val and m.cost:
-                key = date_val.strftime('%Y-%m') # e.g. 2026-01
-                spend_dict[key] += float(m.cost)
+                if chart_year == 'all' or str(date_val.year) == chart_year:
+                    key = date_val.strftime('%Y-%m') # e.g. 2026-01
+                    spend_dict[key] += float(m.cost)
                 
         # 2. Part Replacement Costs
         for p in part_history:
             if p.action_date and p.cost:
-                key = p.action_date.strftime('%Y-%m')
-                spend_dict[key] += float(p.cost)
+                if chart_year == 'all' or str(p.action_date.year) == chart_year:
+                    key = p.action_date.strftime('%Y-%m')
+                    spend_dict[key] += float(p.cost)
                 
         # Sort chronologically and prepare JSON for Chart.js
         sorted_keys = sorted(spend_dict.keys())
