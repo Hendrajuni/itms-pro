@@ -1466,6 +1466,28 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
         # 3. Get all defined types (Cards)
         all_types = InfrastructureType.objects.filter(is_featured=True).order_by('name')
         
+        # Fallback to TYPE_CHOICES if no InfrastructureType exists
+        if not all_types.exists():
+            class DummyType:
+                def __init__(self, id, slug, name, icon, color):
+                    self.id = id
+                    self.slug = slug
+                    self.name = name
+                    self.icon = icon
+                    self.color = color
+
+            all_types = [
+                DummyType(id=0, slug='TOWER', name='Tower', icon='broadcast-tower', color='primary'),
+                DummyType(id=0, slug='SERVER_RACK', name='Server Rack', icon='hdd', color='success'),
+                DummyType(id=0, slug='PANEL', name='Power Panel', icon='bolt', color='warning'),
+                DummyType(id=0, slug='WALLMOUNT', name='Rack Wallmount', icon='cube', color='info'),
+                DummyType(id=0, slug='OTHER', name='Other', icon='cube', color='secondary'),
+            ]
+            
+            context['all_infra_types'] = all_types
+        else:
+    
+        
         # LEGACY MAPPING (Name -> Code)
         # To fix "Should be 2 but is 1", we count legacy types if infra_type is NULL
         legacy_counts = qs_for_counts.filter(infra_type__isnull=True).values('type').annotate(count=Count('id'))
@@ -1479,6 +1501,7 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
             'Power Panel': ['PANEL', 'UPS', 'battery-full'],
             'Cabling': ['CABLING'],
             'Cooling': ['COOLING'],
+            'Other': ['OTHER'],
         }
 
         summary_cards = []
@@ -1502,7 +1525,7 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
             })
         
         context['summary_cards'] = summary_cards
-        context['all_infra_types'] = InfrastructureType.objects.all().order_by('name') # For Filter Dropdown
+
         context['current_type'] = self.request.GET.get('type', '')
         context['current_loc'] = int(current_loc) if current_loc and current_loc.isdigit() else None
         context['search_query'] = self.request.GET.get('q', '')
