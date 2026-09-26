@@ -428,7 +428,9 @@ document.addEventListener("DOMContentLoaded", function() {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value, index, values) {
-                                if (value >= 1000000) return 'Rp ' + (value/1000000).toLocaleString('id-ID') + 'M';
+                                if (value >= 1000000000) return 'Rp ' + (value/1000000000).toLocaleString('id-ID') + ' M';
+                                if (value >= 1000000) return 'Rp ' + (value/1000000).toLocaleString('id-ID') + ' Jt';
+                                if (value >= 1000) return 'Rp ' + (value/1000).toLocaleString('id-ID') + ' Rb';
                                 return 'Rp ' + value.toLocaleString('id-ID');
                             }
                         }
