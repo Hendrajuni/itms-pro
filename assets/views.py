@@ -1595,7 +1595,7 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
                 else:
                     queryset = queryset.filter(infra_type=type_obj)
             else:
-                queryset = queryset.filter(infra_type__slug=req_type)
+                queryset = queryset.filter(type=req_type)
             
         # Filter by Location (Hierarchical)
         req_loc = self.request.GET.get('loc')
