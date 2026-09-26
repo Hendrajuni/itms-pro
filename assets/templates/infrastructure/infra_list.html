@@ -9,32 +9,28 @@
     <h1 class="h3 mb-0 text-gray-800">Server & Infrastructure</h1>
 </div>
 
-<!-- 2. Dynamic Summary Cards (Softer Design) -->
-<div class="row mb-4">
-    {% for card in summary_cards %}
-    <div class="col-xl-3 col-md-6 mb-4">
-        <a href="?{% param_replace type=card.code %}" class="text-decoration-none">
-            <div class="card border-0 border-start border-4 border-{{ card.color }} shadow-sm h-100 py-3 {% if current_type == card.code %}bg-{{ card.color }} bg-opacity-10{% endif %} hover-top">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs fw-bold text-{{ card.color }} text-uppercase mb-1">
-                                {{ card.label }}
-                            </div>
-                            <div class="h4 mb-0 fw-bold text-gray-800">{{ card.count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <div class="bg-{{ card.color }} bg-opacity-10 p-3 rounded-circle">
-                                <i class="fas fa-{{ card.icon }} fa-lg text-{{ card.color }}"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<!-- 2. Dynamic Summary Cards (Analytics Ribbon Design) -->
+<div class="card shadow-sm border-0 mb-4 rounded-3 overflow-hidden">
+    <div class="card-body p-0">
+        <div class="d-flex justify-content-around align-items-center flex-wrap">
+            {% for card in summary_cards %}
+            <div class="text-center flex-fill py-3 {% if current_type == card.code %}bg-light border-bottom border-primary border-3{% else %}border-bottom border-transparent border-3{% endif %} hover-bg-light" style="min-width: 150px; transition: 0.3s ease;">
+                <a href="?{% param_replace type=card.code %}" class="text-decoration-none text-dark d-block w-100 h-100">
+                    <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">{{ card.label }}</div>
+                    <div class="fs-4 fw-bold" style="color: #3a3b45;">{{ card.count }}</div>
+                </a>
             </div>
-        </a>
+            {% if not forloop.last %}
+            <div class="border-end align-self-stretch"></div>
+            {% endif %}
+            {% endfor %}
+        </div>
     </div>
-    {% endfor %}
 </div>
+<style>
+    .border-transparent { border-color: transparent !important; }
+    .hover-bg-light:hover { background-color: #f8f9fc !important; }
+</style>
 
 <!-- 3. Toolbar -->
 <div class="card shadow-sm mb-4 border-0">
