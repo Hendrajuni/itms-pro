@@ -1838,6 +1838,15 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
         context['part_history'] = part_history
         from django.db.models import Sum
         context['total_parts_cost'] = part_history.aggregate(total=Sum('cost'))['total'] or 0
+        maint_cost = InfraMaintenance.objects.filter(infrastructure=self.object, status='Completed').aggregate(total=Sum('cost'))['total'] or 0
+        context['total_spend'] = float(context['total_parts_cost']) + float(maint_cost)
+        
+        # Calculate Age
+        if self.object.manufacturing_date:
+            from datetime import date
+            context['age_years'] = date.today().year - self.object.manufacturing_date.year
+        else:
+            context['age_years'] = None
         
         # Generate available years for filtering print report
         from django.db.models import Exists, OuterRef
@@ -1847,6 +1856,41 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
         all_years = set(list(maint_years) + list(part_years))
         context['available_years'] = sorted([y for y in all_years if y is not None], reverse=True)
         
+        # Total Spend by Year/Month Analytics
+        from collections import defaultdict
+        spend_dict = defaultdict(float)
+        
+        # 1. Maintenance Costs (Only Completed)
+        maintenances = InfraMaintenance.objects.filter(infrastructure=self.object, status='Completed')
+        for m in maintenances:
+            date_val = m.completed_date or m.scheduled_date
+            if date_val and m.cost:
+                key = date_val.strftime('%Y-%m') # e.g. 2026-01
+                spend_dict[key] += float(m.cost)
+                
+        # 2. Part Replacement Costs
+        for p in part_history:
+            if p.action_date and p.cost:
+                key = p.action_date.strftime('%Y-%m')
+                spend_dict[key] += float(p.cost)
+                
+        # Sort chronologically and prepare JSON for Chart.js
+        sorted_keys = sorted(spend_dict.keys())
+        
+        # Format labels e.g., "Jan 2026"
+        from datetime import datetime
+        import json
+        
+        labels = []
+        data = []
+        for key in sorted_keys:
+            dt = datetime.strptime(key, '%Y-%m')
+            labels.append(dt.strftime('%b %Y'))
+            data.append(spend_dict[key])
+            
+        context['spend_chart_labels'] = json.dumps(labels)
+        context['spend_chart_data'] = json.dumps(data)
+
         # Available assets for quick linking
         context['unlinked_assets'] = Asset.objects.filter(infrastructure__isnull=True).order_by('name')
         return context

@@ -279,5 +279,47 @@
             IT Management System • Internal Document • Confidential
         </div>
     </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var ctx = document.getElementById('infraPrintChart');
+    if (ctx) {
+        var labels = JSON.parse('{{ spend_chart_labels|escapejs }}');
+        var data = JSON.parse('{{ spend_chart_data|escapejs }}');
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cost (Rp)',
+                    data: data,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                animation: false, /* Disable animation for instant print readiness */
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                if (value >= 1000000) return 'Rp ' + (value/1000000).toLocaleString('id-ID') + 'M';
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+});
+</script>
 </body>
 </html>

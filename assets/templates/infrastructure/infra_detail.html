@@ -1,458 +1,346 @@
 {% extends 'layouts/base.html' %}
-{% load static humanize %}
+{% load static humanize asset_tags %}
 
-{% block title %}{{ infrastructure.name }} - Datasheet
-
-<!-- Print Modal -->
-<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="GET" action="{% url 'infra_print_datasheet' infrastructure.pk %}" target="_blank">
-          <div class="modal-header">
-            <h5 class="modal-title" id="printModalLabel"><i class="fas fa-print me-2"></i>Print Options</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <p>Select the reporting period for the datasheet. The total service costs will be calculated based on the selected period.</p>
-            <div class="mb-3">
-                <label for="yearFilter" class="form-label fw-bold">Reporting Period</label>
-                <select class="form-select" id="yearFilter" name="year">
-                    <option value="all">All Time (Complete History)</option>
-                    {% for year in available_years %}
-                        <option value="{{ year }}">{{ year }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-info text-white" onclick="#printModal.modal('hide');"><i class="fas fa-file-pdf me-1"></i> Generate PDF</button>
-          </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-{% endblock %}
+{% block title %}{{ infrastructure.name }} - ITMS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Print Styles */
-    @media print {
-        /* Hide UI elements */
-        #sidebar-wrapper, .navbar, footer, .btn, .no-print, .alert, .breadcrumb {
-            display: none !important;
-        }
-        
-        /* Reset Layout */
-        body, #wrapper, #page-content-wrapper {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            width: 100% !important;
-            overflow: visible !important;
-        }
+.premium-card { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); }
+.kpi-card { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); padding: 1.5rem; display: flex; align-items: center; gap: 15px; }
+.kpi-icon-box { width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+.kpi-icon-blue { background: #e8f3ff; color: #0d6efd; }
+.kpi-icon-green { background: #e8f8f5; color: #198754; }
+.kpi-icon-purple { background: #f3e8ff; color: #6f42c1; }
+.kpi-icon-orange { background: #fff3cd; color: #fd7e14; }
 
-        .container-fluid {
-            padding: 0 !important;
-            max-width: 100% !important;
-        }
+.timeline { border-left: 2px solid #e9ecef; padding-left: 20px; margin-left: 10px; position: relative; }
+.timeline-item { margin-bottom: 20px; position: relative; }
+.timeline-item::before { content: ''; position: absolute; left: -26px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: #0d6efd; border: 2px solid #fff; }
+.timeline-item.completed::before { background: #198754; }
+.timeline-item.scheduled::before { background: #0dcaf0; }
 
-        /* Card Cleanups */
-        .card {
-            border: none !important;
-            box-shadow: none !important;
-            margin-bottom: 20px !important;
-        }
-        .card-header {
-            background: none !important;
-            border-bottom: 1px solid #333 !important;
-            padding-left: 0 !important;
-            color: #000 !important;
-        }
-        
-        /* Two Column Layout Preservation */
-        .row {
-            display: flex !important;
-            flex-wrap: nowrap !important;
-        }
-        .col-lg-8 {
-            width: 60% !important;
-        }
-        .col-lg-4 {
-            width: 40% !important;
-        }
-        
-        /* Image Sizing */
-        img.img-fluid {
-            max-height: 200px !important;
-        }
-        
-        /* Print Header (Visible only in print) */
-        .print-header {
-            display: block !important;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        .print-header h1 { margin: 0; font-size: 24px; font-weight: bold; }
-        .print-header p { margin: 0; font-size: 12px; color: #666; }
-    }
+.page-title-box { margin-bottom: 25px; }
+.info-row { display: flex; margin-bottom: 12px; align-items: center; }
+.info-label { width: 150px; color: #6c757d; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+.info-value { font-weight: 600; color: #212529; font-size: 0.95rem; }
+.badge-soft-success { background: #d1e7dd; color: #0f5132; }
+.badge-soft-primary { background: #cfe2ff; color: #084298; }
 
-    .print-header { display: none; }
+.main-image { border-radius: 12px; object-fit: cover; width: 100%; height: 350px; }
+.thumb-image { border-radius: 8px; object-fit: cover; width: 70px; height: 70px; cursor: pointer; }
+.add-photo-box { width: 70px; height: 70px; border-radius: 8px; border: 2px dashed #dee2e6; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #0d6efd; cursor: pointer; font-size: 0.75rem; background: #f8f9fa; }
+.hover-bg-light:hover { background-color: #e9ecef !important; }
 </style>
-
-
-<!-- Print Modal -->
-<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="GET" action="{% url 'infra_print_datasheet' infrastructure.pk %}" target="_blank">
-          <div class="modal-header">
-            <h5 class="modal-title" id="printModalLabel"><i class="fas fa-print me-2"></i>Print Options</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <p>Select the reporting period for the datasheet. The total service costs will be calculated based on the selected period.</p>
-            <div class="mb-3">
-                <label for="yearFilter" class="form-label fw-bold">Reporting Period</label>
-                <select class="form-select" id="yearFilter" name="year">
-                    <option value="all">All Time (Complete History)</option>
-                    {% for year in available_years %}
-                        <option value="{{ year }}">{{ year }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-info text-white" onclick="#printModal.modal('hide');"><i class="fas fa-file-pdf me-1"></i> Generate PDF</button>
-          </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 {% endblock %}
 
 {% block content %}
-<!-- Print Header -->
-<div class="print-header">
-    <div class="d-flex justify-content-between align-items-end">
-        <div>
-            <h1>INFRASTRUCTURE DATASHEET</h1>
-            <p>IT Management System Pro</p>
-        </div>
-        <div class="text-end">
-            <p>Generated: {% now "d M Y H:i" %}</p>
-        </div>
+<div class="page-title-box d-flex align-items-center justify-content-between">
+    <div>
+        <h3 class="mb-0 fw-bold d-flex align-items-center gap-2">
+            <i class="fas fa-server text-dark"></i> Infrastructure Detail
+        </h3>
+        <p class="text-muted mb-0 small">Informasi lengkap aset infrastruktur</p>
     </div>
-</div>
-
-<!-- Screen Header -->
-<div class="d-flex justify-content-between align-items-center mb-4 no-print">
-    <h1 class="h3 mb-0 text-gray-800">Infrastructure Detail</h1>
     <div class="d-flex gap-2">
-        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#printModal">
-            <i class="fas fa-print me-1"></i> Print Datasheet
-        </button>
-        <a href="{% url 'infra_update' infrastructure.pk %}" class="btn btn-primary">
-            <i class="fas fa-edit me-1"></i> Edit
-        </a>
-        <a href="{% url 'infra_list' %}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Back
-        </a>
+        <button class="btn btn-light shadow-sm" data-bs-toggle="modal" data-bs-target="#qrModal"><i class="fas fa-qrcode"></i></button>
+        <button class="btn btn-light shadow-sm" data-bs-toggle="modal" data-bs-target="#printModal"><i class="fas fa-print me-1"></i> Print Datasheet</button>
+        <a href="{% url 'infra_update' infrastructure.pk %}" class="btn btn-primary shadow-sm"><i class="fas fa-edit me-1"></i> Edit</a>
+        <a href="{% url 'infra_list' %}" class="btn btn-secondary shadow-sm text-white"><i class="fas fa-arrow-left me-1"></i> Back</a>
     </div>
 </div>
 
-<div class="row">
-    <!-- Main Info -->
-    <div class="col-lg-8">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Information</h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                     <!-- Photo & QR Column -->
-                     <div class="col-md-4 text-center mb-4 mb-md-0 d-flex flex-column align-items-center">
-                        {% if infrastructure.photo %}
-                            <img src="{{ infrastructure.photo.url }}" alt="{{ infrastructure.name }}" class="img-fluid rounded shadow-sm mb-3" style="max-height: 250px;">
-                        {% else %}
-                             <div class="bg-light d-flex align-items-center justify-content-center rounded mb-3" style="height: 200px; width: 100%;">
-                                <i class="fas fa-cube fa-5x text-muted opacity-25"></i>
-                             </div>
-                        {% endif %}
-                        
-                        <!-- QR Code -->
-                        <div class="p-3 border rounded bg-light text-center w-100">
-                             <img src="{{ infrastructure.get_qr_code_base64 }}" alt="QR Code" class="img-fluid mb-2" style="max-width: 120px;">
-                             <div class="small fw-bold text-uppercase text-muted" style="font-size: 0.7rem;">Scan for History</div>
-                             <div class="small font-monospace mt-1">{{ infrastructure.infra_id }}</div>
+<div class="row g-4">
+    <!-- Left Column (Core Info) -->
+    <div class="col-lg-7">
+        <div class="premium-card p-4 h-100">
+            <div class="row">
+                <div class="col-md-5">
+                    {% if infrastructure.photo %}
+                        <img src="{{ infrastructure.photo.url }}" class="main-image shadow-sm mb-3" alt="Main Photo">
+                        <div class="d-flex gap-2">
+                            <img src="{{ infrastructure.photo.url }}" class="thumb-image shadow-sm">
+                            <a href="{% url 'infra_update' infrastructure.pk %}" class="add-photo-box hover-bg-light text-decoration-none">
+                                <i class="fas fa-edit mb-1"></i>
+                                Ubah Foto
+                            </a>
                         </div>
-                     </div>
-                     
-                     <!-- Details Column -->
-                     <div class="col-md-8">
-                        <table class="table table-borderless table-sm">
-                            <tr>
-                                <th style="width: 140px;" class="text-muted">Name</th>
-                                <td class="fw-bold fs-5">{{ infrastructure.name }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">ID</th>
-                                <td>{{ infrastructure.infra_id }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Type</th>
-                                <td><span class="badge bg-light text-dark border">{{ infrastructure.get_type_display }}</span></td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Location</th>
-                                <td>{{ infrastructure.location.name|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Coordinates</th>
-                                <td>
-                                    {% if infrastructure.latitude and infrastructure.longitude %}
-                                        <div class="d-flex align-items-center">
-                                            <span class="font-monospace me-2">{{ infrastructure.latitude }}, {{ infrastructure.longitude }}</span>
-                                            <a href="https://www.google.com/maps?q={{ infrastructure.latitude }},{{ infrastructure.longitude }}" target="_blank" class="text-primary" title="Open in Google Maps">
-                                                <i class="fas fa-map-marked-alt"></i>
-                                            </a>
-                                        </div>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                             <tr>
-                                <th class="text-muted">Capacity/Spec</th>
-                                <td>{{ infrastructure.capacity|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Manufacturing Date</th>
-                                <td>{{ infrastructure.manufacturing_date|date:"d M Y"|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Condition</th>
-                                <td>
-                                     {% if infrastructure.condition == 'GOOD' or infrastructure.condition == 'EXCELLENT' %}
-                                        <span class="badge bg-success">{{ infrastructure.get_condition_display }}</span>
-                                    {% elif infrastructure.condition == 'CRITICAL' or infrastructure.condition == 'POOR' %}
-                                        <span class="badge bg-danger">{{ infrastructure.get_condition_display }}</span>
-                                    {% else %}
-                                        <span class="badge bg-warning text-dark">{{ infrastructure.get_condition_display }}</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr><td colspan="2"><hr class="my-1"></td></tr>
-                            <tr>
-                                <th class="text-muted">Last Maint</th>
-                                <td>{{ infrastructure.last_maintenance_date|date:"d M Y"|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Next Maint</th>
-                                <td>
-                                     {% if infrastructure.next_maintenance_date %}
-                                        {% if infrastructure.next_maintenance_date < today %}
-                                            <span class="text-danger fw-bold">{{ infrastructure.next_maintenance_date|date:"d M Y" }} <i class="fas fa-exclamation-triangle"></i></span>
-                                        {% else %}
-                                            <span class="text-success">{{ infrastructure.next_maintenance_date|date:"d M Y" }}</span>
-                                        {% endif %}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        </table>
+                    {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center main-image shadow-sm mb-3">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                        <a href="{% url 'infra_update' infrastructure.pk %}" class="btn btn-sm btn-outline-primary w-100"><i class="fas fa-upload me-1"></i> Tambah Foto Utama</a>
+                    {% endif %}
+                </div>
+                <div class="col-md-7 ps-md-4 mt-3 mt-md-0">
+                    <div class="position-relative">
+                        <div class="mb-3 pe-5">
+                            <h4 class="fw-bold mb-0 pe-5">{{ infrastructure.name }}</h4>
+                        </div>
                         
-                        <div class="mt-4">
-                            <h6 class="font-weight-bold text-muted small text-uppercase">Notes</h6>
-                            <div class="text-muted bg-light p-3 rounded small border">
-                                {{ infrastructure.notes|default:"No notes available."|linebreaks }}
+                        <div class="position-absolute d-flex flex-column align-items-end gap-2" style="top: 0; right: 0; z-index: 10;">
+                            <span class="badge badge-soft-success px-3 py-2 rounded-pill"><i class="fas fa-wave-square me-1"></i> {{ infrastructure.get_condition_display }}</span>
+                            <div class="text-center mt-1 bg-white p-1 rounded shadow-sm border">
+                                <img src="{{ infrastructure.get_qr_code_base64 }}" alt="QR" class="img-fluid" style="max-width: 70px;">
+                                <div style="font-size: 0.5rem; font-weight: bold; color:#666; line-height: 1.1; margin-top:2px;">SCAN HERE</div>
                             </div>
                         </div>
-                     </div>
+                    </div>
+
+                    <div class="info-row"><div class="info-label"><i class="fas fa-fingerprint"></i> ID</div><div class="info-value">{{ infrastructure.infra_id }} <i class="far fa-copy text-muted ms-1 cursor-pointer"></i></div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-tag"></i> Type</div><div class="info-value"><span class="badge badge-soft-primary px-3 py-1 rounded-pill">{{ infrastructure.infra_type.name|default:infrastructure.get_type_display }}</span></div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-map-marker-alt"></i> Location</div><div class="info-value">{{ infrastructure.location.name }} <i class="fas fa-map text-primary ms-1"></i></div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-location-arrow"></i> Coordinates</div><div class="info-value">{{ infrastructure.latitude|default:"-" }}, {{ infrastructure.longitude|default:"-" }} <i class="far fa-copy text-muted ms-1"></i></div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-database"></i> Capacity/Spec</div><div class="info-value">{{ infrastructure.capacity_specs|default:"-" }}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="far fa-calendar-alt"></i> Mfg Date</div><div class="info-value">{{ infrastructure.manufacturing_date|date:"d M Y"|default:"-" }}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="fas fa-wrench"></i> Last Maint</div><div class="info-value">{{ infrastructure.last_maintenance|date:"d M Y"|default:"-" }}</div></div>
+                    <div class="info-row"><div class="info-label"><i class="far fa-calendar-check"></i> Next Maint</div><div class="info-value">{{ infrastructure.next_maintenance|date:"d M Y"|default:"-" }}</div></div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded h-100 position-relative border shadow-sm">
+                                <h6 class="fw-bold mb-2 d-flex justify-content-between align-items-center"><span class="text-dark"><i class="far fa-sticky-note me-2 text-primary"></i> Notes</span> <a href="{% url 'infra_update' infrastructure.pk %}" class="btn btn-sm btn-light border p-1 px-2 text-primary shadow-sm"><i class="fas fa-pen" style="font-size:0.8rem;"></i> Edit Note</a></h6>
+                                <p class="text-muted small mb-0">{{ infrastructure.notes|default:"No notes available." }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-5">
+        <!-- Maintenance History Card -->
+        <div class="premium-card p-4 mb-4 shadow-sm h-50">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h6 class="fw-bold m-0 text-primary"><i class="fas fa-history me-2"></i> Maintenance History</h6>
+                <a href="{% url 'maintenance_dashboard' %}" class="btn btn-sm btn-light rounded-pill border shadow-sm px-3">View All</a>
+            </div>
+            <div class="timeline" style="max-height: 250px; overflow-y: auto;">
+                {% for maint in maintenance_history|slice:":4" %}
+                <div class="timeline-item {% if maint.status == 'Completed' %}completed{% elif maint.status == 'Scheduled' %}scheduled{% endif %}">
+                    <div class="d-flex justify-content-between w-100 align-items-center">
+                        <div class="text-muted small" style="width: 80px;">{{ maint.scheduled_date|date:"d M Y" }}</div>
+                        <div class="flex-grow-1 px-3">
+                            <div class="fw-bold text-dark" style="font-size: 0.9rem;">{{ maint.title }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">{{ maint.maintenance_type }}</div>
+                        </div>
+                        <div>
+                            {% if maint.status == 'Completed' %}<span class="badge badge-soft-success rounded-pill px-3 py-1">Completed</span>
+                            {% elif maint.status == 'Scheduled' %}<span class="badge badge-soft-primary rounded-pill px-3 py-1">Scheduled</span>
+                            {% else %}<span class="badge bg-secondary rounded-pill px-3 py-1">{{ maint.status }}</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted small py-3">No maintenance history recorded.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Part Replacements Card -->
+        <div class="premium-card p-4 shadow-sm" style="min-height: calc(50% - 1.5rem);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold m-0 text-primary"><i class="fas fa-cog me-2"></i> Part Replacements</h6>
+                <a href="{% url 'infra_part_history_add' infrastructure.pk %}" class="btn btn-sm btn-light text-primary rounded-pill border shadow-sm px-3"><i class="fas fa-plus me-1"></i> Add Part</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-borderless table-hover align-middle mb-0" style="font-size:0.85rem;">
+                    <thead class="border-bottom">
+                        <tr class="text-muted">
+                            <th>Part Name</th>
+                            <th>Tanggal</th>
+                            <th>Biaya</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for part in part_history|slice:":3" %}
+                        <tr>
+                            <td class="fw-bold text-dark">{{ part.part_name }}</td>
+                            <td class="text-muted">{{ part.action_date|date:"d M Y" }}</td>
+                            <td class="text-muted">Rp {{ part.cost|floatformat:0|intcomma }}</td>
+                            <td><span class="badge badge-soft-primary px-3 py-1 rounded-pill">Installed</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-light text-muted p-1 border shadow-sm" onclick="alert('Fitur Edit Part History belum tersedia.');"><i class="fas fa-pen"></i></button>
+                                <form method="POST" action="{% url 'infra_part_history_delete' part.pk %}" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus riwayat pergantian part ini?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-light text-danger p-1 border shadow-sm"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">No part replacements recorded.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="border-top">
+                        <tr>
+                            <td colspan="5" class="text-end pt-3 fw-bold fs-6">Total: Rp {{ total_parts_cost|default:0|floatformat:0|intcomma }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <!-- Bottom Left (Analytics) -->
+    <div class="col-lg-7 d-flex flex-column">
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="kpi-card h-100 p-3 shadow-sm">
+                    <div class="kpi-icon-box kpi-icon-blue"><i class="fas fa-wallet"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase" style="font-size:0.65rem;">Total Spend</div>
+                        <div class="fw-bold fs-5 mb-1" style="color:#212529;">Rp {{ total_spend|default:0|floatformat:0|intcomma }}</div>
+                        <div class="text-muted" style="font-size:0.7rem;"><i class="fas fa-chart-line"></i> Total Keseluruhan</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card h-100 p-3 shadow-sm">
+                    <div class="kpi-icon-box kpi-icon-green"><i class="fas fa-wrench"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase" style="font-size:0.65rem;">Maintenance</div>
+                        <div class="fw-bold fs-5 mb-1" style="color:#212529;">{{ maintenance_history.count }}x</div>
+                        <div class="text-muted" style="font-size:0.7rem;"><i class="fas fa-history"></i> Sepanjang waktu</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card h-100 p-3 shadow-sm">
+                    <div class="kpi-icon-box kpi-icon-purple"><i class="far fa-clock"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase" style="font-size:0.65rem;">Age</div>
+                        <div class="fw-bold fs-5 mb-1" style="color:#212529;">
+                            {% if age_years is not None %}{{ age_years }} Tahun{% else %}-{% endif %}
+                        </div>
+                        <div class="text-muted" style="font-size:0.7rem;">Sejak {{ infrastructure.manufacturing_date|date:"Y"|default:"-" }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card h-100 p-3 shadow-sm">
+                    <div class="kpi-icon-box kpi-icon-orange"><i class="fas fa-wave-square"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase" style="font-size:0.65rem;">Condition</div>
+                        <div class="fw-bold fs-6 mb-1" style="color:#212529;">{{ infrastructure.get_condition_display }}</div>
+                        <div class="text-muted" style="font-size:0.7rem;">Berfungsi normal</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Linked Assets -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Linked Hardware Assets</h6>
-                <button type="button" class="btn btn-sm btn-primary no-print" data-bs-toggle="modal" data-bs-target="#linkAssetModal">
-                    <i class="fas fa-link"></i> Link Asset
-                </button>
+        <!-- Chart -->
+        <div class="premium-card p-4 shadow-sm flex-grow-1 d-flex flex-column">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                <h6 class="fw-bold m-0 text-primary"><i class="fas fa-chart-line me-2"></i> Total Spend by Year/Month</h6>
+                <select class="form-select form-select-sm w-auto rounded-pill px-3 fw-bold text-muted bg-light border-0" id="chartYearFilter">
+                    <option value="all">Semua Tahun</option>
+                    {% for year in available_years %}
+                    <option value="{{ year }}">Tahun {{ year }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="card-body">
-                {% if infrastructure.assets.exists %}
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Asset Name</th>
-                                    <th>Status</th>
-                                    <th>Assigned To</th>
-                                    <th class="text-end no-print">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for asset in infrastructure.assets.all %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {% if asset.photo %}
-                                                <img src="{{ asset.photo.url }}" class="rounded me-2" width="32" height="32" style="object-fit: cover;">
-                                            {% else %}
-                                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                                    <i class="fas fa-cube text-muted small"></i>
-                                                </div>
-                                            {% endif %}
-                                            <div>
-                                                <a href="{% url 'asset_detail' asset.pk %}" class="fw-bold text-dark text-decoration-none">{{ asset.name }}</a>
-                                                <div class="small text-muted">{{ asset.asset_code }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if asset.status == 'AVAILABLE' %}
-                                            <span class="badge bg-success">Available</span>
-                                        {% elif asset.status == 'IN_USE' %}
-                                            <span class="badge bg-primary">In Use</span>
-                                        {% elif asset.status == 'MAINTENANCE' %}
-                                            <span class="badge bg-warning text-dark">Maintenance</span>
-                                        {% elif asset.status == 'BROKEN' %}
-                                            <span class="badge bg-danger">Broken</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ asset.status }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if asset.assigned_to %}
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
-                                                    {{ asset.assigned_to.username|slice:":2"|upper }}
-                                                </div>
-                                                <span>{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</span>
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-end no-print">
-                                        <div class="btn-group">
-                                            <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-sm btn-outline-secondary">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <form action="{% url 'infra_link_asset' infrastructure.pk %}" method="post" class="d-inline">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="unlink">
-                                                <input type="hidden" name="asset_id" value="{{ asset.pk }}">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to unlink this asset?');">
-                                                    <i class="fas fa-unlink"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p class="text-muted text-center py-3 my-0">
-                        <i class="fas fa-link mb-2 opacity-50 d-block fs-4"></i>
-                        No hardware assets linked to this infrastructure.
-                    </p>
-                {% endif %}
+            <div style="position: relative; flex-grow: 1; width: 100%; min-height: 250px;">
+                <canvas id="infraSpendChart"></canvas>
             </div>
         </div>
     </div>
-    
-    <!-- Maintenance History -->
-    <div class="col-lg-4">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                 <h6 class="m-0 font-weight-bold text-primary">Maintenance History</h6>
+
+    <!-- Bottom Right (Linked Assets) -->
+    <div class="col-lg-5">
+        <div class="premium-card p-4 h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h6 class="fw-bold m-0 text-primary"><i class="fas fa-project-diagram me-2"></i> Linked Hardware Assets</h6>
+                <button type="button" class="btn btn-sm btn-primary text-white rounded-pill shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#linkAssetModal"><i class="fas fa-link me-1"></i> Link Asset</button>
             </div>
-            <div class="card-body p-0">
-                {% if maintenance_history %}
-                    <ul class="list-group list-group-flush">
-                    {% for logs in maintenance_history|slice:":5" %}
-                        <li class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <small class="text-muted">{{ logs.scheduled_date|date:"d M Y" }}</small>
-                                <span class="badge bg-info text-white">{{ logs.status }}</span>
-                            </div>
-                            <p class="mb-1 fw-bold">{{ logs.title }}</p>
-                            <small class="text-muted">{{ logs.get_maintenance_type_display }}</small>
-                        </li>
-                    {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="text-muted text-center py-4 my-0">No maintenance history recorded.</p>
-                {% endif %}
-            </div>
-            <div class="card-footer text-center no-print">
-                 <a href="{% url 'infra_maintenance_create' %}?infra={{ infrastructure.pk }}" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-plus me-1"></i> Schedule Maintenance
-                </a>
-            </div>
-        </div>
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Part Replacements</h6>
-                <a href="{% url 'infra_part_history_add' infrastructure.pk %}" class="btn btn-sm btn-outline-primary py-0 no-print">
-                    <i class="fas fa-plus"></i> Add
-                </a>
-            </div>
-            <div class="card-body p-0">
-                {% if part_history %}
-                    <ul class="list-group list-group-flush">
-                    {% for part in part_history|slice:":5" %}
-                        <li class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-0 fw-bold">{{ part.part_name }}</h6>
-                                    <small class="text-muted">{{ part.action_date|date:"d M Y" }}</small>
+            <div class="table-responsive">
+                <table class="table table-borderless table-hover align-middle mb-0" style="font-size:0.85rem;">
+                    <thead class="border-bottom">
+                        <tr class="text-muted">
+                            <th>Asset Name</th>
+                            <th>Status</th>
+                            <th>Assigned To</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in infrastructure.assets.all %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-light p-2 rounded text-muted d-flex align-items-center justify-content-center" style="width:35px; height:35px;"><i class="fas fa-server"></i></div>
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ asset.name }}</div>
+                                        <div class="text-muted" style="font-size:0.7rem;">{{ asset.asset_code }}</div>
+                                    </div>
                                 </div>
-                                <div class="text-end">
-                                    <span class="d-block text-success fw-bold">Rp {{ part.cost|default:0|floatformat:0|intcomma }}</span>
-                                    <a href="{% url 'infra_part_history_delete' part.pk %}" class="text-danger small no-print" onclick="return confirm('Delete this part?');"><i class="fas fa-trash"></i></a>
+                            </td>
+                            <td><span class="badge badge-soft-success px-3 py-1 rounded-pill">In Use</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:28px; height:28px; font-size:0.7rem;">{{ asset.assigned_to.first_name|first|default:"P" }}</div>
+                                    <span class="fw-bold text-dark">{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username|default:"PMG Company" }}</span>
                                 </div>
-                            </div>
-                        </li>
-                    {% endfor %}
-                    </ul>
-                    <div class="card-footer bg-light text-end py-2">
-                        <small class="text-muted fw-bold">Total: Rp {{ total_parts_cost|floatformat:0|intcomma }}</small>
-                    </div>
-                {% else %}
-                    <p class="text-muted text-center py-4 my-0">No part replacements recorded.</p>
-                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-sm btn-light text-muted p-1 border shadow-sm"><i class="far fa-eye"></i></a>
+                                <form action="{% url 'infra_link_asset' infrastructure.pk %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="asset_id" value="{{ asset.pk }}">
+                                    <input type="hidden" name="action" value="unlink">
+                                    <button type="submit" class="btn btn-sm btn-light text-danger p-1 border shadow-sm"><i class="fas fa-unlink"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-4">No linked hardware assets found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modals -->
+<!-- QR Modal -->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content text-center">
+      <div class="modal-body p-4">
+        <h5 class="mb-3">QR Code</h5>
+        <img src="{{ infrastructure.get_qr_code_base64 }}" alt="QR Code" class="img-fluid border p-2">
+        <p class="mt-2 text-muted mb-0">{{ infrastructure.infra_id }}</p>
+      </div>
+      <div class="modal-footer justify-content-center border-0">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        <a href="{{ infrastructure.get_qr_code_base64 }}" download="QR_{{ infrastructure.infra_id }}.png" class="btn btn-primary btn-sm">Download</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Link Asset Modal -->
-<div class="modal fade" id="linkAssetModal" aria-labelledby="linkAssetModalLabel" aria-hidden="true">
+<div class="modal fade" id="linkAssetModal" tabindex="-1" aria-labelledby="linkAssetModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{% url 'infra_link_asset' infrastructure.pk %}" method="post">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="link">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="linkAssetModalLabel"><i class="fas fa-link me-2"></i>Link Hardware Asset</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="linkAssetModalLabel">Link Hardware Asset</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="assetSelect" class="form-label fw-bold">Select Asset to Link</label>
-                        <select name="asset_id" id="assetSelect" class="form-select" required>
-                            <option value="">-- Choose an available asset --</option>
+                        <label for="assetSelect" class="form-label">Select Asset to Link</label>
+                        <select class="form-select" id="assetSelect" name="asset_id" required style="width: 100%;">
+                            <option value="">-- Choose Asset --</option>
                             {% for unlinked_asset in unlinked_assets %}
                                 <option value="{{ unlinked_asset.pk }}">{{ unlinked_asset.asset_code }} - {{ unlinked_asset.name }}</option>
                             {% endfor %}
@@ -469,7 +357,6 @@
     </div>
 </div>
 
-
 <!-- Print Modal -->
 <div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -480,7 +367,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <p>Select the reporting period for the datasheet. The total service costs will be calculated based on the selected period.</p>
+            <p>Select the reporting period for the datasheet.</p>
             <div class="mb-3">
                 <label for="yearFilter" class="form-label fw-bold">Reporting Period</label>
                 <select class="form-select" id="yearFilter" name="year">
@@ -499,52 +386,72 @@
     </div>
   </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 {{ block.super }}
+<!-- Chart.js Injection -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    $(document).ready(function() {
-        // Fix Select2 search focus issue inside Bootstrap Modal
-        $('#linkAssetModal').on('shown.bs.modal', function () {
-            $('#assetSelect').select2({
-                dropdownParent: $('#linkAssetModal'),
-                theme: 'bootstrap-5'
-            });
+document.addEventListener("DOMContentLoaded", function() {
+    var ctx = document.getElementById('infraSpendChart');
+    if (ctx) {
+        var labels = JSON.parse('{{ spend_chart_labels|escapejs }}');
+        var data = JSON.parse('{{ spend_chart_data|escapejs }}');
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Maintenance & Part Cost (Rp)',
+                    data: data,
+                    backgroundColor: 'rgba(13, 110, 253, 0.85)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.5
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                if (value >= 1000000) return 'Rp ' + (value/1000000).toLocaleString('id-ID') + 'M';
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+
+$(document).ready(function() {
+    // Fix Select2 search focus issue inside Bootstrap Modal
+    $('#linkAssetModal').on('shown.bs.modal', function () {
+        $('#assetSelect').select2({
+            dropdownParent: $('#linkAssetModal'),
+            theme: 'bootstrap-5'
         });
     });
+});
 </script>
-
-
-<!-- Print Modal -->
-<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="GET" action="{% url 'infra_print_datasheet' infrastructure.pk %}" target="_blank">
-          <div class="modal-header">
-            <h5 class="modal-title" id="printModalLabel"><i class="fas fa-print me-2"></i>Print Options</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <p>Select the reporting period for the datasheet. The total service costs will be calculated based on the selected period.</p>
-            <div class="mb-3">
-                <label for="yearFilter" class="form-label fw-bold">Reporting Period</label>
-                <select class="form-select" id="yearFilter" name="year">
-                    <option value="all">All Time (Complete History)</option>
-                    {% for year in available_years %}
-                        <option value="{{ year }}">{{ year }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-info text-white" onclick="#printModal.modal('hide');"><i class="fas fa-file-pdf me-1"></i> Generate PDF</button>
-          </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 {% endblock %}
