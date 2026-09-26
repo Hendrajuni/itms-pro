@@ -1486,8 +1486,8 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
             
             context['all_infra_types'] = all_types
         else:
-    
-        
+            context['all_infra_types'] = all_types # already evaluated above, so this works, or re-query it
+            
         # LEGACY MAPPING (Name -> Code)
         # To fix "Should be 2 but is 1", we count legacy types if infra_type is NULL
         legacy_counts = qs_for_counts.filter(infra_type__isnull=True).values('type').annotate(count=Count('id'))
