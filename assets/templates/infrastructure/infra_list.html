@@ -334,7 +334,7 @@
                 <span class="text-muted small">Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} results</span>
                 <div class="d-flex align-items-center gap-3">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="text-muted small">Rows per page</span>
+                        <span class="text-muted small text-nowrap">Rows per page</span>
                         <select class="form-select form-select-sm rounded-3" style="width: 70px;" onchange="window.location.href='?{% param_replace per_page='' %}'+this.value">
                             <option value="10" {% if request.GET.per_page == '10' or not request.GET.per_page %}selected{% endif %}>10</option>
                             <option value="25" {% if request.GET.per_page == '25' %}selected{% endif %}>25</option>
