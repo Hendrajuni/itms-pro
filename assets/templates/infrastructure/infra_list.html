@@ -136,23 +136,23 @@
 <!-- Main Content Area -->
 <div class="row g-4">
     <!-- Left Column -->
-    <div class="col-lg-8">
-        <!-- Tab Navigation -->
+    <div class="col-lg-{% if view_mode == 'map' %}12{% else %}8{% endif %}">
+        
         <div class="card shadow-sm border-0 rounded-4 mb-4">
-            <div class="card-header bg-white border-bottom rounded-top-4 d-flex justify-content-between align-items-center px-4 py-0">
-                <ul class="nav tab-nav-custom">
-                    <li class="nav-item">
-                        <a class="nav-link {% if view_mode != 'map' %}active{% endif %}" href="?{% param_replace view='list' %}">
-                            <i class="fas fa-list me-2"></i>List View
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if view_mode == 'map' %}active{% endif %}" href="?{% param_replace view='map' %}">
-                            <i class="fas fa-map me-2"></i>Map View
-                        </a>
-                    </li>
-                </ul>
+            <div class="card-header bg-white border-bottom rounded-top-4 d-flex justify-content-between align-items-center px-4 py-3">
+                <h5 class="fw-bold mb-0 text-dark">
+                    {% if view_mode == 'map' %}
+                        <i class="fas fa-map text-primary me-2"></i>Full Map View
+                    {% else %}
+                        <i class="fas fa-list text-primary me-2"></i>Infrastructure List
+                    {% endif %}
+                </h5>
                 <div class="d-flex align-items-center gap-2">
+                    {% if view_mode == 'map' %}
+                    <a href="?{% param_replace view='list' %}" class="btn btn-outline-primary btn-sm rounded-3 px-3 fw-bold">
+                        <i class="fas fa-arrow-left me-1"></i> Kembali ke List
+                    </a>
+                    {% endif %}
                     <button class="btn btn-outline-secondary btn-sm rounded-3 px-3" onclick="window.print()">
                         <i class="fas fa-file-export me-1"></i> Export
                     </button>
@@ -167,15 +167,10 @@
                 </div>
             </div>
 
-            {% if view_mode == 'map' %}
-            <!-- Full Map View -->
-            <div class="card-body p-3">
-                <div id="full-map" class="rounded-4" style="height: 65vh; width: 100%;"></div>
-            </div>
-            {% else %}
             <!-- Filter Bar -->
             <div class="card-body border-bottom px-4 py-3">
                 <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+                    <input type="hidden" name="view" value="{{ view_mode }}">
                     {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
                     <div class="flex-grow-1" style="max-width: 300px;">
                         <div class="input-group">
@@ -245,6 +240,13 @@
                     </a>
                 </form>
             </div>
+            
+            {% if view_mode == 'map' %}
+            <!-- Full Map View -->
+            <div class="card-body p-3">
+                <div id="full-map" class="rounded-4" style="height: 65vh; width: 100%;"></div>
+            </div>
+            {% else %}
 
             <!-- Table -->
             <div class="table-responsive">
@@ -418,6 +420,7 @@
         {% endif %}
     </div>
 
+    {% if view_mode != 'map' %}
     <!-- Right Column: Map -->
     <div class="col-lg-4">
         <div class="card shadow-sm border-0 rounded-4">
@@ -450,6 +453,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
 
 {% endblock %}
@@ -470,7 +474,9 @@
             mapData.forEach(function(item) {
                 try {
                     if (item.lat && item.lng) {
-                        var m = L.marker([item.lat, item.lng]).addTo(map).bindPopup(`<h6 class="fw-bold mb-1">${item.name}</h6><a href="${item.url}" class="btn btn-sm btn-primary mt-2">View Detail</a>`);
+                        var iconHtml = `<div style="background-color: ${item.color === 'red' ? '#dc2626' : (item.color === 'green' ? '#059669' : '#4e73df')}; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"><i class="fas fa-${item.icon || 'broadcast-tower'}"></i></div>`;
+                        var customIcon = L.divIcon({ html: iconHtml, className: 'custom-leaflet-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+                        var m = L.marker([item.lat, item.lng], {icon: customIcon}).addTo(map).bindPopup(`<h6 class="fw-bold mb-1">${item.name}</h6><a href="${item.url}" class="btn btn-sm btn-primary mt-2">View Detail</a>`);
                         markers.push(m);
                     }
                 } catch(e) {}
@@ -488,7 +494,7 @@
             mapData.forEach(function(item) {
                 try {
                     if (item.lat && item.lng) {
-                        var iconHtml = `<div style="background-color: #4e73df; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"><i class="fas fa-broadcast-tower"></i></div>`;
+                        var iconHtml = `<div style="background-color: ${item.color === 'red' ? '#dc2626' : (item.color === 'green' ? '#059669' : '#4e73df')}; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"><i class="fas fa-${item.icon || 'broadcast-tower'}"></i></div>`;
                         var customIcon = L.divIcon({ html: iconHtml, className: 'custom-leaflet-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
                         var m = L.marker([item.lat, item.lng], {icon: customIcon}).addTo(miniMap).bindPopup(`<h6 class="fw-bold mb-1">${item.name}</h6>`);
                         miniMarkers.push(m);

@@ -1544,6 +1544,7 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
                     'lat': float(item.latitude),
                     'lng': float(item.longitude),
                     'type': item.infra_type.name if item.infra_type else item.get_type_display(),
+                    'icon': item.infra_type.icon if item.infra_type else 'cube',
                     'status': item.get_condition_display(),
                     'color': 'red' if item.condition in ['CRITICAL', 'POOR'] else 'green',
                     'url': item.get_absolute_url(),
