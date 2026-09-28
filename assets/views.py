@@ -1535,24 +1535,31 @@ class InfrastructureListView(LoginRequiredMixin, ListView):
         view_mode = self.request.GET.get('view', 'list')
         context['view_mode'] = view_mode
         
-        if view_mode == 'map':
-            # Serialize queryset for map
-            # We need: name, lat, lng, type, status/color, detail_url, photo_url
-            map_data = []
-            for item in self.object_list: # Use full filtered list, not just page 1
-                # Limit to items with coordinates
-                if item.latitude and item.longitude:
-                    map_data.append({
-                        'name': item.name,
-                        'lat': float(item.latitude),
-                        'lng': float(item.longitude),
-                        'type': item.infra_type.name if item.infra_type else item.get_type_display(),
-                        'status': item.get_condition_display(),
-                        'color': 'red' if item.condition in ['CRITICAL', 'POOR'] else 'green', # Simple logic
-                        'url': item.get_absolute_url(),
-                        'photo': item.photo.url if item.photo else None
-                    })
-            context['map_data_json'] = json.dumps(map_data)
+        # Serialize queryset for map (needed for BOTH full map and mini map)
+        map_data = []
+        for item in self.object_list:
+            if item.latitude and item.longitude:
+                map_data.append({
+                    'name': item.name,
+                    'lat': float(item.latitude),
+                    'lng': float(item.longitude),
+                    'type': item.infra_type.name if item.infra_type else item.get_type_display(),
+                    'status': item.get_condition_display(),
+                    'color': 'red' if item.condition in ['CRITICAL', 'POOR'] else 'green',
+                    'url': item.get_absolute_url(),
+                    'photo': item.photo.url if item.photo else None
+                })
+        context['map_data_json'] = json.dumps(map_data)
+        
+        # Recent Activities (from latest maintenance)
+        from maintenance.models import InfraMaintenance
+        recent = InfraMaintenance.objects.all().order_by('-id')[:5]
+        context['recent_activities'] = recent
+        
+        # Maintenance Schedule (upcoming + recent completed)
+        schedule = InfraMaintenance.objects.all().order_by('-scheduled_date')[:5]
+        context['maintenance_schedule'] = schedule
+        
         
         return context
 

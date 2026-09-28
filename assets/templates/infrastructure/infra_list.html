@@ -3,332 +3,505 @@
 
 {% block title %}Infrastructure - ITMS{% endblock %}
 
-{% block content %}
-<!-- 1. Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0 text-gray-800">Server & Infrastructure</h1>
-</div>
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin=""/>
+<style>
+    .summary-card {
+        border-radius: 12px;
+        padding: 14px 16px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: none;
+    }
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    .summary-card .card-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    .summary-card .card-count {
+        font-size: 1.4rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .summary-card .card-trend {
+        font-size: 0.65rem;
+        padding: 1px 6px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .hover-bg-light:hover { background-color: #f8f9fc !important; }
+    .custom-leaflet-icon { background: transparent; border: none; }
+    .tab-nav-custom .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #6c757d;
+        font-weight: 600;
+        padding: 10px 20px;
+        transition: all 0.2s ease;
+    }
+    .tab-nav-custom .nav-link.active {
+        color: #1a56db;
+        border-bottom-color: #1a56db;
+        background: transparent;
+    }
+    .tab-nav-custom .nav-link:hover:not(.active) {
+        color: #1a56db;
+        border-bottom-color: #e5edff;
+    }
+    .filter-btn {
+        border-radius: 10px !important;
+        font-size: 0.85rem;
+        padding: 8px 16px;
+        border: 1px solid #dee2e6;
+        background: white;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .filter-btn:hover {
+        border-color: #1a56db;
+        color: #1a56db;
+    }
+    .status-badge-scheduled {
+        background: #e0e7ff;
+        color: #3730a3;
+    }
+    .status-badge-completed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .status-badge-in-progress {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    /* Custom Scrollbar for compact lists */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+{% endblock %}
 
-<!-- 2. Dynamic Summary Cards (Analytics Ribbon Design) -->
-<div class="card shadow-sm border-0 mb-4 rounded-3 overflow-hidden">
-    <div class="card-body p-0">
-        <div class="d-flex justify-content-around align-items-center flex-wrap">
-            {% for card in summary_cards %}
-            <div class="text-center flex-fill py-3 {% if current_type == card.code %}bg-light border-bottom border-primary border-3{% else %}border-bottom border-transparent border-3{% endif %} hover-bg-light" style="min-width: 150px; transition: 0.3s ease;">
-                <a href="?{% param_replace type=card.code %}" class="text-decoration-none text-dark d-block w-100 h-100">
-                    <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">{{ card.label }}</div>
-                    <div class="fs-4 fw-bold" style="color: #3a3b45;">{{ card.count }}</div>
-                </a>
-            </div>
-            {% if not forloop.last %}
-            <div class="border-end align-self-stretch"></div>
-            {% endif %}
-            {% endfor %}
-        </div>
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center mb-4">
+    <div class="bg-primary rounded-3 d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 50px; height: 50px;">
+        <i class="fas fa-server text-white" style="font-size: 1.3rem;"></i>
+    </div>
+    <div>
+        <h4 class="fw-bold mb-0 text-dark">Server & Infrastructure</h4>
+        <span class="text-muted small">Kelola seluruh infrastruktur IT perusahaan</span>
     </div>
 </div>
-<style>
-    .border-transparent { border-color: transparent !important; }
-    .hover-bg-light:hover { background-color: #f8f9fc !important; }
-</style>
 
-<!-- 3. Toolbar -->
-<div class="card shadow-sm mb-4 border-0">
-    <div class="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <!-- Search -->
-        <form method="get" class="d-flex align-items-center" style="max-width: 300px;">
-            {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
-            {% if current_loc %}<input type="hidden" name="loc" value="{{ current_loc }}">{% endif %}
-            <div class="input-group">
-                <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" name="q" class="form-control bg-light border-0 small" 
-                       placeholder="Search infrastructure..." aria-label="Search" value="{{ search_query }}">
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    {% for card in summary_cards %}
+    <div class="col">
+        <div class="summary-card shadow-sm" style="background: linear-gradient(135deg, 
+            {% if card.color == 'primary' %}#e0e7ff, #c7d2fe{% elif card.color == 'success' %}#d1fae5, #a7f3d0{% elif card.color == 'warning' %}#fef3c7, #fde68a{% elif card.color == 'info' %}#e0f2fe, #bae6fd{% elif card.color == 'danger' %}#fee2e2, #fecaca{% else %}#f3f4f6, #e5e7eb{% endif %});">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <div class="card-icon shadow-sm" style="background: 
+                    {% if card.color == 'primary' %}#4f46e5{% elif card.color == 'success' %}#059669{% elif card.color == 'warning' %}#d97706{% elif card.color == 'info' %}#0284c7{% elif card.color == 'danger' %}#dc2626{% else %}#6b7280{% endif %};">
+                    <i class="fas fa-{{ card.icon|default:'cube' }} text-white"></i>
+                </div>
+                <span class="card-trend bg-white bg-opacity-75 text-success"><i class="fas fa-arrow-up me-1"></i>0%</span>
             </div>
-        </form>
-        
-        <div class="d-flex align-items-center gap-2">
-            <!-- Type Filter -->
-            <div class="dropdown">
-                <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 160px;">
-                    <i class="fas fa-filter text-primary me-2"></i>
-                    <span class="text-truncate fw-bold text-dark me-auto" style="max-width: 130px;">
-                        {% if current_type %}
-                            {% for t in all_infra_types %}
-                                {% if current_type == t.slug %}{{ t.name }}{% endif %}
-                            {% endfor %}
-                        {% else %}
-                            All Types
-                        {% endif %}
-                    </span>
-                </button>
-                <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 400px; overflow-y: auto;">
-                    <li><a class="dropdown-item fw-bold {% if not current_type %}active{% endif %}" href="?{% param_replace type='' %}">All Types</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    {% for t in all_infra_types %}
-                    <li><a class="dropdown-item ps-4 {% if current_type == t.slug %}active{% endif %}" href="?{% param_replace type=t.slug %}">
-                        <i class="fas fa-{{ t.icon }} text-{{ t.color }} me-2"></i>{{ t.name }}
-                    </a></li>
-                    {% endfor %}
-                </ul>
-            </div>
+            <div class="card-count text-dark mt-1">{{ card.count }}</div>
+            <div class="text-muted small fw-medium" style="font-size: 0.75rem;">{{ card.label }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
 
-            <!-- Location Filter (Moved Here) -->
-            <div class="dropdown">
-                <button class="btn btn-white border dropdown-toggle d-flex align-items-center bg-white shadow-sm text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 180px;">
-                    <i class="fas fa-map-marker-alt text-danger me-2"></i>
-                    <span class="text-truncate fw-bold text-dark me-auto" style="max-width: 150px;">
-                        {% if current_loc %}
-                            {% for l in locations %}
-                                {% if current_loc == l.id %}{{ l.name }}{% endif %}
-                            {% endfor %}
-                        {% else %}
-                            All Locations
-                        {% endif %}
-                    </span>
-                </button>
-                <ul class="dropdown-menu shadow-lg border-0 mt-1" style="max-height: 400px; overflow-y: auto;">
-                    <li><a class="dropdown-item fw-bold {% if not current_loc %}active{% endif %}" href="?{% param_replace loc='' %}">All Locations</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    {% for root in location_roots %}
-                        <li><h6 class="dropdown-header fw-bold text-uppercase mt-2">{{ root.name }}</h6></li>
-                        <li><a class="dropdown-item ps-4 {% if current_loc == root.id %}active{% endif %}" href="?{% param_replace loc=root.id %}">{{ root.name }} (Main)</a></li>
-                        {% for child in root.children.all %}
-                        <li><a class="dropdown-item ps-4 {% if current_loc == child.id %}active{% endif %}" href="?{% param_replace loc=child.id %}">{{ child.name }}</a></li>
-                        {% endfor %}
-                    {% endfor %}
-                </ul>
-            </div>
-
-            {% if current_type or search_query or current_loc %}
-            <a href="{% url 'infra_list' %}" class="btn btn-light text-danger border shadow-sm" title="Reset Filters">
-                <i class="fas fa-times"></i>
-            </a>
-            {% endif %}
-            
-            <div class="btn-group shadow-sm ms-2">
-                <a href="?{% param_replace view='list' %}" class="btn btn-{{ view_mode|yesno:'outline-secondary,primary,primary' }}">
-                    <i class="fas fa-list"></i> List
-                </a>
-                <a href="?{% param_replace view='map' %}" class="btn btn-{{ view_mode|yesno:'primary,outline-secondary,outline-secondary' }}">
-                    {% if view_mode == 'map' %}
-                        <i class="fas fa-map text-white"></i> Map
-                    {% else %}
-                        <i class="fas fa-map"></i> Map
-                    {% endif %}
-                </a>
-            </div>
-
-            <a href="{% url 'infra_create' %}" class="btn btn-primary shadow-sm ms-2">
-                <i class="fas fa-plus me-1"></i> Add New
-            </a>
-            
-            <div class="dropdown ms-2 shadow-sm d-inline-block">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-layer-group me-1"></i> Bulk Actions
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bulkActionsDropdown">
-                    <li>
-                        <button type="submit" form="bulk-form" class="dropdown-item" name="action" value="labels">
-                            <i class="fas fa-tags me-2 text-dark" style="width: 20px;"></i>Print Labels
-                        </button>
+<!-- Main Content Area -->
+<div class="row g-4">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Tab Navigation -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom rounded-top-4 d-flex justify-content-between align-items-center px-4 py-0">
+                <ul class="nav tab-nav-custom">
+                    <li class="nav-item">
+                        <a class="nav-link {% if view_mode != 'map' %}active{% endif %}" href="?{% param_replace view='list' %}">
+                            <i class="fas fa-list me-2"></i>List View
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if view_mode == 'map' %}active{% endif %}" href="?{% param_replace view='map' %}">
+                            <i class="fas fa-map me-2"></i>Map View
+                        </a>
                     </li>
                 </ul>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-secondary btn-sm rounded-3 px-3" onclick="window.print()">
+                        <i class="fas fa-file-export me-1"></i> Export
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm rounded-3" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3">
+                            <li><button type="submit" form="bulk-form" class="dropdown-item" name="action" value="labels"><i class="fas fa-tags me-2"></i>Print Labels</button></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</div>
 
-{% load asset_tags %}
-
-<!-- 4. Content Area (List or Map) -->
-{% if view_mode == 'map' %}
-    <!-- Map View -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-    <div class="card shadow mb-4">
-        <div class="card-body p-0">
-            <div id="infra-map" style="height: 600px; width: 100%; z-index: 1;"></div>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Indonesia Centroid Default
-            var map = L.map('infra-map').setView([-2.5489, 118.0149], 5);
-
-            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            var mapData = {{ map_data_json|safe }};
-            var markers = [];
-
-            mapData.forEach(function(item) {
-                if (item.lat && item.lng) {
-                    var markerColor = item.color; // 'red', 'green', etc.
-                    // Leaflet doesn't support colored markers natively easily without plugins or custom icons.
-                    // We will use standard blue for now, or maybe a simple custom HTMLDivIcon if needed later.
-                    // For now: Standard Blue Marker.
-                    
-                    var popupContent = `
-                        <div class="text-center">
-                            ${item.photo ? `<img src="${item.photo}" class="rounded mb-2" style="width:100px;height:60px;object-fit:cover;">` : ''}
-                            <h6 class="fw-bold mb-1">${item.name}</h6>
-                            <span class="badge bg-${item.color === 'red' ? 'danger' : 'success'} mb-2">${item.status}</span><br>
-                            <small class="text-muted">${item.type}</small><br>
-                            <a href="${item.url}" class="btn btn-sm btn-primary mt-2 text-white">View Detail</a>
+            {% if view_mode == 'map' %}
+            <!-- Full Map View -->
+            <div class="card-body p-3">
+                <div id="full-map" class="rounded-4" style="height: 65vh; width: 100%;"></div>
+            </div>
+            {% else %}
+            <!-- Filter Bar -->
+            <div class="card-body border-bottom px-4 py-3">
+                <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+                    {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
+                    <div class="flex-grow-1" style="max-width: 300px;">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 rounded-start-3"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" name="q" class="form-control border-start-0 rounded-end-3" placeholder="Search infrastructure..." value="{{ search_query }}">
                         </div>
-                    `;
+                    </div>
+                    
+                    <!-- Type Filter -->
+                    <div class="dropdown">
+                        <button class="filter-btn btn d-flex align-items-center" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-filter text-primary me-2"></i>
+                            {% if current_type %}
+                                {% for t in all_infra_types %}{% if current_type == t.slug %}{{ t.name }}{% endif %}{% endfor %}
+                            {% else %}
+                                All Types
+                            {% endif %}
+                            <i class="fas fa-chevron-down ms-2 small text-muted"></i>
+                        </button>
+                        <ul class="dropdown-menu shadow-lg border-0 rounded-3">
+                            <li><a class="dropdown-item fw-bold" href="?{% param_replace type='' %}">All Types</a></li>
+                            {% for t in all_infra_types %}
+                            <li><a class="dropdown-item {% if current_type == t.slug %}active{% endif %}" href="?{% param_replace type=t.slug %}">{{ t.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
 
-                    var marker = L.marker([item.lat, item.lng]).addTo(map)
-                        .bindPopup(popupContent);
-                    markers.push(marker);
-                }
-            });
+                    <!-- Location Filter -->
+                    <div class="dropdown">
+                        <button class="filter-btn btn d-flex align-items-center" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                            {% if current_loc %}
+                                {% for l in locations %}{% if current_loc == l.id %}{{ l.name }}{% endif %}{% endfor %}
+                            {% else %}
+                                All Locations
+                            {% endif %}
+                            <i class="fas fa-chevron-down ms-2 small text-muted"></i>
+                        </button>
+                        <ul class="dropdown-menu shadow-lg border-0 rounded-3" style="max-height: 300px; overflow-y: auto;">
+                            <li><a class="dropdown-item fw-bold" href="?{% param_replace loc='' %}">All Locations</a></li>
+                            {% for root in location_roots %}
+                                <li><h6 class="dropdown-header fw-bold mt-1">{{ root.name }}</h6></li>
+                                <li><a class="dropdown-item ps-4 {% if current_loc == root.id %}active{% endif %}" href="?{% param_replace loc=root.id %}">{{ root.name }} (Main)</a></li>
+                                {% for child in root.children.all %}
+                                <li><a class="dropdown-item ps-4 {% if current_loc == child.id %}active{% endif %}" href="?{% param_replace loc=child.id %}">{{ child.name }}</a></li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
 
-            // Fit bounds if markers exist
-            if (markers.length > 0) {
-                var group = new L.featureGroup(markers);
-                map.fitBounds(group.getBounds().pad(0.1));
-            }
-        });
-    </script>
+                    <!-- Status Filter -->
+                    <div class="dropdown">
+                        <button class="filter-btn btn d-flex align-items-center" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-check-circle text-success me-2"></i>All Status
+                            <i class="fas fa-chevron-down ms-2 small text-muted"></i>
+                        </button>
+                        <ul class="dropdown-menu shadow-lg border-0 rounded-3">
+                            <li><a class="dropdown-item fw-bold" href="#">All Status</a></li>
+                            <li><a class="dropdown-item" href="#">Good</a></li>
+                            <li><a class="dropdown-item" href="#">Warning</a></li>
+                            <li><a class="dropdown-item" href="#">Critical</a></li>
+                        </ul>
+                    </div>
 
-{% else %}
-    <!-- List View (Table) -->
-    <div class="card shadow mb-4">
-        <form id="bulk-form" method="post" action="{% url 'infra_print_labels_bulk' %}" target="_blank">
-            {% csrf_token %}
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-3" style="width: 40px;">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="selectAll">
-                                    </div>
-                                </th>
-                                <th>
-                                    <a href="?{% param_replace sort='name' order='asc' %}" class="text-dark text-decoration-none">
-                                        Name {% if current_sort == 'name' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                    </a>
-                                </th>
-                                <th>
-                                    <a href="?{% param_replace sort='type' order='asc' %}" class="text-dark text-decoration-none">
-                                        Type {% if current_sort == 'type' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                    </a>
-                                </th>
-                                <th>
-                                    <a href="?{% param_replace sort='location' order='asc' %}" class="text-dark text-decoration-none">
-                                        Location {% if current_sort == 'location' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                    </a>
-                                </th>
-                                <th>Capacity</th>
-                                <th>
-                                    <a href="?{% param_replace sort='condition' order='asc' %}" class="text-dark text-decoration-none">
-                                        Condition {% if current_sort == 'condition' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                    </a>
-                                </th>
-                                <th>
-                                    <a href="?{% param_replace sort='last_maint' order='asc' %}" class="text-dark text-decoration-none">
-                                        Last Maint {% if current_sort == 'last_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                    </a>
-                                </th>
-                                <th>
-                                    <a href="?{% param_replace sort='next_maint' order='asc' %}" class="text-dark text-decoration-none">
-                                        Next Maint {% if current_sort == 'next_maint' %}<i class="fas fa-sort-{{ current_order }}"></i>{% endif %}
-                                    </a>
-                                </th>
-                                <th class="text-end pe-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in infra_assets %}
-                            <tr>
-                                <td class="ps-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input bulk-checkbox" type="checkbox" name="selected_items" value="{{ item.pk }}">
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        {% if item.photo %}
-                                            <img src="{{ item.photo.url }}" class="rounded me-2" width="32" height="32" style="object-fit: cover; cursor: pointer;" title="View Image">
+                    <a href="{% url 'infra_create' %}" class="btn btn-primary rounded-3 px-4 fw-bold">
+                        <i class="fas fa-plus me-1"></i> Tambah Infrastruktur
+                    </a>
+                </form>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <form id="bulk-form" method="post" action="{% url 'infra_print_labels_bulk' %}" target="_blank">
+                {% csrf_token %}
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                    <thead class="bg-transparent text-dark border-bottom">
+                        <tr>
+                            <th class="ps-4 border-0" style="width: 40px;">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" id="selectAll"></div>
+                            </th>
+                            <th class="border-0 fw-bold">Name</th>
+                            <th class="border-0 fw-bold">Type</th>
+                            <th class="border-0 fw-bold">Location</th>
+                            <th class="border-0 fw-bold">Capacity</th>
+                            <th class="border-0 fw-bold">Condition</th>
+                            <th class="border-0 fw-bold">Last Maint</th>
+                            <th class="border-0 fw-bold">Next Maint</th>
+                            <th class="text-end pe-4 border-0 fw-bold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in infra_assets %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="form-check"><input class="form-check-input bulk-checkbox" type="checkbox" name="selected_items" value="{{ item.pk }}"></div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if item.photo %}
+                                        <img src="{{ item.photo.url }}" class="rounded-3 me-3 shadow-sm border" width="40" height="40" style="object-fit: cover;">
                                     {% else %}
-                                        <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-cube text-muted small"></i>
-                                        </div>
+                                        <div class="bg-light rounded-3 d-flex align-items-center justify-content-center me-3 border" style="width: 40px; height: 40px;"><i class="fas fa-tower-broadcast text-muted"></i></div>
                                     {% endif %}
                                     <div>
-                                        <a href="{% url 'infra_detail' item.pk %}" class="text-dark fw-bold text-decoration-none">{{ item.name }}</a>
-                                        <div class="small text-muted">{{ item.infra_id }}</div>
+                                        <a href="{% url 'infra_detail' item.pk %}" class="text-dark fw-bold text-decoration-none d-block">{{ item.name }}</a>
+                                        <span class="small text-muted">{{ item.infra_id }}</span>
                                     </div>
                                 </div>
                             </td>
-                            <td><span class="badge bg-light text-dark border">{{ item.infra_type.name|default:item.get_type_display }}</span></td>
-                            <td>{{ item.location.name|default:"-" }}</td>
+                            <td><span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">{{ item.infra_type.name|default:item.get_type_display }}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                                    <span class="text-dark">{{ item.location.name|default:"-" }}</span>
+                                </div>
+                            </td>
                             <td>{{ item.capacity|default:"-" }}</td>
                             <td>
                                 {% if item.condition == 'GOOD' or item.condition == 'EXCELLENT' %}
-                                    <span class="badge bg-success">{{ item.get_condition_display }}</span>
+                                    <span class="badge bg-success rounded-pill px-3">{{ item.get_condition_display }}</span>
                                 {% elif item.condition == 'CRITICAL' or item.condition == 'POOR' %}
-                                    <span class="badge bg-danger">{{ item.get_condition_display }}</span>
+                                    <span class="badge bg-danger rounded-pill px-3">{{ item.get_condition_display }}</span>
                                 {% else %}
-                                    <span class="badge bg-warning text-dark">{{ item.get_condition_display }}</span>
+                                    <span class="badge bg-warning text-dark rounded-pill px-3">{{ item.get_condition_display }}</span>
                                 {% endif %}
                             </td>
-                            <td>{{ item.last_maintenance_date|date:"d M Y"|default:"-" }}</td>
+                            <td class="text-muted">{{ item.last_maintenance_date|date:"d M Y"|default:"-" }}</td>
                             <td>
                                 {% if item.next_maintenance_date %}
                                     {% if item.next_maintenance_date < today %}
-                                        <span class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>{{ item.next_maintenance_date|date:"d M Y" }}</span>
+                                        <span class="text-danger fw-bold">{{ item.next_maintenance_date|date:"d M Y" }}</span>
                                     {% else %}
-                                        <span class="text-success">{{ item.next_maintenance_date|date:"d M Y" }}</span>
+                                        <span class="text-success fw-bold">{{ item.next_maintenance_date|date:"d M Y" }}</span>
                                     {% endif %}
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end pe-3">
-                                <div class="btn-group">
-                                    <a href="{% url 'infra_detail' item.pk %}" class="btn btn-sm btn-outline-secondary" title="View Detail">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'infra_update' item.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="{% url 'infra_delete' item.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
+                            <td class="text-end pe-4">
+                                <div class="d-flex justify-content-end align-items-center flex-nowrap">
+                                    <a href="{% url 'infra_update' item.pk %}" class="btn btn-sm btn-light text-primary rounded-circle me-2" style="width: 32px; height: 32px; padding: 5px;"><i class="fas fa-edit"></i></a>
+                                    <a href="{% url 'infra_delete' item.pk %}" class="btn btn-sm btn-light text-danger rounded-circle" style="width: 32px; height: 32px; padding: 5px;"><i class="fas fa-trash"></i></a>
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
-                                <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
-                                <p>No infrastructure items found.</p>
-                            </td>
-                        </tr>
+                        <tr><td colspan="9" class="text-center py-5 text-muted">No infrastructure items found.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                </form>
+            </div>
+
+            <!-- Pagination -->
+            <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-3 px-4 rounded-bottom-4">
+                <span class="text-muted small">Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} results</span>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small">Rows per page</span>
+                        <select class="form-select form-select-sm rounded-3" style="width: 70px;" onchange="window.location.href='?{% param_replace per_page='' %}'+this.value">
+                            <option value="10" {% if request.GET.per_page == '10' or not request.GET.per_page %}selected{% endif %}>10</option>
+                            <option value="25" {% if request.GET.per_page == '25' %}selected{% endif %}>25</option>
+                            <option value="50" {% if request.GET.per_page == '50' %}selected{% endif %}>50</option>
+                        </select>
+                    </div>
+                    {% include 'includes/pagination.html' %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if view_mode != 'map' %}
+        <!-- Bottom Section: Activities & Schedule -->
+        <div class="row g-4">
+            <!-- Recent Activities -->
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-2 p-2 me-2"><i class="fas fa-history"></i></div>
+                            Recent Activities
+                        </h6>
+                        <a href="{% url 'maintenance_dashboard' %}" class="btn btn-sm btn-light text-primary rounded-pill px-3 fw-bold">View All</a>
+                    </div>
+                    <div class="card-body px-4 pt-2 pb-4">
+                        {% for act in recent_activities %}
+                        <div class="d-flex align-items-center justify-content-between py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm
+                                    {% if act.status == 'Completed' %}bg-success{% elif act.status == 'In Progress' %}bg-warning{% else %}bg-primary{% endif %} text-white" style="width: 35px; height: 35px;">
+                                    <i class="fas {% if act.status == 'Completed' %}fa-check{% elif act.status == 'In Progress' %}fa-wrench{% else %}fa-plus{% endif %} small"></i>
+                                </div>
+                                <div>
+                                    <span class="text-dark small">{{ act.get_maintenance_type_display|default:"Maintenance" }} - <span class="fw-bold">{{ act.infrastructure.name }}</span></span>
+                                </div>
+                            </div>
+                            <span class="text-muted small">{% if act.completed_date %}{{ act.completed_date|date:"d M Y" }}{% else %}{{ act.scheduled_date|date:"d M Y" }}{% endif %}</span>
+                        </div>
+                        {% empty %}
+                        <div class="text-muted text-center small py-3">No recent activities.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Schedule -->
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center">
+                            <div class="bg-warning bg-opacity-10 text-warning rounded-2 p-2 me-2"><i class="fas fa-calendar-alt"></i></div>
+                            Maintenance Schedule
+                        </h6>
+                        <a href="{% url 'maintenance_dashboard' %}" class="btn btn-sm btn-light text-primary rounded-pill px-3 fw-bold">View All</a>
+                    </div>
+                    <div class="card-body px-4 pt-2 pb-4">
+                        {% for sched in maintenance_schedule %}
+                        <div class="d-flex align-items-center justify-content-between py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                            <div>
+                                <span class="text-dark fw-semibold small d-block">{{ sched.title|default:sched.maintenance_code }}</span>
+                                <span class="text-muted small">{{ sched.infrastructure.name }}</span>
+                            </div>
+                            <div class="text-end">
+                                <span class="text-muted small d-block">{{ sched.scheduled_date|date:"d M Y" }}</span>
+                                <span class="badge rounded-pill px-3 mt-1
+                                    {% if sched.status == 'Completed' %}status-badge-completed
+                                    {% elif sched.status == 'In Progress' %}status-badge-in-progress
+                                    {% else %}status-badge-scheduled{% endif %}">
+                                    {{ sched.get_status_display|default:sched.status }}
+                                </span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-muted text-center small py-3">No scheduled maintenance.</div>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
-        </form>
+        {% endif %}
     </div>
-    {% include 'includes/pagination.html' %}
-{% endif %}
+
+    <!-- Right Column: Map -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-2 p-2 me-2"><i class="fas fa-map"></i></div>
+                    Lokasi Infrastruktur
+                </h6>
+                <a href="?{% param_replace view='map' %}" class="btn btn-sm btn-light text-primary rounded-pill px-3 fw-bold">View Full Map</a>
+            </div>
+            <div class="card-body px-4 pb-4 pt-2 d-flex flex-column">
+                <div id="infra-mini-map" class="rounded-4 w-100 shadow-sm border" style="height: 300px;"></div>
+                
+                <div class="mt-4 flex-grow-1 custom-scrollbar pe-2" style="overflow-y: auto; max-height: 350px;">
+                    {% for item in infra_assets %}
+                        {% if item.latitude and item.longitude %}
+                        <div class="d-flex align-items-center mb-3 p-2 hover-bg-light rounded-3" style="transition: 0.2s;">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 45px; height: 45px;">
+                                <i class="fas fa-{{ item.infra_type.icon|default:'broadcast-tower' }}"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark">{{ item.name }}</h6>
+                                <div class="small text-muted mb-1"><i class="fas fa-map-marker-alt me-1"></i> {{ item.location.name|default:"-" }}</div>
+                                <div class="small text-muted">{{ item.infra_id }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
 
 {% block extra_js %}
 {{ block.super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin=""></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener("DOMContentLoaded", function() {
+        var mapData = {{ map_data_json|safe }};
+        
+        // Handle Full Map
+        var fullMapEl = document.getElementById('full-map');
+        if (fullMapEl) {
+            var map = L.map('full-map').setView([-2.5489, 118.0149], 5);
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}').addTo(map);
+            var markers = [];
+            mapData.forEach(function(item) {
+                try {
+                    if (item.lat && item.lng) {
+                        var m = L.marker([item.lat, item.lng]).addTo(map).bindPopup(`<h6 class="fw-bold mb-1">${item.name}</h6><a href="${item.url}" class="btn btn-sm btn-primary mt-2">View Detail</a>`);
+                        markers.push(m);
+                    }
+                } catch(e) {}
+            });
+            if (markers.length > 0) map.fitBounds(new L.featureGroup(markers).getBounds().pad(0.1));
+            setTimeout(function(){ map.invalidateSize(); }, 500);
+        }
+
+        // Handle Mini Map
+        var miniMapEl = document.getElementById('infra-mini-map');
+        if (miniMapEl) {
+            var miniMap = L.map('infra-mini-map').setView([-2.5489, 118.0149], 5);
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}').addTo(miniMap);
+            var miniMarkers = [];
+            mapData.forEach(function(item) {
+                try {
+                    if (item.lat && item.lng) {
+                        var iconHtml = `<div style="background-color: #4e73df; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"><i class="fas fa-broadcast-tower"></i></div>`;
+                        var customIcon = L.divIcon({ html: iconHtml, className: 'custom-leaflet-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+                        var m = L.marker([item.lat, item.lng], {icon: customIcon}).addTo(miniMap).bindPopup(`<h6 class="fw-bold mb-1">${item.name}</h6>`);
+                        miniMarkers.push(m);
+                    }
+                } catch(e) {}
+            });
+            if (miniMarkers.length > 0) miniMap.fitBounds(new L.featureGroup(miniMarkers).getBounds().pad(0.1));
+            setTimeout(function(){ miniMap.invalidateSize(); }, 500);
+        }
+
+        // Handle Bulk Checkboxes
         const selectAll = document.getElementById('selectAll');
         const checkboxes = document.querySelectorAll('.bulk-checkbox');
-
         if (selectAll) {
             selectAll.addEventListener('change', function() {
                 checkboxes.forEach(cb => cb.checked = this.checked);
@@ -336,5 +509,4 @@
         }
     });
 </script>
-{% endblock %}
 {% endblock %}
