@@ -15,9 +15,16 @@ class MaintenanceBase(models.Model):
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'),
     ]
+    PRIORITY_CHOICES = [
+        ('Low', 'Low'),
+        ('Medium', 'Medium'),
+        ('High', 'High'),
+        ('Critical', 'Critical'),
+    ]
 
     maintenance_code = models.CharField(max_length=50, unique=True, editable=False)
     title = models.CharField(max_length=200)
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='Medium')
     scheduled_date = models.DateField()
     completed_date = models.DateField(null=True, blank=True)
     technician = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='%(class)s_technician')
@@ -151,6 +158,7 @@ class MaintenanceBase(models.Model):
 
 class AssetMaintenance(MaintenanceBase):
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='maintenances')
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subtasks')
 
     class Meta:
         verbose_name = "Asset Maintenance"
@@ -158,6 +166,7 @@ class AssetMaintenance(MaintenanceBase):
 
 class InfraMaintenance(MaintenanceBase):
     infrastructure = models.ForeignKey(Infrastructure, on_delete=models.CASCADE, related_name='maintenances')
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subtasks')
 
     class Meta:
         verbose_name = "Infrastructure Maintenance"

@@ -1,49 +1,108 @@
-<div class="card mb-2 shadow-sm border-start border-{{ item.status_color }} border-3">
-    <div class="card-body p-2">
-        <div class="d-flex justify-content-between mb-1">
-            <small class="badge bg-light text-muted border">{% if item.asset %}Asset{% else %}Infra{% endif %}</small>
-            <small class="text-muted" style="font-size: 0.75rem;">{{ item.scheduled_date|date:"d M" }}</small>
+<div class="card mb-2 shadow-sm kanban-card bg-white" 
+     data-task-type="{{ item.task_source }}" 
+     data-task-id="{{ item.pk }}"
+     onclick="openTaskPanel('{{ item.task_source }}', {{ item.pk }})"
+     style="cursor: pointer; transition: all 0.2s;">
+    <div class="card-body p-3">
+        <!-- Header: Type Badge + Date + Menu -->
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge rounded-pill px-2 py-1" style="font-size: 0.65rem; 
+                {% if item.task_source == 'asset' %}background: #e0e7ff; color: #3730a3;{% else %}background: #fef3c7; color: #92400e;{% endif %}">
+                {% if item.task_source == 'asset' %}Asset{% else %}Infra{% endif %}
+            </span>
+            <div class="d-flex align-items-center gap-2">
+                <small class="text-muted" style="font-size: 0.7rem;">{{ item.scheduled_date|date:"d M" }}</small>
+                <div class="dropdown" onclick="event.stopPropagation();">
+                    <i class="fas fa-ellipsis-v text-muted" style="font-size: 0.75rem; cursor: pointer;" data-bs-toggle="dropdown"></i>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3" style="font-size: 0.8rem;">
+                        <li><a class="dropdown-item" href="{% if item.task_source == 'asset' %}{% url 'asset_maintenance_update' item.pk %}{% else %}{% url 'infra_maintenance_update' item.pk %}{% endif %}"><i class="fas fa-edit me-2 text-primary"></i>Edit</a></li>
+                        {% if item.status != 'Completed' %}
+                        <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); quickStatus('{{ item.task_source }}', {{ item.pk }}, 'Completed')"><i class="fas fa-check me-2 text-success"></i>Complete</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
         </div>
-        <h6 class="card-title mb-1 small fw-bold text-dark">
-            <a href="{% if item.asset %}{% url 'asset_maintenance_update' item.pk %}{% else %}{% url 'infra_maintenance_update' item.pk %}{% endif %}" class="text-decoration-none text-dark stretched-link">
-                {{ item.title|truncatechars:35 }}
-            </a>
+        
+        <!-- Title -->
+        <h6 class="card-title mb-1 fw-bold text-dark" style="font-size: 0.85rem; line-height: 1.35;">
+            {{ item.title|truncatechars:45 }}
         </h6>
-        <div class="mb-1 text-muted small" style="font-size: 0.8rem;">
-            <i class="fas {% if item.asset %}fa-laptop{% else %}fa-server{% endif %} me-1"></i>
-            {% if item.asset %}{{ item.asset.name }}{% else %}{{ item.infrastructure.name }}{% endif %}
+        
+        <!-- Target Info -->
+        <div class="text-muted small mb-2" style="font-size: 0.75rem;">
+            <i class="fas {% if item.task_source == 'asset' %}fa-laptop{% else %}fa-server{% endif %} me-1"></i>
+            {% if item.task_source == 'asset' %}{{ item.asset.name|truncatechars:35 }}{% else %}{{ item.infrastructure.name|truncatechars:35 }}{% endif %}
         </div>
 
+        <!-- Inline Checklist Preview (max 3) -->
         {% if item.maintenance_checklist %}
-        <div class="mt-2 border-top pt-1">
-            <ul class="list-unstyled mb-0 small text-muted" style="font-size: 0.75rem;">
-                {% for check in item.maintenance_checklist|slice:":3" %}
-                    <li class="d-flex align-items-center">
-                        <i class="far fa-square me-1"></i> {{ check.task }}
-                    </li>
-                {% endfor %}
-                {% if item.maintenance_checklist|length > 3 %}
-                    <li class="text-primary fst-italic">+{{ item.maintenance_checklist|length|add:"-3" }} more...</li>
-                {% endif %}
-            </ul>
+        <div class="mb-2 border-top pt-2">
+            {% for check in item.maintenance_checklist|slice:":3" %}
+            <div class="d-flex align-items-center mb-1">
+                <i class="far {% if check.done %}fa-check-square text-success{% else %}fa-square text-muted{% endif %} me-2" style="font-size: 0.8rem;"></i>
+                <span class="small {% if check.done %}text-muted{% else %}text-dark{% endif %}" style="font-size: 0.75rem;">{{ check.task|truncatechars:30 }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Inline Subtask Preview (max 3) -->
+        {% if item.subtasks.count > 0 %}
+        <div class="mb-2 {% if not item.maintenance_checklist %}border-top pt-2{% endif %}">
+            {% for sub in item.subtasks.all|slice:":3" %}
+            <div class="d-flex align-items-center mb-1">
+                <i class="fas {% if sub.status == 'Completed' %}fa-check-circle text-success{% elif sub.status == 'In Progress' %}fa-spinner text-warning{% else %}fa-circle text-muted{% endif %} me-2" style="font-size: 0.75rem;"></i>
+                <span class="small {% if sub.status == 'Completed' %}text-muted{% else %}text-dark{% endif %}" style="font-size: 0.75rem;">{{ sub.title|truncatechars:30 }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Progress Bar -->
+        {% if item.progress_total > 0 %}
+        <div class="mb-2">
+            <div class="d-flex justify-content-end mb-1">
+                <span class="fw-bold" style="font-size: 0.7rem; color: {% if item.progress_pct == 100 %}#059669{% elif item.progress_pct > 50 %}#d97706{% else %}#4f46e5{% endif %};">
+                    {{ item.progress_done }}/{{ item.progress_total }}
+                </span>
+            </div>
+            <div class="progress" style="height: 4px; border-radius: 4px;">
+                <div class="progress-bar" style="width: {{ item.progress_pct }}%; background: {% if item.progress_pct == 100 %}#059669{% elif item.progress_pct > 50 %}#d97706{% else %}#4f46e5{% endif %};"></div>
+            </div>
         </div>
         {% endif %}
         
-        <div class="d-flex justify-content-between align-items-center mt-2 border-top pt-2">
+        <!-- Footer: Technician + Type Icon -->
+        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
             <div class="d-flex align-items-center">
-                 {% if item.technician %}
-                <div class="avatar-xxs bg-soft-info text-info rounded-circle d-flex align-items-center justify-content-center me-1" style="width:20px;height:20px;font-size:0.7rem;" title="{{ item.technician.username }}">
+                {% if item.technician %}
+                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" 
+                     style="width: 24px; height: 24px; font-size: 0.65rem; background: #4f46e5;" 
+                     title="{{ item.technician.username }}">
                     {{ item.technician.username|first|upper }}
                 </div>
+                <span class="ms-1 text-muted" style="font-size: 0.7rem;">{{ item.technician.username }}</span>
                 {% else %}
-                <span class="text-muted" style="font-size: 0.7rem;">-</span>
+                <span class="text-muted" style="font-size: 0.7rem;"><i class="fas fa-user-slash me-1"></i>Unassigned</span>
                 {% endif %}
             </div>
-            {% if item.maintenance_type == 'Preventive' %}
-                <i class="fas fa-sync-alt text-success custom-tooltip" title="Preventive" style="font-size: 0.8rem;"></i>
-            {% else %}
-                <i class="fas fa-wrench text-warning custom-tooltip" title="Corrective" style="font-size: 0.8rem;"></i>
-            {% endif %}
+            <div class="d-flex align-items-center gap-1">
+                {% if item.subtasks.count > 0 %}
+                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill border d-flex align-items-center gap-1" style="font-size: 0.65rem; padding: 2px 6px;" title="Subtasks">
+                    <i class="fas fa-sitemap" style="font-size: 0.55rem;"></i>
+                    {% with done_count=0 %}
+                    {% for st in item.subtasks.all %}{% if st.status == 'Completed' %}{% with done_count=done_count|add:1 %}{% endwith %}{% endif %}{% endfor %}
+                    {% endwith %}
+                    {{ item.subtasks.count }}
+                </span>
+                {% endif %}
+                {% if item.maintenance_type == 'Preventive' %}
+                    <i class="fas fa-sync-alt text-success" title="Preventive" style="font-size: 0.75rem;"></i>
+                {% else %}
+                    <i class="fas fa-wrench text-warning" title="Corrective" style="font-size: 0.75rem;"></i>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

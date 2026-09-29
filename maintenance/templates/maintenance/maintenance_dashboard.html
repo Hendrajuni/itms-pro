@@ -3,414 +3,938 @@
 
 {% block title %}Maintenance Command Center - ITMS{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* KPI Cards */
+    .kpi-card {
+        border-radius: 12px; padding: 12px 16px; border: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative; overflow: hidden;
+    }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+    .kpi-card .kpi-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .kpi-card .kpi-count { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+    .kpi-card .kpi-arrow { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.6); cursor: pointer; }
+
+    /* Nav Pills Override */
+    .nav-pills .nav-link.active { background: #1a56db !important; box-shadow: 0 4px 12px rgba(26,86,219,0.3); }
+    .nav-pills .nav-link:not(.active) { color: #6b7280; }
+    .nav-pills .nav-link:hover:not(.active) { background: #e5e7eb; color: #374151; }
+
+    /* Kanban */
+    .kanban-col-header { border-radius: 14px 14px 0 0; padding: 14px 16px; }
+    .kanban-col-body { min-height: 250px; padding: 10px; border-radius: 0 0 14px 14px; background: #f8fafc; }
+    .kanban-add-btn { border: 2px dashed #d1d5db; border-radius: 12px; padding: 10px; text-align: center; color: #6b7280; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .kanban-add-btn:hover { border-color: #1a56db; color: #1a56db; background: #eff6ff; }
+    .kanban-card { border-radius: 12px !important; border: none !important; }
+    .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+    .kanban-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; }
+    .kanban-empty i { font-size: 2.5rem; color: #d1d5db; margin-bottom: 12px; }
+
+    /* Filter Chips */
+    .filter-chip {
+        border-radius: 10px !important; font-size: 0.82rem; padding: 8px 14px;
+        border: 1px solid #e5e7eb; background: white; font-weight: 500;
+    }
+    .filter-chip:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+
+    /* Side Panel */
+    .task-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 1040; display: none; }
+    .task-panel-overlay.show { display: block; }
+    .task-panel { position: fixed; top: 0; right: -500px; width: 480px; height: 100vh; background: white; z-index: 1050; box-shadow: -4px 0 25px rgba(0,0,0,0.15); transition: right 0.3s ease; overflow-y: auto; }
+    .task-panel.show { right: 0; }
+    .checklist-item { transition: all 0.2s; padding: 8px 0; cursor: pointer; }
+    .checklist-item:hover { background: #f8f9fc; }
+    .checklist-item.done .task-text { text-decoration: line-through; color: #9ca3af; }
+
+    /* Sidebar Widgets */
+    .widget-card { border-radius: 16px; border: none; }
+    .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-size: 0.75rem; }
+    .mini-cal-grid .cal-day { padding: 5px 2px; border-radius: 8px; cursor: default; }
+    .mini-cal-grid .cal-day.today { background: #1a56db; color: white; font-weight: 700; border-radius: 50%; }
+    .mini-cal-grid .cal-day.has-task { background: #e0e7ff; color: #1a56db; font-weight: 600; }
+    .mini-cal-grid .cal-day.empty { color: transparent; }
+    .mini-cal-grid .cal-header { font-weight: 700; color: #6b7280; padding: 4px 0; }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    /* Agenda Grid (Option 2) */
+    .agenda-grid { display: grid; grid-template-columns: repeat(7, 1fr); min-height: 500px; background: #f9fafb; }
+    .agenda-col { border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+    .agenda-col:last-child { border-right: none; }
+    .agenda-col.is-today { background: #ffffff; box-shadow: 0 0 15px rgba(0,0,0,0.05); z-index: 5; }
+
+    /* Donut Chart */
+    .donut-chart { position: relative; width: 120px; height: 120px; }
+    .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+
+    /* ============ MOBILE RESPONSIVE ============ */
+    @media (max-width: 991.98px) {
+        /* Kanban: horizontal scroll */
+        .kanban-scroll-wrapper {
+            display: flex; gap: 12px; overflow-x: auto;
+            padding-bottom: 12px; scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+        .kanban-scroll-wrapper > .kanban-col {
+            min-width: 280px; flex: 0 0 280px; scroll-snap-align: start;
+        }
+        .kanban-scroll-wrapper::-webkit-scrollbar { height: 4px; }
+        .kanban-scroll-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    }
+
+    @media (max-width: 767.98px) {
+        /* Side Panel: full width on mobile */
+        .task-panel { width: 100vw !important; right: -100vw; }
+        .task-panel.show { right: 0; }
+
+        /* Filter: wrap to 2 rows */
+        .filter-form-responsive {
+            flex-wrap: wrap !important;
+        }
+        .filter-form-responsive .input-group { max-width: 100% !important; flex: 1 1 100% !important; }
+        .filter-form-responsive select { flex: 1 1 calc(50% - 8px) !important; min-width: 0 !important; }
+
+        /* KPI even more compact */
+        .kpi-card { padding: 10px 12px; }
+        .kpi-card .kpi-count { font-size: 1.1rem; }
+        .kpi-card .kpi-icon { width: 30px; height: 30px; font-size: 0.8rem; }
+
+        /* Page header stack */
+        .page-header-responsive { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+
+        /* Tabs: scrollable */
+        .nav-pills-responsive { overflow-x: auto; flex-wrap: nowrap !important; white-space: nowrap; }
+        .nav-pills-responsive::-webkit-scrollbar { display: none; }
+
+        /* Bottom section cards */
+        .bottom-card-responsive { margin-bottom: 16px; }
+    }
+
+    @media (max-width: 575.98px) {
+        /* Extra small phones */
+        .kpi-card .kpi-count { font-size: 1rem; }
+        .kpi-card { padding: 8px 10px; border-radius: 10px; }
+        .kanban-scroll-wrapper > .kanban-col { min-width: 260px; flex: 0 0 260px; }
+        .kanban-col-header { padding: 10px 12px; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <div>
-            <h4 class="mb-0 text-dark fw-bold">Command Center</h4>
-            <p class="text-muted small">Centralized Maintenance Operations</p>
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 page-header-responsive">
+    <div class="d-flex align-items-center">
+        <div class="bg-dark rounded-3 d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 50px; height: 50px;">
+            <i class="fas fa-terminal text-white" style="font-size: 1.2rem;"></i>
         </div>
         <div>
-             {% if is_manager %}
-            <div class="btn-group me-2">
-                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="fas fa-map-marker-alt me-1"></i> {{ request.GET.location_name|default:"All Regions" }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="?">All Regions</a></li>
-                     {% for loc in locations %}
-                    <li><a class="dropdown-item" href="?location={{ loc.pk }}&location_name={{ loc.name }}">{{ loc.indent|safe }}{{ loc.name }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-plus me-1"></i> New Request
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                         <a class="dropdown-item" href="{% url 'asset_maintenance_create' %}">
-                            <i class="fas fa-laptop me-2 text-primary"></i>Asset Maintenance
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="{% url 'infra_maintenance_create' %}">
-                            <i class="fas fa-server me-2 text-dark"></i>Infrastructure Maintenance
-                        </a>
-                    </li>
-                </ul>
-            </div>
+            <h4 class="fw-bold mb-0 text-dark">Command Center</h4>
+            <span class="text-muted small">Centralized Maintenance Operations</span>
         </div>
     </div>
+
 </div>
 
-<!-- KPI ROW -->
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 border-start border-danger border-4">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <span class="text-uppercase text-muted small fw-bold">Critical / Overdue</span>
-                        <h3 class="mb-0 fw-bold text-danger">{{ overdue_count }}</h3>
-                    </div>
-                    <div class="icon-shape bg-soft-danger text-danger rounded-circle p-2">
-                         <i class="fas fa-exclamation-circle fa-lg"></i>
-                    </div>
+<!-- KPI Cards (Compact) -->
+<div class="row g-2 mb-3">
+    <div class="col-md-3 col-6">
+        <div class="kpi-card shadow-sm" style="background: linear-gradient(135deg, #fee2e2, #fecaca);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="kpi-icon shadow-sm" style="background: #dc2626;"><i class="fas fa-exclamation-circle text-white"></i></div>
+                <div class="flex-grow-1">
+                    <div class="kpi-count text-danger">{{ overdue_count }}</div>
+                    <div class="text-muted fw-medium" style="font-size: 0.68rem;">Perlu segera ditangani</div>
                 </div>
+                <div class="kpi-arrow"><i class="fas fa-chevron-right text-muted" style="font-size: 0.6rem;"></i></div>
             </div>
+            <div class="text-uppercase text-muted fw-bold mt-1" style="font-size: 0.6rem; letter-spacing: 0.5px;">Critical / Overdue</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 border-start border-warning border-4">
-             <div class="card-body p-3">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <span class="text-uppercase text-muted small fw-bold">In Progress</span>
-                        <h3 class="mb-0 fw-bold text-warning">{{ progress_count }}</h3>
-                    </div>
-                     <div class="icon-shape bg-soft-warning text-warning rounded-circle p-2">
-                         <i class="fas fa-tools fa-lg"></i>
-                    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card shadow-sm" style="background: linear-gradient(135deg, #fef3c7, #fde68a);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="kpi-icon shadow-sm" style="background: #d97706;"><i class="fas fa-tools text-white"></i></div>
+                <div class="flex-grow-1">
+                    <div class="kpi-count" style="color: #92400e;">{{ progress_count }}</div>
+                    <div class="text-muted fw-medium" style="font-size: 0.68rem;">Sedang dikerjakan</div>
                 </div>
+                <div class="kpi-arrow"><i class="fas fa-chevron-right text-muted" style="font-size: 0.6rem;"></i></div>
             </div>
+            <div class="text-uppercase text-muted fw-bold mt-1" style="font-size: 0.6rem; letter-spacing: 0.5px;">In Progress</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 border-start border-primary border-4">
-             <div class="card-body p-3">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <span class="text-uppercase text-muted small fw-bold">Scheduled Today</span>
-                        <h3 class="mb-0 fw-bold text-primary">{{ today_count }}</h3>
-                    </div>
-                     <div class="icon-shape bg-soft-primary text-primary rounded-circle p-2">
-                         <i class="fas fa-calendar-day fa-lg"></i>
-                    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card shadow-sm" style="background: linear-gradient(135deg, #e0e7ff, #c7d2fe);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="kpi-icon shadow-sm" style="background: #4f46e5;"><i class="fas fa-calendar-day text-white"></i></div>
+                <div class="flex-grow-1">
+                    <div class="kpi-count text-primary">{{ today_count }}</div>
+                    <div class="text-muted fw-medium" style="font-size: 0.68rem;">Jadwal hari ini</div>
                 </div>
+                <div class="kpi-arrow"><i class="fas fa-chevron-right text-muted" style="font-size: 0.6rem;"></i></div>
             </div>
+            <div class="text-uppercase text-muted fw-bold mt-1" style="font-size: 0.6rem; letter-spacing: 0.5px;">Scheduled Today</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 border-start border-success border-4">
-             <div class="card-body p-3">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <span class="text-uppercase text-muted small fw-bold">Completed (Mo)</span>
-                        <h3 class="mb-0 fw-bold text-success">{{ completed_count }}</h3>
-                    </div>
-                     <div class="icon-shape bg-soft-success text-success rounded-circle p-2">
-                         <i class="fas fa-check-circle fa-lg"></i>
-                    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card shadow-sm" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="kpi-icon shadow-sm" style="background: #059669;"><i class="fas fa-check-circle text-white"></i></div>
+                <div class="flex-grow-1">
+                    <div class="kpi-count text-success">{{ completed_count }}</div>
+                    <div class="text-muted fw-medium" style="font-size: 0.68rem;">Selesai bulan ini</div>
                 </div>
+                <div class="kpi-arrow"><i class="fas fa-chevron-right text-muted" style="font-size: 0.6rem;"></i></div>
             </div>
+            <div class="text-uppercase text-muted fw-bold mt-1" style="font-size: 0.6rem; letter-spacing: 0.5px;">Completed (Month)</div>
         </div>
     </div>
 </div>
 
 <!-- MAIN WORKSPACE -->
-<div class="row">
+<div class="row g-4">
     <!-- LEFT: WORKSPACE -->
-    <div class="col-lg-9">
-        <div class="card shadow border-0" style="min-height: 600px;">
-            <div class="card-header bg-white border-bottom-0 pb-0 position-relative">
-                <ul class="nav nav-tabs card-header-tabs d-flex flex-row w-100" id="viewTabs" role="tablist" style="flex-direction: row !important;">
-                    <li class="nav-item">
-                        <a class="nav-link active fw-bold" id="kanban-tab" data-bs-toggle="tab" href="#kanban" role="tab">
-                            <i class="fas fa-columns me-2"></i>Kanban
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-bold" id="list-tab" data-bs-toggle="tab" href="#list" role="tab">
-                            <i class="fas fa-list me-2"></i>Smart List
-                        </a>
-                    </li>
-                     <li class="nav-item">
-                        <a class="nav-link fw-bold" id="calendar-tab" data-bs-toggle="tab" href="#calendar" role="tab">
-                            <i class="fas fa-calendar-alt me-2"></i>Calendar
-                        </a>
-                    </li>
-                </ul>
-                
-                <!-- Bulk Actions Toolbar -->
-                <div id="bulkActions" class="d-none position-absolute top-0 end-0 mt-2 me-3">
-                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary">Assign</button>
-                        <button class="btn btn-outline-success">Complete</button>
-                        <button class="btn btn-outline-danger">Delete</button>
+    <div class="col-lg-9 transition-all duration-300" id="main-col">
+        <!-- View Tabs -->
+        <ul class="nav nav-pills mb-3 gap-1 bg-light rounded-3 p-1 d-inline-flex nav-pills-responsive" id="viewTabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active fw-bold rounded-3 px-3 py-2" style="font-size: 0.82rem;" id="kanban-tab" data-bs-toggle="pill" data-bs-target="#kanban" type="button" role="tab"><i class="fas fa-columns me-1"></i> Kanban View</button></li>
+            <li class="nav-item"><button class="nav-link fw-bold rounded-3 px-3 py-2" style="font-size: 0.82rem;" id="list-tab" data-bs-toggle="pill" data-bs-target="#list" type="button" role="tab"><i class="fas fa-list me-1"></i> List View</button></li>
+            <li class="nav-item d-none"><button class="nav-link fw-bold rounded-3 px-3 py-2" style="font-size: 0.82rem;" id="calendar-tab" data-bs-toggle="pill" data-bs-target="#calendar" type="button" role="tab"><i class="fas fa-calendar-alt me-1"></i> Calendar</button></li>
+        </ul>
+
+        <!-- Search + Filters (Single Row, inside col-lg-9) -->
+        <form method="get" class="d-flex align-items-center gap-2 mb-3 flex-nowrap filter-form-responsive">
+            <div class="input-group input-group-sm flex-grow-1" style="max-width: 260px;">
+                <span class="input-group-text bg-white border-end-0 rounded-start-3"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" name="q" class="form-control form-control-sm border-start-0 rounded-end-3" placeholder="Search tasks..." value="{{ filter_search }}">
+            </div>
+            <select name="year" class="form-select form-select-sm filter-chip" style="width: auto;">
+                <option value="">All Years</option>
+                {% for y in year_options %}
+                <option value="{{ y }}" {% if filter_year == y|stringformat:"d" %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <select name="task_type" class="form-select form-select-sm filter-chip" style="width: auto;">
+                <option value="">All Types</option>
+                <option value="asset" {% if filter_type == 'asset' %}selected{% endif %}>Asset Only</option>
+                <option value="infra" {% if filter_type == 'infra' %}selected{% endif %}>Infra Only</option>
+            </select>
+            <select name="location" class="form-select form-select-sm filter-chip" style="width: auto;">
+                <option value="">All Locations</option>
+                {% for loc in locations %}
+                <option value="{{ loc.pk }}" {% if filter_location == loc.pk|stringformat:"d" %}selected{% endif %}>{{ loc.indent|safe }}{{ loc.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-outline-secondary btn-sm rounded-3 px-3 text-nowrap">
+                <i class="fas fa-filter me-1"></i> Filter
+            </button>
+            {% if filter_year or filter_type or filter_location or filter_search %}
+            <a href="{% url 'maintenance_dashboard' %}" class="btn btn-light btn-sm rounded-3 px-3 text-nowrap">
+                <i class="fas fa-times me-1"></i> Clear
+            </a>
+            {% endif %}
+        </form>
+
+        <div class="tab-content">
+            
+            <!-- KANBAN VIEW -->
+            <div class="tab-pane fade show active" id="kanban" role="tabpanel">
+                <!-- Mobile/Tablet: horizontal scroll kanban -->
+                <div class="d-lg-none kanban-scroll-wrapper">
+                    <!-- COL 1: SCHEDULED (mobile) -->
+                    <div class="kanban-col">
+                        <div class="kanban-col-header bg-white shadow-sm d-flex justify-content-between align-items-center">
+                            <div><span class="fw-bold text-secondary"><i class="far fa-clock me-1"></i> Scheduled</span><div class="text-muted" style="font-size: 0.7rem;">Jadwal perawatan</div></div>
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill fw-bold px-2">{{ kanban_scheduled|length }}</span>
+                        </div>
+                        <div class="kanban-col-body custom-scrollbar" style="max-height: 400px; overflow-y: auto;">
+                            {% for item in kanban_scheduled %}{% include 'maintenance/partials/kanban_card.html' with item=item %}{% empty %}
+                            <div class="kanban-empty"><i class="far fa-calendar-alt"></i><span class="text-muted small">Tidak ada task</span></div>{% endfor %}
+                        </div>
+                        <div class="dropdown mt-2"><div class="kanban-add-btn" data-bs-toggle="dropdown"><i class="fas fa-plus me-1"></i> Tambah Task</div><ul class="dropdown-menu shadow-lg border-0 rounded-3 w-100" style="font-size:0.82rem;"><li><a class="dropdown-item" href="{% url 'asset_maintenance_create' %}"><i class="fas fa-laptop me-2 text-primary"></i>Asset</a></li><li><a class="dropdown-item" href="{% url 'infra_maintenance_create' %}"><i class="fas fa-server me-2 text-dark"></i>Infrastructure</a></li></ul></div>
+                    </div>
+                    <!-- COL 2: IN PROGRESS (mobile) -->
+                    <div class="kanban-col">
+                        <div class="kanban-col-header shadow-sm d-flex justify-content-between align-items-center" style="background: #fef3c7;">
+                            <div><span class="fw-bold" style="color: #92400e;"><i class="fas fa-spinner me-1"></i> In Progress</span><div style="font-size: 0.7rem; color: #a16207;">Sedang dikerjakan</div></div>
+                            <span class="badge bg-warning text-dark rounded-pill fw-bold px-2">{{ kanban_progress|length }}</span>
+                        </div>
+                        <div class="kanban-col-body custom-scrollbar" style="max-height: 400px; overflow-y: auto; background: #fffbeb;">
+                            {% for item in kanban_progress %}{% include 'maintenance/partials/kanban_card.html' with item=item %}{% empty %}
+                            <div class="kanban-empty"><i class="fas fa-tools" style="color: #fbbf24;"></i><span class="text-muted small">Tidak ada task</span></div>{% endfor %}
+                        </div>
+                        <div class="dropdown mt-2"><div class="kanban-add-btn" data-bs-toggle="dropdown"><i class="fas fa-plus me-1"></i> Tambah Task</div><ul class="dropdown-menu shadow-lg border-0 rounded-3 w-100" style="font-size:0.82rem;"><li><a class="dropdown-item" href="{% url 'asset_maintenance_create' %}"><i class="fas fa-laptop me-2 text-primary"></i>Asset</a></li><li><a class="dropdown-item" href="{% url 'infra_maintenance_create' %}"><i class="fas fa-server me-2 text-dark"></i>Infrastructure</a></li></ul></div>
+                    </div>
+                    <!-- COL 3: OVERDUE (mobile) -->
+                    <div class="kanban-col">
+                        <div class="kanban-col-header shadow-sm d-flex justify-content-between align-items-center" style="background: #fee2e2;">
+                            <div><span class="fw-bold text-danger"><i class="fas fa-exclamation-triangle me-1"></i> Overdue / Hold</span><div style="font-size: 0.7rem; color: #dc2626;">Terlambat atau ditunda</div></div>
+                            <span class="badge bg-danger rounded-pill fw-bold px-2">{{ kanban_hold|length }}</span>
+                        </div>
+                        <div class="kanban-col-body custom-scrollbar" style="max-height: 400px; overflow-y: auto; background: #fef2f2;">
+                            {% for item in kanban_hold %}{% include 'maintenance/partials/kanban_card.html' with item=item %}{% empty %}
+                            <div class="kanban-empty"><i class="far fa-clock" style="color: #fca5a5;"></i><span class="text-muted small">Tidak ada task</span></div>{% endfor %}
+                        </div>
+                        <div class="dropdown mt-2"><div class="kanban-add-btn" data-bs-toggle="dropdown"><i class="fas fa-plus me-1"></i> Tambah Task</div><ul class="dropdown-menu shadow-lg border-0 rounded-3 w-100" style="font-size:0.82rem;"><li><a class="dropdown-item" href="{% url 'asset_maintenance_create' %}"><i class="fas fa-laptop me-2 text-primary"></i>Asset</a></li><li><a class="dropdown-item" href="{% url 'infra_maintenance_create' %}"><i class="fas fa-server me-2 text-dark"></i>Infrastructure</a></li></ul></div>
+                    </div>
+                    <!-- COL 4: COMPLETED (mobile) -->
+                    <div class="kanban-col">
+                        <div class="kanban-col-header shadow-sm d-flex justify-content-between align-items-center" style="background: #d1fae5;">
+                            <div><span class="fw-bold text-success"><i class="fas fa-check-double me-1"></i> Completed</span><div style="font-size: 0.7rem; color: #059669;">Selesai dikerjakan</div></div>
+                            <span class="badge bg-success rounded-pill fw-bold px-2">{{ kanban_completed|length }}</span>
+                        </div>
+                        <div class="kanban-col-body custom-scrollbar" style="max-height: 400px; overflow-y: auto; background: #f0fdf4;">
+                            {% for item in kanban_completed %}{% include 'maintenance/partials/kanban_card.html' with item=item %}{% empty %}
+                            <div class="kanban-empty"><i class="far fa-check-circle" style="color: #86efac;"></i><span class="text-muted small">Tidak ada task</span></div>{% endfor %}
+                        </div>
+                        <div class="dropdown mt-2"><div class="kanban-add-btn" data-bs-toggle="dropdown"><i class="fas fa-plus me-1"></i> Tambah Task</div><ul class="dropdown-menu shadow-lg border-0 rounded-3 w-100" style="font-size:0.82rem;"><li><a class="dropdown-item" href="{% url 'asset_maintenance_create' %}"><i class="fas fa-laptop me-2 text-primary"></i>Asset</a></li><li><a class="dropdown-item" href="{% url 'infra_maintenance_create' %}"><i class="fas fa-server me-2 text-dark"></i>Infrastructure</a></li></ul></div>
+                    </div>
+                </div>
+                <!-- Desktop kanban (normal grid) -->
+                <div class="row g-3 d-none d-lg-flex">
+                    <!-- COL 1: SCHEDULED -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="kanban-col-header bg-white shadow-sm d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold text-secondary"><i class="far fa-clock me-1"></i> Scheduled</span>
+                                <div class="text-muted" style="font-size: 0.7rem;">Jadwal perawatan</div>
+                            </div>
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill fw-bold px-2">{{ kanban_scheduled|length }}</span>
+                        </div>
+                        <div class="kanban-col-body custom-scrollbar" style="max-height: 450px; overflow-y: auto;">
+                            {% for item in kanban_scheduled %}
+                                {% include 'maintenance/partials/kanban_card.html' with item=item %}
+                            {% empty %}
+                                <div class="kanban-empty">
+                                    <i class="far fa-calendar-alt"></i>
+                                    <span class="text-muted small fw-medium">Tidak ada task</span>
+                                    <span class="text-muted" style="font-size: 0.7rem;">Tidak ada jadwal hari ini.</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="dropdown mt-2">
+                            <div class="kanban-add-btn text-decoration-none" data-bs-toggle="dropdown" style="cursor: pointer;">
+                                <i class="fas fa-plus me-1"></i> Tambah Task
+                            </div>
+                            <ul class="dropdown-menu shadow-lg border-0 rounded-3 w-100" style="font-size: 0.82rem;">
+                                <li><a class="dropdown-item" href="{% url 'asset_maintenance_create' %}"><i class="fas fa-laptop me-2 text-primary"></i>Asset</a></li>
+                                <li><a class="dropdown-item" href="{% url 'infra_maintenance_create' %}"><i class="fas fa-server me-2 text-dark"></i>Infrastructure</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- COL 2: IN PROGRESS -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="kanban-col-header shadow-sm d-flex justify-content-between align-items-center" style="background: #fef3c7;">
+                            <div>
+                                <span class="fw-bold" style="color: #92400e;"><i class="fas fa-spinner me-1"></i> In Progress</span>
+                                <div style="font-size: 0.7rem; color: #a16207;">Sedang dikerjakan</div>
+                            </div>
+                            <span class="badge bg-warning text-dark rounded-pill fw-bold px-2">{{ kanban_progress|length }}</span>
+                        </div>
+                        <div class="kanban-col-body custom-scrollbar" style="max-height: 450px; overflow-y: auto; background: #fffbeb;">
+                            {% for item in kanban_progress %}
+                                {% include 'maintenance/partials/kanban_card.html' with item=item %}
+                            {% empty %}
+                                <div class="kanban-empty">
+                                    <i class="fas fa-tools" style="color: #fbbf24;"></i>
+                                    <span class="text-muted small fw-medium">Tidak ada task</span>
+                                    <span class="text-muted" style="font-size: 0.7rem;">Belum ada pekerjaan dimulai.</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="dropdown mt-2">
+                            <div class="kanban-add-btn text-decoration-none" data-bs-toggle="dropdown" style="cursor: pointer;">
+                                <i class="fas fa-plus me-1"></i> Tambah Task
+                            </div>
+                            <ul class="dropdown-menu shadow-lg border-0 rounded-3 w-100" style="font-size: 0.82rem;">
+                                <li><a class="dropdown-item" href="{% url 'asset_maintenance_create' %}"><i class="fas fa-laptop me-2 text-primary"></i>Asset</a></li>
+                                <li><a class="dropdown-item" href="{% url 'infra_maintenance_create' %}"><i class="fas fa-server me-2 text-dark"></i>Infrastructure</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- COL 3: OVERDUE / HOLD -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="kanban-col-header shadow-sm d-flex justify-content-between align-items-center" style="background: #fee2e2;">
+                            <div>
+                                <span class="fw-bold text-danger"><i class="fas fa-exclamation-triangle me-1"></i> Overdue / Hold</span>
+                                <div style="font-size: 0.7rem; color: #dc2626;">Terlambat atau ditunda</div>
+                            </div>
+                            <span class="badge bg-danger rounded-pill fw-bold px-2">{{ kanban_hold|length }}</span>
+                        </div>
+                        <div class="kanban-col-body custom-scrollbar" style="max-height: 450px; overflow-y: auto; background: #fef2f2;">
+                            {% for item in kanban_hold %}
+                                {% include 'maintenance/partials/kanban_card.html' with item=item %}
+                            {% empty %}
+                                <div class="kanban-empty">
+                                    <i class="far fa-clock" style="color: #fca5a5;"></i>
+                                    <span class="text-muted small fw-medium">Tidak ada task</span>
+                                    <span class="text-muted" style="font-size: 0.7rem;">Tidak ada pekerjaan terlambat.</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="dropdown mt-2">
+                            <div class="kanban-add-btn text-decoration-none" data-bs-toggle="dropdown" style="cursor: pointer;">
+                                <i class="fas fa-plus me-1"></i> Tambah Task
+                            </div>
+                            <ul class="dropdown-menu shadow-lg border-0 rounded-3 w-100" style="font-size: 0.82rem;">
+                                <li><a class="dropdown-item" href="{% url 'asset_maintenance_create' %}"><i class="fas fa-laptop me-2 text-primary"></i>Asset</a></li>
+                                <li><a class="dropdown-item" href="{% url 'infra_maintenance_create' %}"><i class="fas fa-server me-2 text-dark"></i>Infrastructure</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- COL 4: COMPLETED -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="kanban-col-header shadow-sm d-flex justify-content-between align-items-center" style="background: #d1fae5;">
+                            <div>
+                                <span class="fw-bold text-success"><i class="fas fa-check-double me-1"></i> Completed</span>
+                                <div style="font-size: 0.7rem; color: #059669;">Selesai dikerjakan</div>
+                            </div>
+                            <span class="badge bg-success rounded-pill fw-bold px-2">{{ kanban_completed|length }}</span>
+                        </div>
+                        <div class="kanban-col-body custom-scrollbar" style="max-height: 450px; overflow-y: auto; background: #f0fdf4;">
+                            {% for item in kanban_completed %}
+                                {% include 'maintenance/partials/kanban_card.html' with item=item %}
+                            {% empty %}
+                                <div class="kanban-empty">
+                                    <i class="far fa-check-circle" style="color: #86efac;"></i>
+                                    <span class="text-muted small fw-medium">Tidak ada task</span>
+                                    <span class="text-muted" style="font-size: 0.7rem;">Belum ada yang selesai.</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="dropdown mt-2">
+                            <div class="kanban-add-btn text-decoration-none" data-bs-toggle="dropdown" style="cursor: pointer;">
+                                <i class="fas fa-plus me-1"></i> Tambah Task
+                            </div>
+                            <ul class="dropdown-menu shadow-lg border-0 rounded-3 w-100" style="font-size: 0.82rem;">
+                                <li><a class="dropdown-item" href="{% url 'asset_maintenance_create' %}"><i class="fas fa-laptop me-2 text-primary"></i>Asset</a></li>
+                                <li><a class="dropdown-item" href="{% url 'infra_maintenance_create' %}"><i class="fas fa-server me-2 text-dark"></i>Infrastructure</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="card-body bg-light p-3">
-                <div class="tab-content" id="viewTabsContent">
-                    
-                    <!-- KANBAN VIEW (Optimized) -->
-                    <div class="tab-pane fade show active" id="kanban" role="tabpanel">
-                        <div class="row g-3 pb-3"> <!-- Removed flex-nowrap and fixed heights -->
-                            <!-- COL 1: SCHEDULED -->
-                            <div class="col-lg-3 col-md-6"> <!-- Optimized Grid -->
-                                <div class="card border-0 h-100 bg-transparent">
-                                    <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
-                                        <span class="fw-bold text-secondary text-uppercase small">Scheduled</span>
-                                        <span class="badge bg-light text-dark">{{ kanban_scheduled|length }}</span>
-                                    </div>
-                                    <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 500px;">
-                                        {% for item in kanban_scheduled %}
-                                            {% include 'maintenance/partials/kanban_card.html' with item=item %}
-                                        {% empty %}
-                                            <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- COL 2: IN PROGRESS -->
-                            <div class="col-lg-3 col-md-6">
-                                <div class="card border-0 h-100 bg-transparent">
-                                    <div class="card-header bg-white border-bottom border-warning border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
-                                        <span class="fw-bold text-warning text-uppercase small">In Progress</span>
-                                        <span class="badge bg-warning text-white">{{ kanban_progress|length }}</span>
-                                    </div>
-                                    <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 500px;">
-                                        {% for item in kanban_progress %}
-                                            {% include 'maintenance/partials/kanban_card.html' with item=item %}
-                                        {% empty %}
-                                            <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- COL 3: WAITING / HOLD -->
-                            <div class="col-lg-3 col-md-6">
-                                <div class="card border-0 h-100 bg-transparent">
-                                    <div class="card-header bg-white border-bottom border-danger border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
-                                        <span class="fw-bold text-danger text-uppercase small">Overdue / Hold</span>
-                                        <span class="badge bg-danger text-white">{{ kanban_hold|length }}</span>
-                                    </div>
-                                    <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 500px;">
-                                        {% for item in kanban_hold %}
-                                            {% include 'maintenance/partials/kanban_card.html' with item=item %}
-                                        {% empty %}
-                                            <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- COL 4: COMPLETED -->
-                            <div class="col-lg-3 col-md-6">
-                                <div class="card border-0 h-100 bg-transparent">
-                                    <div class="card-header bg-white border-bottom border-success border-3 py-2 d-flex justify-content-between sticky-top rounded-top shadow-sm">
-                                        <span class="fw-bold text-success text-uppercase small">Completed</span>
-                                        <span class="badge bg-success text-white">{{ kanban_completed|length }}</span>
-                                    </div>
-                                    <div class="card-body p-0 pt-2 h-100 overflow-auto" style="max-height: 500px;">
-                                        {% for item in kanban_completed %}
-                                             {% include 'maintenance/partials/kanban_card.html' with item=item completed=True %}
-                                        {% empty %}
-                                            <div class="text-center text-muted small py-4 opacity-50">No tasks</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- SMART LIST VIEW -->
-                    <div class="tab-pane fade" id="list" role="tabpanel">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body p-0 table-responsive bg-white">
-                                <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.9rem;">
-                                    <thead class="bg-light sticky-top">
-                                        <tr>
-                                            <th style="width: 40px;" class="ps-3">
-                                                <input type="checkbox" class="form-check-input" id="selectAll">
-                                            </th>
-                                            <th>Subject / Task</th>
-                                            <th>Type</th>
-                                            <th>Location</th>
-                                            <th>Assigned</th>
-                                            <th>Date</th>
-                                            <th>Status</th>
-                                            <th class="text-end pe-3">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for item in all_tasks %}
-                                        <tr>
-                                            <td class="ps-3">
-                                                <input type="checkbox" class="form-check-input task-checkbox">
-                                            </td>
-                                            <td>
-                                                <div class="fw-bold text-dark text-truncate" style="max-width: 250px;">{{ item.title }}</div>
-                                                <small class="text-muted">
-                                                    {% if item.asset %}
-                                                        <i class="fas fa-laptop me-1"></i>{{ item.asset.name }}
-                                                    {% else %}
-                                                        <i class="fas fa-server me-1"></i>{{ item.infrastructure.name }}
-                                                    {% endif %}
-                                                </small>
-                                            </td>
-                                            <td>
-                                                 {% if item.maintenance_type == 'Preventive' %}
-                                                    <span class="badge rounded-pill bg-light text-success border">Preventive</span>
-                                                {% else %}
-                                                    <span class="badge rounded-pill bg-light text-warning border">Corrective</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ item.location_name|default:"-" }}</td>
-                                            <td>
-                                                {% if item.technician %}
-                                                    {{ item.technician.username }}
-                                                {% else %}
-                                                    <span class="text-muted">-</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                <div class="{% if item.status_color == 'danger' %}text-danger fw-bold{% endif %}">
-                                                    {{ item.scheduled_date|date:"d M" }}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                 <span class="badge bg-soft-{{ item.status_color }} text-{{ item.status_color }}">{{ item.status }}</span>
-                                            </td>
-                                            <td class="text-end pe-3">
-                                                <div class="btn-group">
-                                                <a href="{% if item.asset %}{% url 'asset_maintenance_update' item.pk %}{% else %}{% url 'infra_maintenance_update' item.pk %}{% endif %}" class="btn btn-xs btn-outline-secondary">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                 </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+            <!-- SMART LIST VIEW -->
+            <div class="tab-pane fade" id="list" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-0 table-responsive bg-white">
+                        <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.88rem;">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-3" style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
+                                    <th>Subject / Task</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Location</th>
+                                    <th>Assigned</th>
+                                    <th>Date</th>
+                                    <th>Progress</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in all_tasks %}
+                                <tr style="cursor: pointer;" onclick="openTaskPanel('{{ item.task_source }}', {{ item.pk }})">
+                                    <td class="ps-3" onclick="event.stopPropagation();"><input type="checkbox" class="form-check-input task-checkbox"></td>
+                                    <td>
+                                        <div class="fw-bold text-dark text-truncate" style="max-width: 220px;">{{ item.title }}</div>
+                                        <small class="text-muted"><i class="fas {% if item.task_source == 'asset' %}fa-laptop{% else %}fa-server{% endif %} me-1"></i>{% if item.task_source == 'asset' %}{{ item.asset.name }}{% else %}{{ item.infrastructure.name }}{% endif %}</small>
+                                    </td>
+                                    <td>
+                                        {% if item.maintenance_type == 'Preventive' %}<span class="badge rounded-pill bg-light text-success border">Preventive</span>
+                                        {% else %}<span class="badge rounded-pill bg-light text-warning border">Corrective</span>{% endif %}
+                                    </td>
+                                    <td><span class="badge rounded-pill {% if item.priority == 'Critical' %}bg-danger{% elif item.priority == 'High' %}bg-warning text-dark{% elif item.priority == 'Medium' %}bg-info text-dark{% else %}bg-light text-muted border{% endif %}">{{ item.priority }}</span></td>
+                                    <td class="text-muted small">{{ item.location_name }}</td>
+                                    <td><span class="small">{{ item.technician.username|default:"—" }}</span></td>
+                                    <td><div class="{% if item.status_color == 'danger' %}text-danger fw-bold{% endif %} small">{{ item.scheduled_date|date:"d M Y" }}</div></td>
+                                    <td>{% if item.progress_total > 0 %}<div style="min-width: 60px;"><div class="progress" style="height: 4px;"><div class="progress-bar bg-success" style="width: {{ item.progress_pct }}%;"></div></div><span class="text-muted" style="font-size: 0.65rem;">{{ item.progress_done }}/{{ item.progress_total }}</span></div>{% else %}—{% endif %}</td>
+                                    <td><span class="badge bg-{{ item.status_color }} bg-opacity-10 text-{{ item.status_color }} border">{{ item.status }}</span></td>
+                                    <td class="text-end pe-3" onclick="event.stopPropagation();"><a href="{% if item.task_source == 'asset' %}{% url 'asset_maintenance_update' item.pk %}{% else %}{% url 'infra_maintenance_update' item.pk %}{% endif %}" class="btn btn-xs btn-light rounded-circle" style="width: 28px; height: 28px; padding: 4px;"><i class="fas fa-edit small"></i></a></td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="10" class="text-center text-muted py-4">No tasks found.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
+                </div>
+            </div>
 
-                    <!-- CALENDAR VIEW -->
-                     <div class="tab-pane fade" id="calendar" role="tabpanel">
-                         <div class="bg-white p-3 shadow-sm rounded">
-                            <h5 class="fw-bold mb-3 text-center border-bottom pb-2">Schedule Overview</h5>
-                            
-                            <!-- Simple Month View CSS Grid -->
-                            <div class="row row-cols-7 g-0 text-center fw-bold bg-light py-2 border rounded-top">
-                                <div class="col">Mon</div>
-                                <div class="col">Tue</div>
-                                <div class="col">Wed</div>
-                                <div class="col">Thu</div>
-                                <div class="col">Fri</div>
-                                <div class="col">Sat</div>
-                                <div class="col">Sun</div>
-                            </div>
-                            
-                            <!-- Calendar Days (Simulated for robustness: Logic typically handles empty start days, we will loop generically. 
-                                 A real production calendar usually uses FullCalendar.js. 
-                                 Here we render a simplified vertical list or a very basic grid if we passed the days logic.
-                                 Since we only passed a dict of dates, let's render a "List grouped by Date" or a simple grid if we had days.
-                                 Let's do a "Month Agenda" style which is safer without complex template logic. 
-                             -->
-                             <div class="mt-2">
-                                 {% for date, tasks in calendar_data.items %}
-                                    <div class="d-flex border-bottom py-2">
-                                        <div class="me-3 text-center" style="min-width: 60px;">
-                                            <div class="fw-bold h5 mb-0">{{ date|date:"d" }}</div>
-                                            <div class="small text-muted text-uppercase">{{ date|date:"M" }}</div>
-                                            <div class="small badge bg-light text-dark mt-1">{{ date|date:"D" }}</div>
+            <!-- CALENDAR VIEW (MONTH GRID) -->
+            <div class="tab-pane fade" id="calendar" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt text-primary me-2"></i> {{ cal_month }}</h5>
+                            <div class="text-muted small mt-1">Full month overview</div>
+                        </div>
+                        <button class="btn btn-sm btn-light rounded-pill fw-bold border" onclick="event.preventDefault(); document.getElementById('kanban-tab').click();"><i class="fas fa-times me-1"></i> Close Calendar</button>
+                    </div>
+                    <div class="card-body p-0 bg-light">
+                        <div class="d-grid text-center fw-bold text-muted border-bottom bg-white" style="grid-template-columns: repeat(7, 1fr); padding: 10px 0; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase;">
+                            <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+                        </div>
+                        
+                        <div class="month-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); auto-rows: minmax(120px, auto); gap: 1px; background: #e5e7eb;">
+                            {% for week in full_month_agenda %}
+                                {% for day in week %}
+                                <div class="bg-white p-2 d-flex flex-column" style="min-height: 120px; transition: background 0.2s;">
+                                    {% if day.day != 0 %}
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="fw-bold {% if day.is_today %}bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center{% else %}text-dark{% endif %}" style="width: 28px; height: 28px; font-size: 0.9rem;">{{ day.day }}</span>
+                                            {% if day.tasks|length > 0 %}
+                                            <span class="badge bg-light text-muted border rounded-pill">{{ day.tasks|length }}</span>
+                                            {% endif %}
                                         </div>
-                                        <div class="flex-grow-1">
-                                            {% for t in tasks %}
-                                                <div class="d-flex align-items-center mb-1">
-                                                    <span class="badge bg-soft-{{ t.status_color }} text-{{ t.status_color }} me-2" style="width: 25px; height: 25px; display: flex; align-items: center; justify-content: center;">
-                                                        {% if t.maintenance_type == 'Preventive' %}P{% else %}C{% endif %}
-                                                    </span>
-                                                    <div>
-                                                        <strong>{{ t.title }}</strong>
-                                                        <span class="text-muted small mx-1">-</span>
-                                                        <small class="text-muted">{% if t.asset %}{{ t.asset.name }}{% else %}{{ t.infrastructure.name }}{% endif %}</small>
-                                                    </div>
-                                                </div>
+                                        <div class="flex-grow-1 custom-scrollbar" style="max-height: 100px; overflow-y: auto; overflow-x: hidden;">
+                                            {% for t in day.tasks %}
+                                            <div class="d-flex align-items-center p-1 mb-1 rounded-2 border shadow-sm kanban-card" style="background: #fff; cursor:pointer; font-size: 0.65rem; border-left: 3px solid var(--bs-{{ t.status_color }}) !important; text-decoration: none; transition: transform 0.1s;" onclick="openTaskPanel('{{ t.task_source }}', {{ t.pk }})">
+                                                <div class="text-truncate fw-medium flex-grow-1" style="color: #374151;">{{ t.title }}</div>
+                                            </div>
                                             {% endfor %}
                                         </div>
-                                    </div>
-                                 {% empty %}
-                                    <div class="text-center py-5 text-muted">
-                                        No schedules found for this view range.
-                                    </div>
-                                 {% endfor %}
-                             </div>
-                         </div>
-                     </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Bottom Section: Recent Activities + Summary -->
+        <div class="row g-4 mt-2">
+            <div class="col-md-6">
+                <div class="card widget-card shadow-sm">
+                    <div class="card-header bg-white border-bottom-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fas fa-history me-2 text-primary"></i>Recent Activities</h6>
+                        <a href="#" class="text-primary small fw-bold text-decoration-none">Lihat Semua</a>
+                    </div>
+                    <div class="card-body pt-2 px-4 pb-3">
+                        {% for act in recent_activities %}
+                        <div class="d-flex align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 32px; height: 32px; min-width: 32px; background: var(--bs-{{ act.color }}); opacity: 0.15;">
+                                <i class="fas fa-{{ act.icon }}" style="color: var(--bs-{{ act.color }}); font-size: 0.8rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="small fw-medium text-dark text-truncate" style="max-width: 280px;">{{ act.action }}</div>
+                            </div>
+                            <div class="text-end ms-2">
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: 0.6rem;">{{ act.technician|first|upper }}</span>
+                                    <span class="text-muted" style="font-size: 0.7rem;">{{ act.technician }}</span>
+                                </div>
+                                <span class="text-muted" style="font-size: 0.65rem;">{{ act.date|date:"d M Y" }}</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center text-muted small py-3">No recent activities.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card widget-card shadow-sm">
+                    <div class="card-header bg-white border-bottom-0 pt-3 px-4">
+                        <h6 class="fw-bold mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>Summary by Status</h6>
+                    </div>
+                    <div class="card-body px-4 pb-4 d-flex align-items-center">
+                        <div class="me-4">
+                            <canvas id="donutChart" width="130" height="130"></canvas>
+                            <div class="text-center mt-2">
+                                <span class="fw-bold h4 mb-0">{{ summary_stats.total }}</span>
+                                <div class="text-muted small">Total Task</div>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center"><span class="rounded-circle me-2" style="width: 10px; height: 10px; background: #4f46e5; display: inline-block;"></span><span class="small">Scheduled</span></div>
+                                <div class="text-end"><span class="fw-bold small">{{ summary_stats.scheduled }}</span> <span class="text-muted small">{{ summary_stats.scheduled_pct }}%</span></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center"><span class="rounded-circle me-2" style="width: 10px; height: 10px; background: #d97706; display: inline-block;"></span><span class="small">In Progress</span></div>
+                                <div class="text-end"><span class="fw-bold small">{{ summary_stats.progress }}</span> <span class="text-muted small">{{ summary_stats.progress_pct }}%</span></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center"><span class="rounded-circle me-2" style="width: 10px; height: 10px; background: #dc2626; display: inline-block;"></span><span class="small">Overdue</span></div>
+                                <div class="text-end"><span class="fw-bold small">{{ summary_stats.overdue }}</span> <span class="text-muted small">{{ summary_stats.overdue_pct }}%</span></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center"><span class="rounded-circle me-2" style="width: 10px; height: 10px; background: #059669; display: inline-block;"></span><span class="small">Completed</span></div>
+                                <div class="text-end"><span class="fw-bold small">{{ summary_stats.completed }}</span> <span class="text-muted small">{{ summary_stats.completed_pct }}%</span></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- RIGHT: WIDGETS -->
-    <div class="col-lg-3">
-        <!-- Technician Load -->
-        <div class="card shadow-sm border-0 mb-3">
-            <div class="card-header bg-white fw-bold">Technician Load</div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for tech in technician_load %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-xs bg-light rounded-circle me-2 d-flex justify-content-center align-items-center small">
-                                {{ tech.username|first|upper }}
-                            </div>
-                            <span class="small">{{ tech.username }}</span>
-                        </div>
-                        <span class="badge bg-primary rounded-pill">{{ tech.active_count }}</span>
-                    </li>
+    <!-- RIGHT: SIDEBAR WIDGETS -->
+    <div class="col-lg-3 transition-all duration-300" id="right-sidebar">
+        <!-- Mini Calendar -->
+        <div class="card widget-card shadow-sm mb-3">
+            <div class="card-header bg-white border-bottom-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 small">Jadwal Hari Ini</h6>
+                <a href="#" class="text-primary small text-decoration-none fw-bold" onclick="event.preventDefault(); document.getElementById('calendar-tab').click();">Lihat Semua</a>
+            </div>
+            <div class="card-body px-3 pt-1 pb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold small">{{ cal_month }}</span>
+                </div>
+                <div class="mini-cal-grid mb-3">
+                    <div class="cal-header">Min</div><div class="cal-header">Sen</div><div class="cal-header">Sel</div>
+                    <div class="cal-header">Rab</div><div class="cal-header">Kam</div><div class="cal-header">Jum</div><div class="cal-header">Sab</div>
+                    {% for week in cal_weeks %}
+                        {% for day in week %}
+                            {% if day == 0 %}
+                                <div class="cal-day empty">·</div>
+                            {% elif day == cal_today_day %}
+                                <div class="cal-day today">{{ day }}</div>
+                            {% elif day in cal_task_days %}
+                                <div class="cal-day has-task">{{ day }}</div>
+                            {% else %}
+                                <div class="cal-day">{{ day }}</div>
+                            {% endif %}
+                        {% endfor %}
                     {% endfor %}
-                </ul>
+                </div>
             </div>
         </div>
 
-        <!-- Branch Health (Most Overdue) -->
-        <div class="card shadow-sm border-0">
-             <div class="card-header bg-white fw-bold">Priority Locations</div>
-             <div class="card-body p-0">
-                 <ul class="list-group list-group-flush">
-                     {% for loc in priority_locations %}
-                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                         <span class="small fw-bold">{{ loc.name }}</span>
-                         <span class="badge bg-danger rounded-pill">{{ loc.issue_count }} Issues</span>
-                     </li>
-                     {% endfor %}
-                 </ul>
-             </div>
+        <!-- Task Hari Ini -->
+        <div class="card widget-card shadow-sm mb-3">
+            <div class="card-header bg-white border-bottom-0 pt-3 px-3">
+                <h6 class="fw-bold mb-0 small">Task Hari Ini <span class="text-muted fw-normal ms-2">{{ today_tasks|length }} task</span></h6>
+            </div>
+            <div class="card-body px-3 pt-1 pb-3">
+                {% for task in today_tasks %}
+                <div class="d-flex align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}" style="cursor: pointer;" onclick="openTaskPanel('{{ task.task_source }}', {{ task.pk }})">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 30px; height: 30px; min-width: 30px; background: {% if task.status_color == 'warning' %}#fef3c7{% elif task.status_color == 'danger' %}#fee2e2{% else %}#e0e7ff{% endif %};">
+                        <i class="fas fa-{% if task.task_source == 'asset' %}laptop{% else %}server{% endif %}" style="font-size: 0.7rem; color: {% if task.status_color == 'warning' %}#d97706{% elif task.status_color == 'danger' %}#dc2626{% else %}#4f46e5{% endif %};"></i>
+                    </div>
+                    <div>
+                        <div class="small fw-medium text-dark text-truncate" style="max-width: 160px;">{{ task.title }}</div>
+                        <div class="text-muted" style="font-size: 0.65rem;">{{ task.technician.username|default:"Unassigned" }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4">
+                    <i class="far fa-clipboard text-muted d-block mb-2" style="font-size: 2rem;"></i>
+                    <div class="text-muted small">Tidak ada jadwal untuk hari ini.</div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
 
+        <!-- Technician Load -->
+        <div class="card widget-card shadow-sm mb-3">
+            <div class="card-header bg-white border-bottom-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 small">Technician Load</h6>
+                <a href="#" class="text-primary small text-decoration-none fw-bold">Lihat Semua</a>
+            </div>
+            <div class="card-body px-3 pt-1 pb-3">
+                {% for tech in technician_load %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 fw-bold shadow-sm" 
+                         style="width: 32px; height: 32px; min-width: 32px; font-size: 0.75rem; background: {% cycle '#4f46e5' '#d97706' '#059669' '#dc2626' '#0284c7' %};">
+                        {{ tech.initial }}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-medium">{{ tech.username }}</span>
+                            <span class="text-muted" style="font-size: 0.7rem;">{{ tech.active_count }} task {{ tech.pct }}%</span>
+                        </div>
+                        <div class="progress" style="height: 5px; border-radius: 4px;">
+                            <div class="progress-bar" style="width: {{ tech.pct }}%; background: {% cycle '#4f46e5' '#d97706' '#059669' '#dc2626' '#0284c7' %};" role="progressbar"></div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-muted text-center small py-3">No active technicians</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Priority Locations -->
+        <div class="card widget-card shadow-sm">
+            <div class="card-header bg-white border-bottom-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 small">Priority Locations</h6>
+                <a href="#" class="text-primary small text-decoration-none fw-bold">Lihat Semua</a>
+            </div>
+            <div class="card-body px-3 pt-1 pb-3">
+                {% for loc in priority_locations %}
+                <div class="d-flex align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 28px; height: 28px; min-width: 28px; background: #fee2e2;">
+                        <i class="fas fa-map-marker-alt" style="color: #dc2626; font-size: 0.7rem;"></i>
+                    </div>
+                    <span class="small fw-medium flex-grow-1">{{ loc.name }}</span>
+                    <span class="badge bg-danger rounded-pill" style="font-size: 0.7rem;">{{ loc.issue_count }}</span>
+                </div>
+                {% empty %}
+                <div class="text-muted text-center small py-3">No priority locations</div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Task Detail Side Panel -->
+<div class="task-panel-overlay" id="panelOverlay" onclick="closeTaskPanel()"></div>
+<div class="task-panel rounded-start-4" id="taskPanel">
+    <div class="p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold mb-0" id="panelTitle">Task Detail</h5>
+            <button class="btn btn-light rounded-circle" onclick="closeTaskPanel()" style="width: 35px; height: 35px; padding: 5px;"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="panelContent"><div class="text-center py-5"><div class="spinner-border text-primary"></div></div></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Simple script for Select All
-    document.getElementById('selectAll').addEventListener('change', function() {
-        var checkboxes = document.querySelectorAll('.task-checkbox');
-        for (var checkbox of checkboxes) {
-            checkbox.checked = this.checked;
-        }
-        toggleBulkActions();
+    // ====== DONUT CHART ======
+    var ctx = document.getElementById('donutChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Scheduled', 'In Progress', 'Overdue', 'Completed'],
+                datasets: [{
+                    data: [{{ summary_stats.scheduled }}, {{ summary_stats.progress }}, {{ summary_stats.overdue }}, {{ summary_stats.completed }}],
+                    backgroundColor: ['#4f46e5', '#d97706', '#dc2626', '#059669'],
+                    borderWidth: 0, borderRadius: 4
+                }]
+            },
+            options: { responsive: false, cutout: '70%', plugins: { legend: { display: false } } }
+        });
+    }
+
+    // Bootstrap nav-pills handles tab switching automatically
+    document.querySelectorAll('button[data-bs-toggle="pill"]').forEach(function(el) {
+        el.addEventListener('shown.bs.tab', function (event) {
+            let targetId = event.target.getAttribute('data-bs-target');
+            let mainCol = document.getElementById('main-col');
+            let rightSidebar = document.getElementById('right-sidebar');
+            
+            if (targetId === '#calendar') {
+                mainCol.classList.remove('col-lg-9');
+                mainCol.classList.add('col-lg-12');
+                rightSidebar.style.display = 'none';
+            } else {
+                mainCol.classList.remove('col-lg-12');
+                mainCol.classList.add('col-lg-9');
+                rightSidebar.style.display = 'block';
+            }
+        });
     });
 
-    var checkboxes = document.querySelectorAll('.task-checkbox');
-    for (var checkbox of checkboxes) {
-        checkbox.addEventListener('change', toggleBulkActions);
-    }
+    // ====== SIDE PANEL ======
+    let panelNeedsReload = false;
 
-    function toggleBulkActions() {
-        var anyChecked = document.querySelector('.task-checkbox:checked');
-        var toolbar = document.getElementById('bulkActions');
-        if (anyChecked) {
-            toolbar.classList.remove('d-none');
-        } else {
-            toolbar.classList.add('d-none');
+    function openTaskPanel(taskType, taskId) {
+        document.getElementById('panelOverlay').classList.add('show');
+        document.getElementById('taskPanel').classList.add('show');
+        document.getElementById('panelContent').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+        fetch(`/maintenance/api/task-detail/${taskType}/${taskId}/`).then(r => r.json()).then(data => {
+            if (data.error) { document.getElementById('panelContent').innerHTML = `<div class="alert alert-danger">${data.error}</div>`; return; }
+            renderPanel(data);
+        }).catch(err => { document.getElementById('panelContent').innerHTML = `<div class="alert alert-danger">Failed to load.</div>`; });
+    }
+    function closeTaskPanel() {
+        document.getElementById('panelOverlay').classList.remove('show');
+        document.getElementById('taskPanel').classList.remove('show');
+        if (panelNeedsReload) {
+            location.reload();
         }
     }
+    function renderPanel(data) {
+        let sc = {'Scheduled':'primary','In Progress':'warning','Completed':'success','Cancelled':'secondary'};
+        let pc = {'Low':'light text-muted border','Medium':'info text-dark','High':'warning text-dark','Critical':'danger'};
+        
+        // Parent breadcrumb / Back Button
+        let parentHtml = '';
+        if (data.parent) {
+            parentHtml = `<div class="mb-3">
+                <button class="btn btn-sm btn-outline-secondary rounded-pill fw-bold" onclick="openTaskPanel('${data.task_type}',${data.parent.id})">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Parent (${data.parent.code})
+                </button>
+            </div>`;
+        }
+        
+        // Combined progress bar
+        let progressHtml = '';
+        if (data.progress_total > 0) {
+            progressHtml = `<div class="mb-3 bg-light rounded-3 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-bold"><i class="fas fa-chart-line me-1 text-primary"></i>Overall Progress</span>
+                    <span class="fw-bold small" style="color:${data.progress_pct===100?'#059669':data.progress_pct>50?'#d97706':'#4f46e5'}">${data.progress_pct}%</span>
+                </div>
+                <div class="progress" style="height:6px;border-radius:4px;">
+                    <div class="progress-bar" style="width:${data.progress_pct}%;background:${data.progress_pct===100?'#059669':data.progress_pct>50?'#d97706':'#4f46e5'};transition:width 0.5s;"></div>
+                </div>
+                <div class="text-muted mt-1" style="font-size:0.7rem;">${data.progress_done} of ${data.progress_total} items completed (${data.subtask_done}/${data.subtask_total} subtasks, ${data.progress_done-data.subtask_done}/${data.progress_total-data.subtask_total} checklist)</div>
+            </div>`;
+        }
+        
+        // Checklist section
+        let clHtml = '';
+        if (data.checklist && data.checklist.length > 0) {
+            let dc = data.checklist.filter(c => c.done).length;
+            clHtml = `<h6 class="fw-bold mt-4 mb-2"><i class="fas fa-tasks me-2 text-primary"></i>Checklist <span class="text-muted fw-normal small">${dc}/${data.checklist.length}</span></h6>`;
+            data.checklist.forEach((item,idx) => {
+                let d = item.done?'done':'', ic = item.done?'fa-check-square text-success':'fa-square text-muted';
+                let di = item.completed_at?`<span class="text-muted ms-2" style="font-size:0.65rem;">${new Date(item.completed_at).toLocaleDateString()}</span>`:'';
+                clHtml += `<div class="checklist-item d-flex align-items-center border-bottom px-2 ${d}" onclick="toggleChecklist('${data.task_type}',${data.id},${idx})" style="cursor:pointer;"><i class="far ${ic} me-3" style="font-size:1.1rem;"></i><span class="task-text flex-grow-1 small">${item.task}</span>${di}</div>`;
+            });
+        }
+        
+        // Subtasks section with inline add form
+        let stHtml = '';
+        let stCount = data.subtasks ? data.subtasks.length : 0;
+        stHtml = `<h6 class="fw-bold mt-4 mb-2"><i class="fas fa-sitemap me-2 text-primary"></i>Subtasks <span class="text-muted fw-normal small">${data.subtask_done}/${stCount}</span></h6>`;
+        if (data.subtasks && data.subtasks.length > 0) {
+            data.subtasks.forEach(st => {
+                let stIcon = st.is_done ? 'fa-check-circle text-success' : (st.status==='In Progress' ? 'fa-spinner text-warning' : 'fa-circle text-muted');
+                stHtml += `<div class="d-flex align-items-center border-bottom py-2 px-1" style="cursor:pointer;" onclick="openTaskPanel('${data.task_type}',${st.id})">
+                    <i class="fas ${stIcon} me-3" style="font-size:0.9rem;"></i>
+                    <div class="flex-grow-1">
+                        <div class="small fw-medium text-dark">${st.title}</div>
+                        <div class="text-muted" style="font-size:0.68rem;">${st.scheduled_date}${st.technician?' · '+st.technician:''}</div>
+                    </div>
+                    <span class="badge bg-${sc[st.status]||'secondary'} bg-opacity-10 text-${sc[st.status]||'secondary'} border" style="font-size:0.65rem;">${st.status}</span>
+                </div>`;
+            });
+        } else {
+            stHtml += `<div class="text-center text-muted small py-2"><i class="fas fa-info-circle me-1"></i>No subtasks yet</div>`;
+        }
+        // Inline Add Subtask Form (only for non-completed tasks without a parent)
+        if (data.status !== 'Completed' && !data.parent) {
+            stHtml += `<div class="mt-2 p-2 border rounded-3 bg-light" id="addSubtaskArea">
+                <div id="subtaskFormToggle">
+                    <button class="btn btn-sm btn-outline-primary w-100 rounded-3" onclick="document.getElementById('subtaskFormToggle').style.display='none';document.getElementById('subtaskFormFields').style.display='block';document.getElementById('stTitle').focus();">
+                        <i class="fas fa-plus me-1"></i> Add Subtask
+                    </button>
+                </div>
+                <div id="subtaskFormFields" style="display:none;">
+                    <input type="text" id="stTitle" class="form-control form-control-sm mb-2 rounded-3" placeholder="Subtask title...">
+                    <div class="d-flex gap-2 mb-2">
+                        <select id="stPriority" class="form-select form-select-sm rounded-3" style="font-size:0.8rem;">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                        <input type="date" id="stDate" class="form-control form-control-sm rounded-3" style="font-size:0.8rem;">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary btn-sm flex-grow-1 rounded-3 fw-bold" onclick="addSubtask('${data.task_type}',${data.id})"><i class="fas fa-check me-1"></i>Save</button>
+                        <button class="btn btn-light btn-sm rounded-3" onclick="document.getElementById('subtaskFormToggle').style.display='block';document.getElementById('subtaskFormFields').style.display='none';"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        }
+        
+        document.getElementById('panelTitle').textContent = data.code;
+        document.getElementById('panelContent').innerHTML = `
+            ${parentHtml}
+            <div class="mb-3"><span class="badge bg-${sc[data.status]||'secondary'} bg-opacity-10 text-${sc[data.status]||'secondary'} border me-1">${data.status}</span><span class="badge bg-${pc[data.priority]||'light'} me-1">${data.priority}</span><span class="badge bg-light text-dark border">${data.maintenance_type}</span></div>
+            <h5 class="fw-bold text-dark mb-2">${data.title}</h5>
+            <div class="text-muted small mb-3"><i class="fas fa-${data.task_type==='asset'?'laptop':'server'} me-2"></i>${data.target_name} · <i class="fas fa-map-marker-alt ms-2 me-1"></i>${data.target_location}</div>
+            <div class="row g-3 mb-3"><div class="col-6"><div class="bg-light rounded-3 p-3 text-center"><div class="text-muted small">Scheduled</div><div class="fw-bold small">${data.scheduled_date}</div></div></div><div class="col-6"><div class="bg-light rounded-3 p-3 text-center"><div class="text-muted small">Technician</div><div class="fw-bold small">${data.technician||'Unassigned'}</div></div></div></div>
+            ${progressHtml}
+            ${data.notes?`<div class="bg-light rounded-3 p-3 mb-3"><div class="text-muted small mb-1"><i class="fas fa-sticky-note me-1"></i>Notes</div><div class="small">${data.notes}</div></div>`:''}
+            ${clHtml}${stHtml}
+            <div class="d-flex gap-2 mt-4 pt-3 border-top">
+                ${data.status!=='Completed'?`${data.status==='Scheduled'?`<button class="btn btn-warning btn-sm rounded-3 flex-grow-1 fw-bold" onclick="quickStatus('${data.task_type}',${data.id},'In Progress')"><i class="fas fa-play me-1"></i>Start</button>`:''}<button class="btn btn-success btn-sm rounded-3 flex-grow-1 fw-bold" onclick="quickStatus('${data.task_type}',${data.id},'Completed')"><i class="fas fa-check me-1"></i>Complete</button>`:''}
+                <a href="${data.edit_url}" class="btn btn-outline-primary btn-sm rounded-3 px-3"><i class="fas fa-edit me-1"></i>Edit</a>
+            </div>`;
+    }
+
+    // ====== AJAX ======
+    function toggleChecklist(t,id,idx){
+        fetch('/maintenance/api/toggle-checklist/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify({task_type:t,task_id:id,item_index:idx})})
+        .then(r=>r.json()).then(d=>{
+            if(d.success){
+                panelNeedsReload = true;
+                openTaskPanel(t,id);
+                if(d.all_done) {
+                    Swal.fire({
+                        title: 'Checklist Selesai!',
+                        text: 'Semua checklist sudah selesai. Tandai task ini sebagai Completed?',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Selesaikan',
+                        cancelButtonText: 'Nanti'
+                    }).then((result) => {
+                        if (result.isConfirmed) quickStatus(t,id,'Completed');
+                    });
+                }
+            }
+        });
+    }
+    function quickStatus(t,id,s){
+        fetch('/maintenance/api/quick-status/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify({task_type:t,task_id:id,status:s})})
+        .then(r=>r.json()).then(d=>{
+            if(d.success){
+                // Auto-complete parent prompt
+                if(d.auto_parent_complete && d.parent_id){
+                    Swal.fire({
+                        title: 'Subtask Selesai!',
+                        text: `Semua subtask "${d.parent_title}" sudah selesai! Tandai parent task sebagai Completed?`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Selesaikan Parent',
+                        cancelButtonText: 'Biar Saja'
+                    }).then((result) => {
+                        if(result.isConfirmed) {
+                            quickStatus(t, d.parent_id, 'Completed');
+                        } else {
+                            location.reload();
+                        }
+                    });
+                } else {
+                    location.reload();
+                }
+            } else {
+                Swal.fire('Oops...', d.error || 'Gagal mengubah status.', 'error');
+            }
+        });
+    }
+    function addSubtask(taskType, parentId){
+        let title = document.getElementById('stTitle').value.trim();
+        if(!title){Swal.fire('Warning', 'Judul subtask wajib diisi!', 'warning');return;}
+        let priority = document.getElementById('stPriority').value;
+        let date = document.getElementById('stDate').value;
+        fetch('/maintenance/api/add-subtask/',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
+            body:JSON.stringify({task_type:taskType,parent_id:parentId,title:title,priority:priority,scheduled_date:date||null})
+        }).then(r=>r.json()).then(d=>{
+            if(d.success){
+                panelNeedsReload = true;
+                Swal.fire({icon: 'success', title: 'Berhasil', text: 'Subtask ditambahkan', timer: 1500, showConfirmButton: false});
+                openTaskPanel(taskType,parentId);
+            }
+            else{Swal.fire('Error', d.error||'Gagal membuat subtask', 'error');}
+        });
+    }
+    function getCookie(n){let v=document.cookie.match('(^|;) ?'+n+'=([^;]*)(;|$)');return v?v[2]:null;}
+
+    // Checkbox
+    var sa=document.getElementById('selectAll');
+    if(sa)sa.addEventListener('change',function(){document.querySelectorAll('.task-checkbox').forEach(c=>c.checked=this.checked);});
 </script>
 {% endblock %}
