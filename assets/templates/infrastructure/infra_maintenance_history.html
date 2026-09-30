@@ -102,6 +102,7 @@
                         <th class="text-muted small fw-bold">TITLE & TYPE</th>
                         <th class="text-muted small fw-bold">SCHEDULED</th>
                         <th class="text-muted small fw-bold">TECHNICIAN</th>
+                        <th class="text-muted small fw-bold">VENDOR</th>
                         <th class="text-end text-muted small fw-bold">COST</th>
                         <th class="text-center text-muted small fw-bold">STATUS</th>
                         <th class="text-center text-muted small fw-bold pe-4">ACTION</th>
@@ -124,10 +125,13 @@
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;font-size:0.75rem;font-weight:bold;">
-                                    {{ maint.technician.username|default:"?"|first|upper }}
+                                    {% if maint.technician %}{{ maint.technician.username|first|upper }}{% else %}?{% endif %}
                                 </div>
-                                <span class="fw-medium">{{ maint.technician.get_full_name|default:maint.technician.username|default:"Unassigned" }}</span>
+                                <span class="fw-medium">{% if maint.technician %}{{ maint.technician.get_full_name|default:maint.technician.username }}{% else %}Unassigned{% endif %}</span>
                             </div>
+                        </td>
+                        <td>
+                            <div class="fw-medium text-dark">{{ maint.vendor.name|default:"-" }}</div>
                         </td>
                         <td class="text-end fw-bold text-dark">
                             Rp {{ maint.cost|floatformat:0|intcomma|default:"0" }}
