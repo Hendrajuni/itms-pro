@@ -39,11 +39,20 @@
     }
     .filter-chip:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
 
-    /* Side Panel */
-    .task-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 1040; display: none; }
+    /* Side Panel → Pop-out Modal */
+    .task-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1040; display: none; backdrop-filter: blur(2px); }
     .task-panel-overlay.show { display: block; }
-    .task-panel { position: fixed; top: 0; right: -500px; width: 480px; height: 100vh; background: white; z-index: 1050; box-shadow: -4px 0 25px rgba(0,0,0,0.15); transition: right 0.3s ease; overflow-y: auto; }
-    .task-panel.show { right: 0; }
+    .task-panel {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
+        width: 680px; max-width: 95vw; max-height: 90vh;
+        background: white; z-index: 1050;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        border-radius: 16px;
+        overflow-y: auto;
+        opacity: 0; pointer-events: none;
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .task-panel.show { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
     .checklist-item { transition: all 0.2s; padding: 8px 0; cursor: pointer; }
     .checklist-item:hover { background: #f8f9fc; }
     .checklist-item.done .task-text { text-decoration: line-through; color: #9ca3af; }
@@ -692,7 +701,7 @@
 
 <!-- Task Detail Side Panel -->
 <div class="task-panel-overlay" id="panelOverlay" onclick="closeTaskPanel()"></div>
-<div class="task-panel rounded-start-4" id="taskPanel">
+<div class="task-panel" id="taskPanel">
     <div class="p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="fw-bold mb-0" id="panelTitle">Task Detail</h5>
@@ -701,6 +710,9 @@
         <div id="panelContent"><div class="text-center py-5"><div class="spinner-border text-primary"></div></div></div>
     </div>
 </div>
+
+<!-- Complete Task Modal -->
+<!-- Removed modal as per user request to use inline form instead -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -806,23 +818,38 @@
         let stCount = data.subtasks ? data.subtasks.length : 0;
         stHtml = `<h6 class="fw-bold mt-4 mb-2"><i class="fas fa-sitemap me-2 text-primary"></i>Subtasks <span class="text-muted fw-normal small">${data.subtask_done}/${stCount}</span></h6>`;
         if (data.subtasks && data.subtasks.length > 0) {
+            stHtml += `<div class="table-responsive"><table class="table table-sm table-hover mb-2" style="font-size:0.8rem;">
+                <thead><tr style="font-size:0.7rem;" class="text-muted border-bottom">
+                    <th class="fw-medium" style="width:40%;">Task</th>
+                    <th class="fw-medium" style="width:22%;">Vendor</th>
+                    <th class="fw-medium text-end" style="width:20%;">Cost</th>
+                    <th class="fw-medium text-center" style="width:18%;">Status</th>
+                </tr></thead><tbody>`;
             data.subtasks.forEach(st => {
                 let stIcon = st.is_done ? 'fa-check-circle text-success' : (st.status==='In Progress' ? 'fa-spinner text-warning' : 'fa-circle text-muted');
-                stHtml += `<div class="d-flex align-items-center border-bottom py-2 px-1" style="cursor:pointer;" onclick="openTaskPanel('${data.task_type}',${st.id})">
-                    <i class="fas ${stIcon} me-3" style="font-size:0.9rem;"></i>
-                    <div class="flex-grow-1">
-                        <div class="small fw-medium text-dark">${st.title}</div>
-                        <div class="text-muted" style="font-size:0.68rem;">${st.scheduled_date}${st.technician?' · '+st.technician:''}</div>
-                    </div>
-                    <span class="badge bg-${sc[st.status]||'secondary'} bg-opacity-10 text-${sc[st.status]||'secondary'} border" style="font-size:0.65rem;">${st.status}</span>
-                </div>`;
+                let costDisplay = (st.cost > 0) ? `Rp ${Number(st.cost).toLocaleString('id-ID')}` : '<span class="text-muted">-</span>';
+                stHtml += `<tr style="cursor:pointer;" onclick="openTaskPanel('${data.task_type}',${st.id})">
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <i class="fas ${stIcon} me-2" style="font-size:0.75rem;"></i>
+                            <div>
+                                <div class="fw-medium text-dark">${st.title}</div>
+                                <div class="text-muted" style="font-size:0.65rem;">${st.scheduled_date}${st.technician?' · '+st.technician:''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="align-middle"><span class="small">${st.vendor || '<span class=\"text-muted\">-</span>'}</span></td>
+                    <td class="align-middle text-end"><span class="small fw-medium ${st.cost > 0 ? 'text-success' : ''}">${costDisplay}</span></td>
+                    <td class="align-middle text-center"><span class="badge bg-${sc[st.status]||'secondary'} bg-opacity-10 text-${sc[st.status]||'secondary'} border" style="font-size:0.62rem;">${st.status}</span></td>
+                </tr>`;
             });
+            stHtml += `</tbody></table></div>`;
         } else {
             stHtml += `<div class="text-center text-muted small py-2"><i class="fas fa-info-circle me-1"></i>No subtasks yet</div>`;
         }
         // Inline Add Subtask Form (only for non-completed tasks without a parent)
         if (data.status !== 'Completed' && !data.parent) {
-            stHtml += `<div class="mt-2 p-2 border rounded-3 bg-light" id="addSubtaskArea">
+            stHtml += `<div class="mt-2 p-3 border rounded-3 bg-light" id="addSubtaskArea">
                 <div id="subtaskFormToggle">
                     <button class="btn btn-sm btn-outline-primary w-100 rounded-3" onclick="document.getElementById('subtaskFormToggle').style.display='none';document.getElementById('subtaskFormFields').style.display='block';document.getElementById('stTitle').focus();">
                         <i class="fas fa-plus me-1"></i> Add Subtask
@@ -830,14 +857,21 @@
                 </div>
                 <div id="subtaskFormFields" style="display:none;">
                     <input type="text" id="stTitle" class="form-control form-control-sm mb-2 rounded-3" placeholder="Subtask title...">
-                    <div class="d-flex gap-2 mb-2">
-                        <select id="stPriority" class="form-select form-select-sm rounded-3" style="font-size:0.8rem;">
-                            <option value="Low">Low</option>
-                            <option value="Medium" selected>Medium</option>
-                            <option value="High">High</option>
-                            <option value="Critical">Critical</option>
-                        </select>
-                        <input type="date" id="stDate" class="form-control form-control-sm rounded-3" style="font-size:0.8rem;">
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <select id="stPriority" class="form-select form-select-sm rounded-3" style="font-size:0.8rem;">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <input type="date" id="stDate" class="form-control form-control-sm rounded-3" style="font-size:0.8rem;">
+                        </div>
+                        <div class="col-4">
+                            <input type="number" id="stEstCost" class="form-control form-control-sm rounded-3" style="font-size:0.8rem;" placeholder="Est. Cost (Rp)" value="0">
+                        </div>
                     </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary btn-sm flex-grow-1 rounded-3 fw-bold" onclick="addSubtask('${data.task_type}',${data.id})"><i class="fas fa-check me-1"></i>Save</button>
@@ -847,6 +881,83 @@
             </div>`;
         }
         
+        // Evaluation Info
+        let evalHtml = '';
+        if (data.status === 'Completed') {
+            // Build cost breakdown table
+            let hasSubtasks = data.subtasks && data.subtasks.length > 0;
+            let costRows = '';
+            
+            if (hasSubtasks) {
+                // Parent's own cost
+                costRows += `<tr style="font-size:0.75rem;">
+                    <td class="text-muted">Parent Task</td>
+                    <td class="text-end">Rp ${Number(data.labor_cost).toLocaleString('id-ID')}</td>
+                    <td class="text-end">Rp ${Number(data.parts_cost).toLocaleString('id-ID')}</td>
+                    <td class="text-end fw-bold">Rp ${Number(data.total_cost).toLocaleString('id-ID')}</td>
+                </tr>`;
+                // Each subtask
+                data.subtasks.forEach(st => {
+                    if (st.cost > 0) {
+                        costRows += `<tr style="font-size:0.72rem;">
+                            <td class="text-muted ps-3">└ ${st.title}</td>
+                            <td class="text-end">Rp ${Number(st.labor_cost).toLocaleString('id-ID')}</td>
+                            <td class="text-end">Rp ${Number(st.parts_cost).toLocaleString('id-ID')}</td>
+                            <td class="text-end fw-medium">Rp ${Number(st.cost).toLocaleString('id-ID')}</td>
+                        </tr>`;
+                    }
+                });
+            }
+
+            evalHtml = `
+            <div class="mt-4 pt-3 border-top">
+                <h6 class="fw-bold mb-3"><i class="fas fa-clipboard-check text-success me-2"></i>Completion Report</h6>
+                
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><div class="bg-light rounded-3 p-2 text-center"><div class="text-muted" style="font-size:0.65rem;">Actual Start</div><div class="fw-bold small" style="font-size:0.75rem;">${data.actual_start_time || '-'}</div></div></div>
+                    <div class="col-6"><div class="bg-light rounded-3 p-2 text-center"><div class="text-muted" style="font-size:0.65rem;">Actual Complete</div><div class="fw-bold small" style="font-size:0.75rem;">${data.actual_completion_time || '-'}</div></div></div>
+                </div>
+                
+                ${hasSubtasks ? `
+                <div class="bg-light rounded-3 p-3 mb-3">
+                    <div class="fw-bold small mb-2 text-dark"><i class="fas fa-calculator me-2 text-success"></i>Cost Breakdown</div>
+                    <table class="table table-sm table-borderless mb-2" style="font-size:0.75rem;">
+                        <thead><tr class="text-muted" style="font-size:0.65rem;"><th>Item</th><th class="text-end">Labor</th><th class="text-end">Parts</th><th class="text-end">Total</th></tr></thead>
+                        <tbody>${costRows}</tbody>
+                        <tfoot><tr class="border-top fw-bold" style="font-size:0.8rem;"><td>Grand Total</td><td class="text-end">Rp ${Number(data.grand_labor_total).toLocaleString('id-ID')}</td><td class="text-end">Rp ${Number(data.grand_parts_total).toLocaleString('id-ID')}</td><td class="text-end text-success">Rp ${Number(data.grand_total).toLocaleString('id-ID')}</td></tr></tfoot>
+                    </table>
+                </div>` : `
+                <div class="bg-light rounded-3 p-3 mb-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted" style="font-size:0.7rem;">Total Cost</div>
+                        <div class="fw-bold text-success">Rp ${Number(data.total_cost).toLocaleString('id-ID')}</div>
+                    </div>
+                    <div class="text-end" style="font-size:0.7rem;">
+                        <span class="text-muted">Labor: Rp ${Number(data.labor_cost).toLocaleString('id-ID')}</span><br>
+                        <span class="text-muted">Parts: Rp ${Number(data.parts_cost).toLocaleString('id-ID')}</span>
+                    </div>
+                </div>`}
+                
+                ${data.vendor_contact || data.invoice_number ? `
+                <div class="bg-light rounded-3 p-3 mb-3">
+                    <div class="fw-bold small mb-2 text-dark"><i class="fas fa-handshake me-2 text-primary"></i>Vendor Info</div>
+                    <div class="d-flex justify-content-between small" style="font-size:0.75rem;">
+                        <div><span class="text-muted">Contact:</span> ${data.vendor_contact || '-'}</div>
+                        <div><span class="text-muted">Inv:</span> ${data.invoice_number || '-'}</div>
+                        <div><span class="text-muted">Warranty:</span> ${data.warranty_expiry_date || '-'}</div>
+                    </div>
+                </div>` : ''}
+                
+                ${data.root_cause || data.resolution_notes ? `
+                <div class="bg-light rounded-3 p-3 mb-3">
+                    <div class="fw-bold small mb-2 text-dark"><i class="fas fa-search me-2 text-primary"></i>Evaluation</div>
+                    ${data.root_cause ? `<div class="mb-2"><span class="text-muted small d-block" style="font-size:0.7rem;">Root Cause:</span><span class="small" style="font-size:0.8rem;">${data.root_cause}</span></div>` : ''}
+                    ${data.resolution_notes ? `<div><span class="text-muted small d-block" style="font-size:0.7rem;">Resolution:</span><span class="small" style="font-size:0.8rem;">${data.resolution_notes}</span></div>` : ''}
+                </div>` : ''}
+                
+            </div>`;
+        }
+
         document.getElementById('panelTitle').textContent = data.code;
         document.getElementById('panelContent').innerHTML = `
             ${parentHtml}
@@ -857,8 +968,10 @@
             ${progressHtml}
             ${data.notes?`<div class="bg-light rounded-3 p-3 mb-3"><div class="text-muted small mb-1"><i class="fas fa-sticky-note me-1"></i>Notes</div><div class="small">${data.notes}</div></div>`:''}
             ${clHtml}${stHtml}
+            ${evalHtml}
             <div class="d-flex gap-2 mt-4 pt-3 border-top">
                 ${data.status!=='Completed'?`${data.status==='Scheduled'?`<button class="btn btn-warning btn-sm rounded-3 flex-grow-1 fw-bold" onclick="quickStatus('${data.task_type}',${data.id},'In Progress')"><i class="fas fa-play me-1"></i>Start</button>`:''}<button class="btn btn-success btn-sm rounded-3 flex-grow-1 fw-bold" onclick="quickStatus('${data.task_type}',${data.id},'Completed')"><i class="fas fa-check me-1"></i>Complete</button>`:''}
+                ${data.status==='Completed'?`<a href="/maintenance/report/${data.task_type}/${data.id}/" target="_blank" class="btn btn-dark btn-sm rounded-3 flex-grow-1 fw-bold"><i class="fas fa-print me-1"></i>Print Report</a>`:''}
                 <a href="${data.edit_url}" class="btn btn-outline-primary btn-sm rounded-3 px-3"><i class="fas fa-edit me-1"></i>Edit</a>
             </div>`;
     }
@@ -918,10 +1031,11 @@
         if(!title){Swal.fire('Warning', 'Judul subtask wajib diisi!', 'warning');return;}
         let priority = document.getElementById('stPriority').value;
         let date = document.getElementById('stDate').value;
+        let estCost = document.getElementById('stEstCost') ? document.getElementById('stEstCost').value : 0;
         fetch('/maintenance/api/add-subtask/',{
             method:'POST',
             headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
-            body:JSON.stringify({task_type:taskType,parent_id:parentId,title:title,priority:priority,scheduled_date:date||null})
+            body:JSON.stringify({task_type:taskType,parent_id:parentId,title:title,priority:priority,scheduled_date:date||null,estimated_cost:estCost})
         }).then(r=>r.json()).then(d=>{
             if(d.success){
                 panelNeedsReload = true;

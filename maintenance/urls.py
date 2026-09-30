@@ -10,6 +10,9 @@ urlpatterns = [
     path('api/task-detail/<str:task_type>/<int:pk>/', views.task_detail_api, name='task_detail_api'),
     path('api/add-subtask/', views.add_subtask, name='add_subtask'),
     
+    # Report
+    path('report/<str:task_type>/<int:pk>/', views.maintenance_report, name='maintenance_report'),
+    
     # Schedule (PM) URLs
     path('schedules/', views.MaintenanceScheduleListView.as_view(), name='maintenance_schedule_list'),
     path('schedules/create/', views.MaintenanceScheduleCreateView.as_view(), name='maintenance_schedule_create'),

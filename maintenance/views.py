@@ -36,7 +36,9 @@ class MaintenanceDashboardView(LoginRequiredMixin, ListView):
                 infra_tasks = infra_tasks.filter(technician=user)
 
         # 3. Filter: Year
-        year_filter = self.request.GET.get('year', '')
+        from django.utils import timezone
+        default_year = str(timezone.now().year)
+        year_filter = self.request.GET.get('year', default_year)
         if year_filter and year_filter.isdigit():
             asset_tasks = asset_tasks.filter(scheduled_date__year=int(year_filter))
             infra_tasks = infra_tasks.filter(scheduled_date__year=int(year_filter))
@@ -132,16 +134,8 @@ class MaintenanceDashboardView(LoginRequiredMixin, ListView):
         context['kanban_progress'] = progress
         context['kanban_hold'] = hold
         
-        # Completed: limit to selected year or current month
-        year_filter = self.request.GET.get('year', '')
-        if year_filter and year_filter.isdigit():
-            context['kanban_completed'] = completed[:30]
-        else:
-            # Default: only completed this month
-            current_month = today.month
-            current_year = today.year
-            month_completed = [t for t in completed if t.completed_date and t.completed_date.month == current_month and t.completed_date.year == current_year]
-            context['kanban_completed'] = month_completed if month_completed else completed[:20]
+        # Completed: limit to reasonable number to prevent lag
+        context['kanban_completed'] = completed[:500]
         
         # --- CALENDAR PREP ---
         calendar_data = {}
@@ -211,7 +205,7 @@ class MaintenanceDashboardView(LoginRequiredMixin, ListView):
         context['current_year'] = current_year
         
         # Preserve filter state
-        context['filter_year'] = self.request.GET.get('year', '')
+        context['filter_year'] = self.request.GET.get('year', str(current_year))
         context['filter_type'] = self.request.GET.get('task_type', '')
         context['filter_location'] = self.request.GET.get('location', '')
         context['filter_search'] = self.request.GET.get('q', '')
@@ -404,6 +398,32 @@ def quick_status_update(request):
             
             task.completed_date = timezone.now().date()
             
+            # Additional Completion Details from Request
+            # Timeline
+            from django.utils.dateparse import parse_datetime, parse_duration, parse_date
+            
+            if data.get('actual_start_time'):
+                task.actual_start_time = parse_datetime(data.get('actual_start_time'))
+            if data.get('actual_completion_time'):
+                task.actual_completion_time = parse_datetime(data.get('actual_completion_time'))
+                
+            # Financial
+            try:
+                task.labor_cost = float(data.get('labor_cost') or 0)
+                task.parts_cost = float(data.get('parts_cost') or 0)
+            except ValueError:
+                pass
+                
+            # Vendor
+            task.vendor_contact = data.get('vendor_contact', '').strip()
+            task.invoice_number = data.get('invoice_number', '').strip()
+            if data.get('warranty_expiry_date'):
+                task.warranty_expiry_date = parse_date(data.get('warranty_expiry_date'))
+                
+            # Evaluation
+            task.root_cause = data.get('root_cause', '').strip()
+            task.resolution_notes = data.get('resolution_notes', '').strip()
+            
         task.save()
         
         # Auto-complete parent check: if this is a subtask and all siblings are done
@@ -439,10 +459,16 @@ def task_detail_api(request, task_type, pk):
         # Subtasks
         subtasks = []
         subtask_done = 0
+        subtasks_labor_total = 0
+        subtasks_parts_total = 0
         for st in task.subtasks.all().order_by('scheduled_date'):
             is_done = st.status == 'Completed'
             if is_done:
                 subtask_done += 1
+            st_labor = float(st.labor_cost or 0)
+            st_parts = float(st.parts_cost or 0)
+            subtasks_labor_total += st_labor
+            subtasks_parts_total += st_parts
             subtasks.append({
                 'id': st.pk,
                 'title': st.title,
@@ -450,7 +476,11 @@ def task_detail_api(request, task_type, pk):
                 'priority': st.priority,
                 'scheduled_date': st.scheduled_date.strftime('%d %b %Y'),
                 'technician': st.technician.username if st.technician else None,
+                'vendor': st.vendor.name if st.vendor else None,
                 'is_done': is_done,
+                'labor_cost': st_labor,
+                'parts_cost': st_parts,
+                'cost': float(st.cost or 0),
             })
         
         # Combined progress
@@ -493,6 +523,27 @@ def task_detail_api(request, task_type, pk):
             'parent': parent_info,
             'photo_before': task.photo_before.url if task.photo_before else None,
             'photo_after': task.photo_after.url if task.photo_after else None,
+            
+            # --- New Evaluation Fields ---
+            'actual_start_time': task.actual_start_time.strftime('%Y-%m-%d %H:%M') if task.actual_start_time else None,
+            'actual_completion_time': task.actual_completion_time.strftime('%Y-%m-%d %H:%M') if task.actual_completion_time else None,
+            'labor_cost': float(task.labor_cost),
+            'parts_cost': float(task.parts_cost),
+            'total_cost': float(task.cost),
+            'vendor_contact': task.vendor_contact,
+            'invoice_number': task.invoice_number,
+            'warranty_expiry_date': task.warranty_expiry_date.strftime('%d %b %Y') if task.warranty_expiry_date else None,
+            'root_cause': task.root_cause,
+            'resolution_notes': task.resolution_notes,
+            
+            # --- Cost Aggregation ---
+            'subtasks_labor_total': subtasks_labor_total,
+            'subtasks_parts_total': subtasks_parts_total,
+            'subtasks_cost_total': sum(float(st.get('cost', 0)) for st in subtasks),
+            'grand_labor_total': float(task.labor_cost or 0) + subtasks_labor_total,
+            'grand_parts_total': float(task.parts_cost or 0) + subtasks_parts_total,
+            'grand_total': float(task.cost or 0) + sum(float(st.get('cost', 0)) for st in subtasks),
+            
             'edit_url': reverse_lazy('asset_maintenance_update', kwargs={'pk': task.pk}).__str__() if task_type == 'asset' else reverse_lazy('infra_maintenance_update', kwargs={'pk': task.pk}).__str__(),
         })
     except Exception as e:
@@ -508,8 +559,24 @@ def add_subtask(request):
         parent_id = data.get('parent_id')
         title = data.get('title', '').strip()
         technician_id = data.get('technician_id')
-        scheduled_date = data.get('scheduled_date')
+        scheduled_date_str = data.get('scheduled_date')
         priority = data.get('priority', 'Medium')
+        estimated_cost = data.get('estimated_cost', 0)
+        
+        # Parse estimated cost
+        try:
+            estimated_cost = float(estimated_cost) if estimated_cost else 0
+        except (ValueError, TypeError):
+            estimated_cost = 0
+        
+        # Parse scheduled_date string to date object
+        parsed_date = None
+        if scheduled_date_str:
+            from datetime import datetime as dt
+            try:
+                parsed_date = dt.strptime(scheduled_date_str, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                parsed_date = None
         
         if not title:
             return JsonResponse({'success': False, 'error': 'Title is required'}, status=400)
@@ -525,9 +592,10 @@ def add_subtask(request):
                 parent=parent,
                 maintenance_type=parent.maintenance_type,
                 priority=priority,
-                scheduled_date=scheduled_date or parent.scheduled_date,
+                scheduled_date=parsed_date or parent.scheduled_date,
                 technician=User.objects.filter(pk=technician_id).first() if technician_id else parent.technician,
                 status='Scheduled',
+                labor_cost=estimated_cost,
             )
         else:
             parent = InfraMaintenance.objects.get(pk=parent_id)
@@ -537,12 +605,14 @@ def add_subtask(request):
                 parent=parent,
                 maintenance_type=parent.maintenance_type,
                 priority=priority,
-                scheduled_date=scheduled_date or parent.scheduled_date,
+                scheduled_date=parsed_date or parent.scheduled_date,
                 technician=User.objects.filter(pk=technician_id).first() if technician_id else parent.technician,
                 status='Scheduled',
+                labor_cost=estimated_cost,
             )
         
         subtask.save()
+        subtask.refresh_from_db()
         
         return JsonResponse({
             'success': True,
@@ -690,3 +760,96 @@ def maintenance_schedule_generate(request, pk):
     else:
         messages.error(request, "Failed to generate ticket. Ensure target (Asset/Infra) is valid.")
         return redirect('maintenance_schedule_list')
+
+
+@login_required
+def maintenance_report(request, task_type, pk):
+    """Print-ready maintenance completion report"""
+    import qrcode
+    import base64
+    from io import BytesIO
+    from decimal import Decimal
+    
+    if task_type == 'asset':
+        task = AssetMaintenance.objects.select_related('asset', 'asset__location', 'technician', 'vendor').get(pk=pk)
+        target_name = task.asset.name
+        target_code = task.asset.asset_tag if hasattr(task.asset, 'asset_tag') else str(task.asset.pk)
+        target_location = task.asset.location.name if task.asset.location else '-'
+    else:
+        task = InfraMaintenance.objects.select_related('infrastructure', 'infrastructure__location', 'technician', 'vendor').get(pk=pk)
+        target_name = task.infrastructure.name
+        target_code = task.infrastructure.infra_id if hasattr(task.infrastructure, 'infra_id') else str(task.infrastructure.pk)
+        target_location = task.infrastructure.location.name if task.infrastructure and task.infrastructure.location else '-'
+    
+    # Subtasks with costs
+    subtasks = list(task.subtasks.all().select_related('technician', 'vendor').order_by('scheduled_date'))
+    subtasks_labor = sum(float(st.labor_cost or 0) for st in subtasks)
+    subtasks_parts = sum(float(st.parts_cost or 0) for st in subtasks)
+    subtasks_cost_total = sum(float(st.cost or 0) for st in subtasks)
+    
+    grand_labor = float(task.labor_cost or 0) + subtasks_labor
+    grand_parts = float(task.parts_cost or 0) + subtasks_parts
+    grand_total = float(task.cost or 0) + subtasks_cost_total
+    
+    # Checklist - format dates
+    from datetime import datetime as dt
+    checklist = task.maintenance_checklist or []
+    checklist_done = 0
+    for c in checklist:
+        if isinstance(c, dict):
+            if c.get('done'):
+                checklist_done += 1
+            # Format the completed_at date
+            raw_date = c.get('completed_at', '')
+            if raw_date and isinstance(raw_date, str):
+                try:
+                    parsed = dt.fromisoformat(raw_date.replace('Z', '+00:00'))
+                    c['completed_at_formatted'] = parsed.strftime('%d %b %Y')
+                except (ValueError, TypeError):
+                    c['completed_at_formatted'] = raw_date[:10] if len(raw_date) > 10 else raw_date
+            else:
+                c['completed_at_formatted'] = '-'
+    
+    # Duration calculation
+    duration_str = '-'
+    if task.actual_start_time and task.actual_completion_time:
+        diff = task.actual_completion_time - task.actual_start_time
+        days = diff.days
+        hours, remainder = divmod(diff.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+        parts = []
+        if days > 0:
+            parts.append(f"{days} hari")
+        if hours > 0:
+            parts.append(f"{hours} jam")
+        if minutes > 0:
+            parts.append(f"{minutes} menit")
+        duration_str = ' '.join(parts) if parts else '< 1 menit'
+    
+    # QR Code
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
+    qr.add_data(f"/maintenance/report/{task_type}/{pk}/")
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    qr_base64 = f"data:image/png;base64,{base64.b64encode(buffer.getvalue()).decode()}"
+    
+    context = {
+        'task': task,
+        'task_type': task_type,
+        'target_name': target_name,
+        'target_code': target_code,
+        'target_location': target_location,
+        'subtasks': subtasks,
+        'checklist': checklist,
+        'checklist_done': checklist_done,
+        'checklist_total': len(checklist),
+        'grand_labor': grand_labor,
+        'grand_parts': grand_parts,
+        'grand_total': grand_total,
+        'duration_str': duration_str,
+        'qr_base64': qr_base64,
+    }
+    
+    return render(request, 'maintenance/maintenance_report.html', context)

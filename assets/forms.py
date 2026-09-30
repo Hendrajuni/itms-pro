@@ -205,36 +205,124 @@ class AssetLoanForm(forms.ModelForm):
 class AssetMaintenanceForm(forms.ModelForm):
     class Meta:
         model = AssetMaintenance
-        fields = ['asset', 'title', 'maintenance_type', 'scheduled_date', 'status', 'cost', 'technician', 'vendor', 'notes', 'maintenance_checklist']
+        fields = ['asset', 'title', 'maintenance_type', 'scheduled_date', 'status', 'cost', 'technician', 'vendor',
+                  'actual_start_time', 'actual_completion_time', 'labor_cost', 'parts_cost',
+                  'vendor_contact', 'invoice_number', 'warranty_expiry_date', 'root_cause', 'resolution_notes',
+                  'notes', 'maintenance_checklist']
         widgets = {
             'asset': forms.Select(attrs={'class': 'form-select'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'maintenance_type': forms.Select(attrs={'class': 'form-select'}),
             'scheduled_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
-            'cost': forms.NumberInput(attrs={'class': 'form-control'}),
+            'cost': forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
             'technician': forms.Select(attrs={'class': 'form-select'}),
             'vendor': forms.Select(attrs={'class': 'form-select'}),
+            'actual_start_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'actual_completion_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'labor_cost': forms.NumberInput(attrs={'class': 'form-control'}),
+            'parts_cost': forms.NumberInput(attrs={'class': 'form-control'}),
+            'vendor_contact': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'POC Name'}),
+            'invoice_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'INV-XXX'}),
+            'warranty_expiry_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'root_cause': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'resolution_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'maintenance_checklist': forms.HiddenInput(),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data.get('status')
+        
+        if status == 'Completed' and self.instance.pk:
+            # 1. Check own checklist
+            checklist = cleaned_data.get('maintenance_checklist') or []
+            unchecked = [c for c in checklist if isinstance(c, dict) and not c.get('done')]
+            if unchecked:
+                raise forms.ValidationError(
+                    f'Masih ada {len(unchecked)} item checklist yang belum diselesaikan. '
+                    f'Selesaikan semua checklist sebelum menandai task sebagai Completed.'
+                )
+            
+            # 2. Check subtasks
+            subtasks = self.instance.subtasks.all()
+            for st in subtasks:
+                if st.status != 'Completed':
+                    raise forms.ValidationError(
+                        f'Subtask "{st.title}" belum berstatus Completed. '
+                        f'Selesaikan semua subtask sebelum menandai parent task sebagai Completed.'
+                    )
+                # 3. Check subtask checklists too
+                st_checklist = st.maintenance_checklist or []
+                st_unchecked = [c for c in st_checklist if isinstance(c, dict) and not c.get('done')]
+                if st_unchecked:
+                    raise forms.ValidationError(
+                        f'Subtask "{st.title}" masih memiliki {len(st_unchecked)} item checklist yang belum selesai.'
+                    )
+        
+        return cleaned_data
+
 class InfraMaintenanceForm(forms.ModelForm):
     class Meta:
         model = InfraMaintenance
-        fields = ['infrastructure', 'title', 'maintenance_type', 'scheduled_date', 'status', 'cost', 'technician', 'vendor', 'notes', 'maintenance_checklist']
+        fields = ['infrastructure', 'title', 'maintenance_type', 'scheduled_date', 'status', 'cost', 'technician', 'vendor',
+                  'actual_start_time', 'actual_completion_time', 'labor_cost', 'parts_cost',
+                  'vendor_contact', 'invoice_number', 'warranty_expiry_date', 'root_cause', 'resolution_notes',
+                  'notes', 'maintenance_checklist']
         widgets = {
             'infrastructure': forms.Select(attrs={'class': 'form-select'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'maintenance_type': forms.Select(attrs={'class': 'form-select'}),
             'scheduled_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
-            'cost': forms.NumberInput(attrs={'class': 'form-control'}),
+            'cost': forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
             'technician': forms.Select(attrs={'class': 'form-select'}),
             'vendor': forms.Select(attrs={'class': 'form-select'}),
+            'actual_start_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'actual_completion_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'labor_cost': forms.NumberInput(attrs={'class': 'form-control'}),
+            'parts_cost': forms.NumberInput(attrs={'class': 'form-control'}),
+            'vendor_contact': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'POC Name'}),
+            'invoice_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'INV-XXX'}),
+            'warranty_expiry_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'root_cause': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'resolution_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'maintenance_checklist': forms.HiddenInput(),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data.get('status')
+        
+        if status == 'Completed' and self.instance.pk:
+            # 1. Check own checklist
+            checklist = cleaned_data.get('maintenance_checklist') or []
+            unchecked = [c for c in checklist if isinstance(c, dict) and not c.get('done')]
+            if unchecked:
+                raise forms.ValidationError(
+                    f'Masih ada {len(unchecked)} item checklist yang belum diselesaikan. '
+                    f'Selesaikan semua checklist sebelum menandai task sebagai Completed.'
+                )
+            
+            # 2. Check subtasks
+            subtasks = self.instance.subtasks.all()
+            for st in subtasks:
+                if st.status != 'Completed':
+                    raise forms.ValidationError(
+                        f'Subtask "{st.title}" belum berstatus Completed. '
+                        f'Selesaikan semua subtask sebelum menandai parent task sebagai Completed.'
+                    )
+                # 3. Check subtask checklists too
+                st_checklist = st.maintenance_checklist or []
+                st_unchecked = [c for c in st_checklist if isinstance(c, dict) and not c.get('done')]
+                if st_unchecked:
+                    raise forms.ValidationError(
+                        f'Subtask "{st.title}" masih memiliki {len(st_unchecked)} item checklist yang belum selesai.'
+                    )
+        
+        return cleaned_data
 
 class SoftwareForm(forms.ModelForm):
     class Meta:

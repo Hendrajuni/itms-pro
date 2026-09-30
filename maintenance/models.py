@@ -34,6 +34,27 @@ class MaintenanceBase(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Scheduled')
     maintenance_checklist = models.JSONField(default=list, blank=True, help_text="List of checklist items e.g. [{'task': 'Clean Fan', 'done': False}]")
     notes = models.TextField(blank=True)
+    
+    # --- Evaluation & Completion Info ---
+    # Timeline
+    actual_start_time = models.DateTimeField(null=True, blank=True)
+    actual_completion_time = models.DateTimeField(null=True, blank=True)
+    downtime_duration = models.DurationField(null=True, blank=True, help_text="Duration of asset downtime")
+    
+    # Cost Details
+    labor_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    parts_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # The existing `cost` field acts as Total Cost (Labor + Parts)
+    
+    # Vendor Info
+    vendor_contact = models.CharField(max_length=100, blank=True, help_text="Name of the vendor's technician/contact")
+    invoice_number = models.CharField(max_length=100, blank=True)
+    warranty_expiry_date = models.DateField(null=True, blank=True)
+    
+    # Quality Control
+    root_cause = models.TextField(blank=True, help_text="Root cause of the problem (for Corrective)")
+    resolution_notes = models.TextField(blank=True, help_text="Detailed steps taken to resolve the issue")
+
     photo_before = models.ImageField(upload_to='maintenance/before/', blank=True)
     photo_after = models.ImageField(upload_to='maintenance/after/', blank=True)
 
@@ -41,6 +62,10 @@ class MaintenanceBase(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
+        # Auto-calculate total cost if labor or parts cost is provided
+        if self.labor_cost or self.parts_cost:
+            self.cost = (self.labor_cost or 0) + (self.parts_cost or 0)
+
         if not self.maintenance_code:
             current_year = date.today().year
             # Helper to find max sequence across both tables is imperfect without a dedicated sequence table.

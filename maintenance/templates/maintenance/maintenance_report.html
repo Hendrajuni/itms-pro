@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+{% load humanize %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Maintenance Report - {{ task.maintenance_code }}</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Arial', 'Helvetica', sans-serif; color: #000; background: #fff; -webkit-print-color-adjust: exact; }
+        .container { max-width: 216mm; margin: 0 auto; border: 1px solid #000; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-text { font-size: 26px; font-weight: 900; color: #000; letter-spacing: -0.5px; }
+        
+        .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        .qr-box { width: 80px; height: 80px; margin-bottom: 5px; }
+        .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .report-title { font-size: 14px; font-weight:bold; color: #000; }
+        .report-date { font-size: 11px; color: #000; }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .info-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
+        .info-item label { display: block; font-size: 10px; color: #444; text-transform: uppercase; margin-bottom: 3px; font-weight: 700; }
+        .info-item span { display: block; font-size: 13px; font-weight: 600; color: #000; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+        
+        .section-title { background: #eee; padding: 6px 10px; font-size: 12px; font-weight: 800; text-transform: uppercase; margin-top: 25px; margin-bottom: 10px; border-left: 5px solid #000; color: #000; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+        th { text-align: left; background: #f0f0f0; padding: 6px; border-bottom: 2px solid #000; font-weight: 800; color: #000; }
+        td { padding: 6px; border-bottom: 1px solid #ccc; color: #000; }
+        td.text-right, th.text-right { text-align: right; }
+        tr.total-row { border-top: 2px solid #000; }
+        tr.total-row td { font-weight: 900; padding-top: 8px; }
+        
+        .status-badge { display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 800; border-radius: 3px; text-transform: uppercase; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-progress { background: #fff3cd; color: #856404; }
+        .status-scheduled { background: #e2e3e5; color: #383d41; }
+        
+        .check-icon { font-size: 12px; }
+        .check-done { color: #28a745; }
+        .check-pending { color: #ccc; }
+        
+        .notes-box { display: flex; align-items: stretch; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+        .notes-label { background-color: #f0f0f0; padding: 6px 10px; font-weight: bold; font-size: 11px; text-transform: uppercase; border-right: 1px solid #ccc; display: flex; align-items: center; width: 100px; flex-shrink: 0; color: #000; justify-content: center; }
+        .notes-content { padding: 6px 10px; font-size: 11px; white-space: pre-line; flex: 1; color: #000; display: flex; align-items: center; }
+        
+        .signature-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; margin-top: 40px; }
+        .signature-box { border: 1px solid #000; padding: 15px; text-align: center; }
+        .signature-box .title { font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 50px; }
+        .signature-box .line { border-top: 1px solid #000; margin: 0 20px; padding-top: 5px; font-size: 10px; font-weight: 700; }
+        .signature-box .date-line { font-size: 9px; color: #666; margin-top: 5px; }
+        
+        .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #000; font-size: 10px; color: #000; text-align: center; font-weight: bold; }
+        
+        @media print {
+            body { padding: 0; background: white; }
+            .container { border: none; padding: 0; }
+            @page { size: legal portrait; margin: 15mm; }
+            .no-print { display: none !important; }
+        }
+
+        /* Action Bar */
+        .action-bar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .action-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .action-btn.close-btn {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="action-bar no-print">
+        <button class="action-btn" onclick="window.print()">🖨️ Print Document</button>
+        <button class="action-btn close-btn" onclick="window.close()">❌ Close</button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-section" style="display: flex; align-items: center; gap: 15px;">
+                {% if site_settings.logo %}
+                    <img src="{{ site_settings.logo.url }}" alt="Company Logo" style="height: 50px; width: auto; object-fit: contain;">
+                {% endif %}
+                <div>
+                    <div class="logo-text">{{ site_settings.site_name|default:"ITMS Pro"|upper }}</div>
+                    <div style="font-size:12px; font-weight:bold; margin-top:2px;">{{ site_settings.company_name|upper }}</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="qr-box">
+                    <img src="{{ qr_base64 }}" alt="QR">
+                </div>
+                <div class="report-title">MAINTENANCE COMPLETION REPORT</div>
+                <div class="report-date">Generated: {% now "d M Y H:i" %}</div>
+            </div>
+        </div>
+
+        <!-- General Information -->
+        <div class="section-title">General Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Document No.</label>
+                <span>{{ task.maintenance_code }}</span>
+            </div>
+            <div class="info-item">
+                <label>Status</label>
+                <span>
+                    <span class="status-badge {% if task.status == 'Completed' %}status-completed{% elif task.status == 'In Progress' %}status-progress{% else %}status-scheduled{% endif %}">
+                        {{ task.status }}
+                    </span>
+                </span>
+            </div>
+            <div class="info-item">
+                <label>{{ task_type|title }} Name</label>
+                <span>{{ target_name }}</span>
+            </div>
+            <div class="info-item">
+                <label>{{ task_type|title }} ID</label>
+                <span>{{ target_code }}</span>
+            </div>
+            <div class="info-item">
+                <label>Location</label>
+                <span>{{ target_location }}</span>
+            </div>
+            <div class="info-item">
+                <label>Maintenance Type</label>
+                <span>{{ task.get_maintenance_type_display }}</span>
+            </div>
+            <div class="info-item">
+                <label>Priority</label>
+                <span>{{ task.priority }}</span>
+            </div>
+            <div class="info-item">
+                <label>Title</label>
+                <span>{{ task.title }}</span>
+            </div>
+        </div>
+
+        <!-- Assignment -->
+        <div class="section-title">Assignment</div>
+        <div class="info-grid three-col">
+            <div class="info-item">
+                <label>Technician</label>
+                <span>{% if task.technician %}{{ task.technician.get_full_name|default:task.technician.username }}{% else %}-{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <label>Vendor</label>
+                <span>{{ task.vendor.name|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Vendor Contact</label>
+                <span>{{ task.vendor_contact|default:"-" }}</span>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="section-title">Timeline &amp; Duration</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Scheduled Date</label>
+                <span>{{ task.scheduled_date|date:"d F Y" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Actual Start</label>
+                <span>{{ task.actual_start_time|date:"d F Y, H:i"|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Actual Completion</label>
+                <span>{{ task.actual_completion_time|date:"d F Y, H:i"|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Duration</label>
+                <span style="font-weight:900;">{{ duration_str }}</span>
+            </div>
+        </div>
+
+        <!-- Checklist -->
+        {% if checklist %}
+        <div class="section-title">Checklist Pekerjaan ({{ checklist_done }}/{{ checklist_total }})</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:5%;">No</th>
+                    <th>Item</th>
+                    <th style="width:12%;">Status</th>
+                    <th style="width:18%;">Selesai</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in checklist %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.task }}</td>
+                    <td>
+                        {% if item.done %}
+                            <span class="check-icon check-done">✔</span> Done
+                        {% else %}
+                            <span class="check-icon check-pending">○</span> Pending
+                        {% endif %}
+                    </td>
+                    <td>{{ item.completed_at_formatted|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <!-- Subtasks & Cost Breakdown -->
+        {% if subtasks %}
+        <div class="section-title">Subtask &amp; Cost Breakdown</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Subtask</th>
+                    <th>Vendor</th>
+                    <th>Teknisi</th>
+                    <th>Status</th>
+                    <th class="text-right">Labor</th>
+                    <th class="text-right">Parts</th>
+                    <th class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Parent task row -->
+                <tr style="background:#f9f9f9;">
+                    <td style="font-weight:700;">{{ task.title }} <span style="font-size:9px;color:#666;">(Parent)</span></td>
+                    <td>{{ task.vendor.name|default:"-" }}</td>
+                    <td>{% if task.technician %}{{ task.technician.username }}{% else %}-{% endif %}</td>
+                    <td><span class="status-badge {% if task.status == 'Completed' %}status-completed{% elif task.status == 'In Progress' %}status-progress{% else %}status-scheduled{% endif %}">{{ task.status }}</span></td>
+                    <td class="text-right">Rp {{ task.labor_cost|floatformat:0|intcomma }}</td>
+                    <td class="text-right">Rp {{ task.parts_cost|floatformat:0|intcomma }}</td>
+                    <td class="text-right" style="font-weight:700;">Rp {{ task.cost|floatformat:0|intcomma }}</td>
+                </tr>
+                <!-- Subtask rows -->
+                {% for st in subtasks %}
+                <tr>
+                    <td style="padding-left:20px;">└ {{ st.title }}</td>
+                    <td>{{ st.vendor.name|default:"-" }}</td>
+                    <td>{% if st.technician %}{{ st.technician.username }}{% else %}-{% endif %}</td>
+                    <td><span class="status-badge {% if st.status == 'Completed' %}status-completed{% elif st.status == 'In Progress' %}status-progress{% else %}status-scheduled{% endif %}">{{ st.status }}</span></td>
+                    <td class="text-right">Rp {{ st.labor_cost|floatformat:0|intcomma }}</td>
+                    <td class="text-right">Rp {{ st.parts_cost|floatformat:0|intcomma }}</td>
+                    <td class="text-right">Rp {{ st.cost|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <!-- Cost Summary -->
+        <div style="display: flex; justify-content: flex-end; margin-top: 5px; margin-bottom: 25px;">
+            <table style="width: auto; border: none; font-size: 11px;">
+                <tr>
+                    <td style="text-align: right; padding-right: 15px; border: none; font-weight: bold;">Total Labor Cost:</td>
+                    <td style="text-align: right; border: none; font-family: monospace;">Rp {{ grand_labor|floatformat:0|intcomma }}</td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; padding-right: 15px; border: none; font-weight: bold;">Total Parts Cost:</td>
+                    <td style="text-align: right; border: none; font-family: monospace;">Rp {{ grand_parts|floatformat:0|intcomma }}</td>
+                </tr>
+                <tr style="border-top: 2px solid #000;">
+                    <td style="text-align: right; padding-right: 15px; padding-top: 8px; border: none; font-weight: 900; font-size: 13px;">GRAND TOTAL:</td>
+                    <td style="text-align: right; padding-top: 8px; border: none; font-family: monospace; font-weight: 900; font-size: 13px;">Rp {{ grand_total|floatformat:0|intcomma }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Vendor Info -->
+        {% if task.vendor_contact or task.invoice_number or task.warranty_expiry_date %}
+        <div class="section-title">Vendor / 3rd Party Information</div>
+        <div class="info-grid three-col">
+            <div class="info-item">
+                <label>Vendor Contact</label>
+                <span>{{ task.vendor_contact|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Invoice Number</label>
+                <span>{{ task.invoice_number|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Warranty Expiry</label>
+                <span>{{ task.warranty_expiry_date|date:"d F Y"|default:"-" }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Evaluation -->
+        {% if task.root_cause or task.resolution_notes %}
+        <div class="section-title">Evaluation &amp; Root Cause Analysis</div>
+        {% if task.root_cause %}
+        <div class="notes-box">
+            <div class="notes-label">Root Cause</div>
+            <div class="notes-content">{{ task.root_cause }}</div>
+        </div>
+        {% endif %}
+        {% if task.resolution_notes %}
+        <div class="notes-box">
+            <div class="notes-label">Resolution</div>
+            <div class="notes-content">{{ task.resolution_notes }}</div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Notes -->
+        {% if task.notes %}
+        <div class="notes-box">
+            <div class="notes-label">Notes</div>
+            <div class="notes-content">{{ task.notes }}</div>
+        </div>
+        {% endif %}
+
+
+
+        <div class="footer">
+            IT Management System • Internal Document • Confidential
+        </div>
+    </div>
+</body>
+</html>

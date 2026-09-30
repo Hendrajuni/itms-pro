@@ -3,9 +3,9 @@
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-8">
-            <div class="card shadow border-0">
-                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <div class="col-md-11 col-lg-10">
+            <div class="card shadow border-0 rounded-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between rounded-top-4">
                     <div>
                         <h5 class="mb-0 fw-bold text-gray-800">{{ action_title }}</h5>
                          {% if asset %}
@@ -18,7 +18,6 @@
                     {% if asset %}
                     <a href="{% url 'asset_detail' asset.pk %}" class="btn-close" aria-label="Close"></a>
                     {% elif infrastructure %}
-                    <!-- Logic for infra detail if exists, else dashboard -->
                     <a href="{% url 'maintenance_dashboard' %}" class="btn-close" aria-label="Close"></a>
                     {% else %}
                     <a href="{% url 'maintenance_dashboard' %}" class="btn-close" aria-label="Close"></a>
@@ -28,30 +27,209 @@
                     <form method="post" enctype="multipart/form-data" id="maintenanceForm">
                         {% csrf_token %}
                         
-                        <div class="row">
-                            <!-- Left Column: Standard Fields -->
+                        <!-- Validation Errors -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% for error in form.non_field_errors %}
+                                <strong>{{ error }}</strong>{% if not forloop.last %}<br>{% endif %}
+                            {% endfor %}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row g-4">
+                            <!-- ==================== LEFT COLUMN ==================== -->
                             <div class="col-md-6">
-                                {% for field in form %}
-                                    {% if field.name != 'maintenance_checklist' and field.name != 'notes' %}
+
+                                <!-- ── Section: Basic Info ── -->
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;">
+                                            <i class="fas fa-clipboard-list text-primary" style="font-size:0.75rem;"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0 text-dark">Basic Information</h6>
+                                    </div>
+
+                                    <!-- Asset or Infrastructure -->
+                                    {% if form.asset %}
                                     <div class="mb-3">
-                                        <label for="{{ field.id_for_label }}" class="form-label fw-bold text-gray-700">
-                                            {{ field.label }}
-                                            {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                                        <label for="{{ form.asset.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                            {{ form.asset.label }}<span class="text-danger">*</span>
                                         </label>
-                                        {{ field }}
-                                        {% if field.help_text %}<div class="form-text small text-muted">{{ field.help_text }}</div>{% endif %}
-                                        {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                                        {{ form.asset }}
+                                        {% for error in form.asset.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
                                     </div>
                                     {% endif %}
-                                {% endfor %}
+                                    {% if form.infrastructure %}
+                                    <div class="mb-3">
+                                        <label for="{{ form.infrastructure.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                            {{ form.infrastructure.label }}<span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.infrastructure }}
+                                        {% for error in form.infrastructure.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Title -->
+                                    <div class="mb-3">
+                                        <label for="{{ form.title.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                            {{ form.title.label }}<span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.title }}
+                                        {% for error in form.title.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                                    </div>
+
+                                    <!-- Row: Type + Priority -->
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label for="{{ form.maintenance_type.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                                {{ form.maintenance_type.label }}<span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.maintenance_type }}
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="{{ form.scheduled_date.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                                {{ form.scheduled_date.label }}<span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.scheduled_date }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Row: Status + Cost -->
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label for="{{ form.status.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                                {{ form.status.label }}<span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.status }}
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="{{ form.cost.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                                Total Cost
+                                            </label>
+                                            {{ form.cost }}
+                                            <div class="form-text small text-muted">Auto-calculated from Labor + Parts</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row: Technician + Vendor -->
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label for="{{ form.technician.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                                {{ form.technician.label }}
+                                            </label>
+                                            {{ form.technician }}
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="{{ form.vendor.id_for_label }}" class="form-label fw-bold text-gray-700">
+                                                {{ form.vendor.label }}
+                                            </label>
+                                            {{ form.vendor }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ── Section: Timeline (In Progress / Completed) ── -->
+                                <div class="mb-4 conditional-section" id="sectionTimeline" style="display:none;">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;">
+                                            <i class="fas fa-clock text-warning" style="font-size:0.75rem;"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0 text-dark">Timeline & Duration</h6>
+                                    </div>
+                                    <div class="card border-0 bg-light rounded-3">
+                                        <div class="card-body p-3">
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <label for="{{ form.actual_start_time.id_for_label }}" class="form-label small fw-medium text-gray-700">Actual Start</label>
+                                                    {{ form.actual_start_time }}
+                                                </div>
+                                                <div class="col-6">
+                                                    <label for="{{ form.actual_completion_time.id_for_label }}" class="form-label small fw-medium text-gray-700">Actual Completion</label>
+                                                    {{ form.actual_completion_time }}
+                                                </div>
+                                            </div>
+                                            <!-- Duration summary -->
+                                            <div id="durationSummary" class="mt-2 text-center small fw-bold text-warning d-none">
+                                                <i class="fas fa-stopwatch me-1"></i> Duration: <span id="durationText">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ── Section: Financial (Completed) ── -->
+                                <div class="mb-4 conditional-section" id="sectionFinancial" style="display:none;">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;">
+                                            <i class="fas fa-money-bill-wave text-success" style="font-size:0.75rem;"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0 text-dark">Financial / Cost Breakdown</h6>
+                                    </div>
+                                    <div class="card border-0 bg-light rounded-3">
+                                        <div class="card-body p-3">
+                                            <div class="row g-2 mb-2">
+                                                <div class="col-6">
+                                                    <label for="{{ form.labor_cost.id_for_label }}" class="form-label small fw-medium text-gray-700">Labor / Service Cost (Rp)</label>
+                                                    {{ form.labor_cost }}
+                                                </div>
+                                                <div class="col-6">
+                                                    <label for="{{ form.parts_cost.id_for_label }}" class="form-label small fw-medium text-gray-700">Parts / Material Cost (Rp)</label>
+                                                    {{ form.parts_cost }}
+                                                </div>
+                                            </div>
+                                            <!-- Live Total -->
+                                            <div class="bg-white rounded-3 p-2 text-center border">
+                                                <span class="text-muted small">Total Cost: </span>
+                                                <span class="fw-bold text-success" id="liveTotalCost">Rp 0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ── Section: Vendor Detail (Completed) ── -->
+                                <div class="mb-4 conditional-section" id="sectionVendorDetail" style="display:none;">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;">
+                                            <i class="fas fa-handshake text-info" style="font-size:0.75rem;"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0 text-dark">Vendor / 3rd Party Detail</h6>
+                                    </div>
+                                    <div class="card border-0 bg-light rounded-3">
+                                        <div class="card-body p-3">
+                                            <div class="mb-2">
+                                                <label for="{{ form.vendor_contact.id_for_label }}" class="form-label small fw-medium text-gray-700">Vendor Technician / Contact</label>
+                                                {{ form.vendor_contact }}
+                                                {% if form.vendor_contact.help_text %}<div class="form-text small text-muted">{{ form.vendor_contact.help_text }}</div>{% endif %}
+                                            </div>
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <label for="{{ form.invoice_number.id_for_label }}" class="form-label small fw-medium text-gray-700">Invoice Number</label>
+                                                    {{ form.invoice_number }}
+                                                </div>
+                                                <div class="col-6">
+                                                    <label for="{{ form.warranty_expiry_date.id_for_label }}" class="form-label small fw-medium text-gray-700">Warranty Expiry</label>
+                                                    {{ form.warranty_expiry_date }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
 
-                            <!-- Right Column: Checklist & Notes -->
+                            <!-- ==================== RIGHT COLUMN ==================== -->
                             <div class="col-md-6">
-                                <!-- Checklist Builder -->
+
+                                <!-- ── Checklist Builder (always) ── -->
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold text-gray-700">Maintenance Checklist</label>
-                                    <div class="card bg-light border-0">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;">
+                                            <i class="fas fa-tasks text-primary" style="font-size:0.75rem;"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0 text-dark">Maintenance Checklist</h6>
+                                    </div>
+                                    <div class="card bg-light border-0 rounded-3">
                                         <div class="card-body p-3">
                                             <!-- Hidden JSON Input -->
                                             <div class="d-none">
@@ -77,12 +255,42 @@
                                     </div>
                                 </div>
 
-                                <!-- Notes (Rich Text friendly area) -->
-                                <div class="mb-3">
-                                    <label for="{{ form.notes.id_for_label }}" class="form-label fw-bold text-gray-700">Detailed Notes / Logs</label>
+                                <!-- ── Notes (always) ── -->
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;">
+                                            <i class="fas fa-sticky-note text-secondary" style="font-size:0.75rem;"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0 text-dark">Detailed Notes / Logs</h6>
+                                    </div>
                                     {{ form.notes }}
                                     <div class="form-text small text-muted">Use this area for technical details about the repair/maintenance.</div>
                                 </div>
+
+                                <!-- ── Section: Evaluation (Completed) ── -->
+                                <div class="mb-4 conditional-section" id="sectionEvaluation" style="display:none;">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;">
+                                            <i class="fas fa-search text-danger" style="font-size:0.75rem;"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0 text-dark">Evaluation & Root Cause</h6>
+                                    </div>
+                                    <div class="card border-0 bg-light rounded-3">
+                                        <div class="card-body p-3">
+                                            <div class="mb-3">
+                                                <label for="{{ form.root_cause.id_for_label }}" class="form-label small fw-medium text-gray-700">Root Cause</label>
+                                                {{ form.root_cause }}
+                                                {% if form.root_cause.help_text %}<div class="form-text small text-muted">{{ form.root_cause.help_text }}</div>{% endif %}
+                                            </div>
+                                            <div>
+                                                <label for="{{ form.resolution_notes.id_for_label }}" class="form-label small fw-medium text-gray-700">Resolution Notes</label>
+                                                {{ form.resolution_notes }}
+                                                {% if form.resolution_notes.help_text %}<div class="form-text small text-muted">{{ form.resolution_notes.help_text }}</div>{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
 
@@ -99,6 +307,148 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ====== CONDITIONAL SECTIONS ======
+    const statusSelect = document.getElementById('id_status');
+    const sectionTimeline = document.getElementById('sectionTimeline');
+    const sectionFinancial = document.getElementById('sectionFinancial');
+    const sectionVendorDetail = document.getElementById('sectionVendorDetail');
+    const sectionEvaluation = document.getElementById('sectionEvaluation');
+    
+    const actualStartInput = document.getElementById('id_actual_start_time');
+    const actualCompleteInput = document.getElementById('id_actual_completion_time');
+
+    let previousStatus = statusSelect ? statusSelect.value : '';
+    
+    function updateSections() {
+        const status = statusSelect ? statusSelect.value : '';
+        
+        // Timeline: visible when In Progress or Completed
+        const showTimeline = (status === 'In Progress' || status === 'Completed');
+        sectionTimeline.style.display = showTimeline ? 'block' : 'none';
+        if (showTimeline) sectionTimeline.style.animation = 'fadeIn 0.3s ease';
+        
+        // Financial, Vendor Detail, Evaluation: visible when Completed
+        const showCompleted = (status === 'Completed');
+        sectionFinancial.style.display = showCompleted ? 'block' : 'none';
+        sectionVendorDetail.style.display = showCompleted ? 'block' : 'none';
+        sectionEvaluation.style.display = showCompleted ? 'block' : 'none';
+        if (showCompleted) {
+            sectionFinancial.style.animation = 'fadeIn 0.3s ease';
+            sectionVendorDetail.style.animation = 'fadeIn 0.35s ease';
+            sectionEvaluation.style.animation = 'fadeIn 0.4s ease';
+        }
+
+        // ---- Auto-fill Timestamps ----
+        // Format current time as YYYY-MM-DDThh:mm for datetime-local input
+        function nowLocalStr() {
+            let now = new Date();
+            return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0,16);
+        }
+
+        // When status changes TO "In Progress" → auto-fill actual_start_time (if empty)
+        if (status === 'In Progress' && previousStatus !== 'In Progress') {
+            if (actualStartInput && !actualStartInput.value) {
+                actualStartInput.value = nowLocalStr();
+            }
+        }
+        
+        // When status changes TO "Completed" → auto-fill actual_completion_time (if empty)
+        if (status === 'Completed' && previousStatus !== 'Completed') {
+            if (actualCompleteInput && !actualCompleteInput.value) {
+                actualCompleteInput.value = nowLocalStr();
+            }
+            // Also auto-fill start if somehow it was missed
+            if (actualStartInput && !actualStartInput.value) {
+                actualStartInput.value = nowLocalStr();
+            }
+        }
+
+        previousStatus = status;
+        
+        // Update duration display
+        updateDuration();
+    }
+
+    if (statusSelect) {
+        // Native change event (fallback)
+        statusSelect.addEventListener('change', updateSections);
+        // Run on page load (for edit forms with existing status)
+        updateSections();
+    }
+
+    // Bind Select2 events AFTER Select2 initializes (in a separate ready block)
+    // This ensures Select2 has already been applied to the select element
+    if (window.jQuery) {
+        jQuery(function() {
+            // Small delay to ensure Select2 init from base.html has completed
+            setTimeout(function() {
+                jQuery('#id_status').on('change select2:select', function() {
+                    updateSections();
+                });
+                // Re-run after Select2 is ready
+                updateSections();
+            }, 100);
+        });
+    }
+
+    // ====== LIVE DURATION CALCULATION ======
+    function updateDuration() {
+        const startVal = actualStartInput ? actualStartInput.value : '';
+        const endVal = actualCompleteInput ? actualCompleteInput.value : '';
+        const summaryEl = document.getElementById('durationSummary');
+        const textEl = document.getElementById('durationText');
+        
+        if (startVal && endVal) {
+            const start = new Date(startVal);
+            const end = new Date(endVal);
+            const diffMs = end - start;
+            if (diffMs > 0) {
+                const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                let parts = [];
+                if (days > 0) parts.push(days + ' hari');
+                if (hours > 0) parts.push(hours + ' jam');
+                if (mins > 0) parts.push(mins + ' menit');
+                textEl.textContent = parts.join(' ') || '< 1 menit';
+                summaryEl.classList.remove('d-none');
+            } else {
+                summaryEl.classList.add('d-none');
+            }
+        } else {
+            summaryEl.classList.add('d-none');
+        }
+    }
+    
+    if (actualStartInput) actualStartInput.addEventListener('change', updateDuration);
+    if (actualCompleteInput) actualCompleteInput.addEventListener('change', updateDuration);
+
+    // ====== LIVE TOTAL COST ======
+    const laborInput = document.getElementById('id_labor_cost');
+    const partsInput = document.getElementById('id_parts_cost');
+    const costInput = document.getElementById('id_cost');
+    const liveTotalEl = document.getElementById('liveTotalCost');
+
+    function updateTotalCost() {
+        const labor = parseFloat(laborInput ? laborInput.value : 0) || 0;
+        const parts = parseFloat(partsInput ? partsInput.value : 0) || 0;
+        const total = labor + parts;
+        
+        if (liveTotalEl) {
+            liveTotalEl.textContent = 'Rp ' + total.toLocaleString('id-ID');
+        }
+        // Update readonly cost field
+        if (costInput) {
+            costInput.value = total.toFixed(2);
+        }
+    }
+
+    if (laborInput) laborInput.addEventListener('input', updateTotalCost);
+    if (partsInput) partsInput.addEventListener('input', updateTotalCost);
+    // Initial calculation
+    updateTotalCost();
+
+    // ====== CHECKLIST BUILDER ======
     const hiddenInput = document.getElementById('id_maintenance_checklist');
     const container = document.getElementById('checklistContainer');
     const inputNew = document.getElementById('newChecklistItem');
@@ -109,8 +459,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let checklistData = [];
     try {
         if (hiddenInput.value && hiddenInput.value !== 'null') {
-            // Unescape generic python string if needed, better yet rely on simple json
-            // Django formatting might use single quotes, ensure valid JSON
             let raw = hiddenInput.value.replace(/'/g, '"').replace(/False/g, 'false').replace(/True/g, 'true');
             checklistData = JSON.parse(raw);
         }
@@ -195,10 +543,8 @@ document.addEventListener('DOMContentLoaded', function() {
         item.done = !item.done;
         
         if (item.done) {
-            // Set timestamp if not already present (or update it? better update to reflect actual action time)
             item.completed_at = new Date().toISOString(); 
         } else {
-             // Optional: Keep history or clear? User probably wants to clear if undone.
              delete item.completed_at;
         }
         
@@ -221,4 +567,11 @@ document.addEventListener('DOMContentLoaded', function() {
     render();
 });
 </script>
+
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 {% endblock %}

@@ -57,6 +57,7 @@ urlpatterns = [
     path('infrastructure/<int:pk>/', views.InfrastructureDetailView.as_view(), name='infra_detail'),
     path('infrastructure/<int:pk>/link-asset/', views.InfrastructureLinkAssetView.as_view(), name='infra_link_asset'),
     path('infrastructure/<int:pk>/print-datasheet/', views.InfrastructurePrintDatasheetView.as_view(), name='infra_print_datasheet'),
+    path('infrastructure/<int:pk>/maintenance/', views.InfrastructureMaintenanceHistoryView.as_view(), name='infra_maintenance_history'),
     path('infrastructure/<int:infra_id>/part-history/add/', views.InfraPartHistoryCreateView.as_view(), name='infra_part_history_add'),
     path('infrastructure/part-history/<int:pk>/delete/', views.InfraPartHistoryDeleteView.as_view(), name='infra_part_history_delete'),
     path('infrastructure/<int:pk>/print-label/', views.InfrastructurePrintLabelView.as_view(), name='infra_print_label'),

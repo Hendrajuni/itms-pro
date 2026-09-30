@@ -1840,7 +1840,7 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Maintenance History
-        maintenances = InfraMaintenance.objects.filter(infrastructure=self.object).order_by('-scheduled_date')
+        maintenances = InfraMaintenance.objects.filter(infrastructure=self.object, parent__isnull=True).order_by('-scheduled_date')
         context['maintenance_history'] = maintenances
         
         # Auto-calculate Last and Next Maintenance
@@ -1916,6 +1916,42 @@ class InfrastructureDetailView(LoginRequiredMixin, DetailView):
 
         # Available assets for quick linking
         context['unlinked_assets'] = Asset.objects.filter(infrastructure__isnull=True).order_by('name')
+        return context
+class InfrastructureMaintenanceHistoryView(LoginRequiredMixin, ListView):
+    model = InfraMaintenance
+    template_name = 'infrastructure/infra_maintenance_history.html'
+    context_object_name = 'maintenances'
+    paginate_by = 20
+
+    def get_queryset(self):
+        self.infrastructure = get_object_or_404(Infrastructure, pk=self.kwargs['pk'])
+        qs = InfraMaintenance.objects.filter(infrastructure=self.infrastructure, parent__isnull=True).order_by('-scheduled_date')
+        
+        # Filtering
+        status = self.request.GET.get('status')
+        m_type = self.request.GET.get('type')
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        search = self.request.GET.get('search')
+        
+        if status:
+            qs = qs.filter(status=status)
+        if m_type:
+            qs = qs.filter(maintenance_type=m_type)
+        if date_from:
+            qs = qs.filter(scheduled_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(scheduled_date__lte=date_to)
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(Q(title__icontains=search) | Q(maintenance_code__icontains=search))
+            
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['infrastructure'] = self.infrastructure
+        context['cancel_url'] = reverse_lazy('infra_detail', kwargs={'pk': self.infrastructure.pk})
         return context
 
 class InfrastructureLinkAssetView(LoginRequiredMixin, View):
