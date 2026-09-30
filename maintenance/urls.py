@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/quick-status/', views.quick_status_update, name='quick_status_update'),
     path('api/task-detail/<str:task_type>/<int:pk>/', views.task_detail_api, name='task_detail_api'),
     path('api/add-subtask/', views.add_subtask, name='add_subtask'),
+    path('api/toggle-schedule-active/', views.toggle_schedule_active, name='toggle_schedule_active'),
     
     # Report
     path('report/<str:task_type>/<int:pk>/', views.maintenance_report, name='maintenance_report'),

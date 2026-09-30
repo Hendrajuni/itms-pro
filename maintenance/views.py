@@ -853,3 +853,21 @@ def maintenance_report(request, task_type, pk):
     }
     
     return render(request, 'maintenance/maintenance_report.html', context)
+
+
+@require_POST
+def toggle_schedule_active(request):
+    import json
+    from django.http import JsonResponse
+    try:
+        data = json.loads(request.body)
+        schedule_id = data.get('schedule_id')
+        is_active = data.get('is_active')
+        
+        schedule = MaintenanceSchedule.objects.get(pk=schedule_id)
+        schedule.is_active = is_active
+        schedule.save()
+        
+        return JsonResponse({'status': 'success', 'is_active': schedule.is_active})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

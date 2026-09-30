@@ -42,6 +42,7 @@
                         <th>Next Run</th>
                         <th>Target</th>
                         <th>Assigned To</th>
+                        <th class="text-center">Status</th>
                         <th class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
@@ -83,6 +84,11 @@
                                 <span class="text-muted">-</span>
                             {% endif %}
                         </td>
+                        <td class="text-center">
+                            <div class="form-check form-switch d-flex justify-content-center">
+                                <input class="form-check-input toggle-active-switch" type="checkbox" data-schedule-id="{{ schedule.pk }}" style="cursor:pointer;" {% if schedule.is_active %}checked{% endif %}>
+                            </div>
+                        </td>
                         <td class="text-end pe-4">
                             <div class="btn-group">
                                 <a href="{% url 'maintenance_schedule_generate' schedule.pk %}" class="btn btn-sm btn-outline-primary" title="Generate Ticket Now" onclick="return confirm('Generate a maintenance ticket from this schedule now?');">
@@ -99,7 +105,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5 text-muted">
                             <i class="fas fa-calendar-times fa-3x mb-3 opacity-25"></i>
                             <p>No maintenance schedules found.</p>
                             <a href="{% url 'maintenance_schedule_create' %}" class="btn btn-sm btn-outline-primary">Create First Schedule</a>
@@ -111,4 +117,41 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-active-switch').forEach(switchEl => {
+        switchEl.addEventListener('change', function() {
+            const scheduleId = this.getAttribute('data-schedule-id');
+            const isActive = this.checked;
+            
+            fetch("{% url 'toggle_schedule_active' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    'schedule_id': scheduleId,
+                    'is_active': isActive
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status !== 'success') {
+                    alert('Error: ' + data.message);
+                    this.checked = !isActive;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                this.checked = !isActive;
+            });
+        });
+    });
+});
+</script>
 {% endblock %}
