@@ -1,64 +1,433 @@
 {% extends 'layouts/base.html' %}
 {% load static crispy_forms_tags %}
 
-{% block title %}{{ page_title }} - ITMS{% endblock %}
+{% block title %}{{ page_title }} - ITMS Pro{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 fw-bold text-primary">{{ page_title }}</h6>
-                <a href="{% url 'project_list' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>Back
-                </a>
+<style>
+body {
+    background-color: #f8fafc;
+}
+/* PREMIUM WIZARD AESTHETICS */
+.wizard-container {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    padding: 0;
+    margin-bottom: 30px;
+    border: 1px solid #e2e8f0;
+}
+.wizard-header {
+    padding: 30px 40px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.wizard-body {
+    padding: 40px;
+}
+.page-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.title-icon {
+    background: #e0e7ff;
+    color: #4f46e5;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+/* WIZARD PROGRESS BAR */
+.wizard-progress {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    position: relative;
+    max-width: 800px;
+}
+.wizard-progress::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: #e2e8f0;
+    z-index: 1;
+}
+.wizard-step {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #fff;
+    padding-right: 15px;
+}
+.step-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s;
+}
+.step-text {
+    display: flex;
+    flex-direction: column;
+}
+.step-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #64748b;
+}
+.step-subtitle {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* Active / Completed States */
+.wizard-step.active .step-circle {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+.wizard-step.active .step-title {
+    color: #0f172a;
+}
+.wizard-step.completed .step-circle {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: #fff;
+}
+.wizard-step.completed .step-title {
+    color: #0f172a;
+}
+
+.wizard-step-content {
+    display: none;
+    animation: fadeIn 0.4s;
+}
+.wizard-step-content.active {
+    display: block;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Layout Utilities */
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.upload-box {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.upload-box:hover {
+    border-color: #3b82f6;
+    background: #f1f5f9;
+}
+</style>
+
+<!-- Breadcrumb -->
+<div class="mb-3 text-muted small">
+    <a href="{% url 'project_list' %}" class="text-decoration-none text-muted">IT Projects</a> &rsaquo;&rsaquo; <span class="fw-bold">{{ page_title }}</span>
+</div>
+
+<div class="wizard-container">
+    <!-- Header Area -->
+    <div class="wizard-header">
+        <div class="page-title">
+            <div class="title-icon"><i class="fas fa-briefcase"></i></div>
+            <div>
+                <h1 class="mb-0 fs-3 fw-bold">{{ page_title }}</h1>
+                <div class="text-muted small fw-normal mt-1">Create and plan your IT project with detailed information.</div>
             </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        {{ form.name|as_crispy_field }}
-                    </div>
-                    
-                    <div class="mb-3">
-                         {{ form.description|as_crispy_field }}
-                    </div>
+        </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form.manager|as_crispy_field }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form.status|as_crispy_field }}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form.start_date|as_crispy_field }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form.end_date|as_crispy_field }}
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Progress Bar ({{ form.progress.value }}%)</label>
-                        {{ form.progress|as_crispy_field }}
-                        <div class="progress mt-2" style="height: 5px;">
-                            <div class="progress-bar" role="progressbar" style="width: {{ form.progress.value }}%;"></div>
-                        </div>
-                    </div>
-
-                    <div class="text-end mt-4">
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="fas fa-save me-2"></i>Save Changes
-                        </button>
-                    </div>
-                </form>
+        <!-- Progress Indicators -->
+        <div class="wizard-progress">
+            <div class="wizard-step active" id="indicator-1">
+                <div class="step-circle">1</div>
+                <div class="step-text d-none d-md-flex">
+                    <span class="step-title">Basic Information</span>
+                    <span class="step-subtitle">Project details</span>
+                </div>
+            </div>
+            <div class="wizard-step" id="indicator-2">
+                <div class="step-circle">2</div>
+                <div class="step-text d-none d-md-flex">
+                    <span class="step-title">Planning</span>
+                    <span class="step-subtitle">Timeline & budget</span>
+                </div>
+            </div>
+            <div class="wizard-step" id="indicator-3">
+                <div class="step-circle">3</div>
+                <div class="step-text d-none d-md-flex">
+                    <span class="step-title">Team & Resources</span>
+                    <span class="step-subtitle">People & location</span>
+                </div>
+            </div>
+            <div class="wizard-step" id="indicator-4">
+                <div class="step-circle">4</div>
+                <div class="step-text d-none d-md-flex">
+                    <span class="step-title">Tasks</span>
+                    <span class="step-subtitle">Define project tasks</span>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Body Area -->
+    <div class="wizard-body">
+        <form method="post" enctype="multipart/form-data" id="projectWizardForm">
+            {% csrf_token %}
+            
+            <!-- STEP 1: BASIC INFO -->
+            <div class="wizard-step-content active" id="step-1">
+                <div class="row">
+                    <!-- Left Form Column -->
+                    <div class="col-lg-7 pe-lg-5">
+                        <h4 class="section-title"><i class="fas fa-info-circle text-primary"></i> Basic Information</h4>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Project Name <span class="text-danger">*</span></label>
+                            {{ form.name|as_crispy_field }}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+                            {{ form.category|as_crispy_field }}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                            {{ form.description|as_crispy_field }}
+                            <div class="form-text">Describe project objectives, scope, and expected outcomes...</div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Location <span class="text-danger">*</span></label>
+                                {{ form.location|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Vendor</label>
+                                {{ form.vendor|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Tags</label>
+                            {{ form.tags|as_crispy_field }}
+                            <div class="form-text">Add tags (e.g. CCTV, Network, Security) - Press Enter to add tag</div>
+                        </div>
+                    </div>
+
+                    <!-- Right Upload Column -->
+                    <div class="col-lg-5">
+                        <div class="mb-4">
+                            <h4 class="section-title">Project Thumbnail</h4>
+                            <div class="upload-box" onclick="document.getElementById('id_thumbnail').click();">
+                                <i class="far fa-image fs-1 text-muted mb-3"></i>
+                                <h6 class="fw-bold mb-1">Click to upload image</h6>
+                                <p class="text-muted small m-0">PNG, JPG up to 2MB</p>
+                                <div class="d-none">
+                                    {{ form.thumbnail }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 mt-5">
+                            <h4 class="section-title">Project Template (Optional)</h4>
+                            {{ form.template|as_crispy_field }}
+                            <div class="form-text">Use a template to quickly set up common project structure.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-5 pt-3 border-top">
+                    <a href="{% url 'project_list' %}" class="btn btn-light px-4 py-2 fw-bold text-muted border">Cancel</a>
+                    <button type="button" class="btn btn-primary px-5 py-2 fw-bold btn-next" data-next="2">Next <i class="fas fa-arrow-right ms-2"></i></button>
+                </div>
+            </div>
+
+            <!-- STEP 2: PLANNING -->
+            <div class="wizard-step-content" id="step-2">
+                <div class="row">
+                    <div class="col-lg-7 pe-lg-5">
+                        <h4 class="section-title"><i class="far fa-calendar-alt text-primary"></i> Schedule & Budget</h4>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                {{ form.start_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.end_date|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                {{ form.budget|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.budget_allocated|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mt-5 pt-3 border-top">
+                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="1">Cancel</button>
+                    <button type="button" class="btn btn-primary px-5 py-2 fw-bold btn-next" data-next="3">Next <i class="fas fa-arrow-right ms-2"></i></button>
+                </div>
+            </div>
+
+            <!-- STEP 3: TEAM -->
+            <div class="wizard-step-content" id="step-3">
+                <div class="row">
+                    <div class="col-lg-7 pe-lg-5">
+                        <h4 class="section-title"><i class="fas fa-users text-primary"></i> Assign Team</h4>
+                        <div class="mb-4">
+                            {{ form.manager|as_crispy_field }}
+                        </div>
+                        <!-- We hid location and vendor in step 1 according to design, so they are not needed here -->
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mt-5 pt-3 border-top">
+                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="2">Cancel</button>
+                    <button type="button" class="btn btn-primary px-5 py-2 fw-bold btn-next" data-next="4">Next <i class="fas fa-arrow-right ms-2"></i></button>
+                </div>
+            </div>
+
+            <!-- STEP 4: TASKS -->
+            <div class="wizard-step-content" id="step-4">
+                <h4 class="section-title"><i class="fas fa-tasks text-primary"></i> Initial Tasks (Optional)</h4>
+                <p class="text-muted small mb-4">Define major milestones or master tasks here.</p>
+                
+                {{ tasks.management_form }}
+                <div id="tasks-container">
+                    {% for task_form in tasks %}
+                    <div class="task-form-row p-3 mb-3 rounded border bg-light">
+                        {{ task_form.id }}
+                        <div class="row">
+                            <div class="col-md-4">{{ task_form.name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ task_form.assigned_to|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ task_form.start_date|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ task_form.due_date|as_crispy_field }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="add-task-btn">
+                    <i class="fas fa-plus me-1"></i> Add Another Task
+                </button>
+
+                <div class="d-flex justify-content-between mt-5 pt-3 border-top">
+                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="3">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-5 py-2 fw-bold shadow">
+                        <i class="fas fa-save me-2"></i> Create Project
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
 </div>
+
+<!-- Task Form Template -->
+<div id="empty-task-form" style="display: none;">
+    <div class="task-form-row p-3 mb-3 rounded border bg-light">
+        <div class="row">
+            <div class="col-md-4">{{ tasks.empty_form.name|as_crispy_field }}</div>
+            <div class="col-md-4">{{ tasks.empty_form.assigned_to|as_crispy_field }}</div>
+            <div class="col-md-2">{{ tasks.empty_form.start_date|as_crispy_field }}</div>
+            <div class="col-md-2">{{ tasks.empty_form.due_date|as_crispy_field }}</div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nextBtns = document.querySelectorAll('.btn-next');
+    const prevBtns = document.querySelectorAll('.btn-prev');
+    
+    function showStep(stepNumber) {
+        document.querySelectorAll('.wizard-step-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById('step-' + stepNumber).classList.add('active');
+        document.getElementById('indicator-' + stepNumber).classList.add('active');
+        
+        for(let i=1; i<stepNumber; i++) {
+            let indicator = document.getElementById('indicator-' + i);
+            indicator.classList.remove('active');
+            indicator.classList.add('completed');
+            indicator.querySelector('.step-circle').innerHTML = '<i class="fas fa-check"></i>';
+        }
+        for(let i=stepNumber; i<=4; i++) {
+            let indicator = document.getElementById('indicator-' + i);
+            indicator.classList.remove('completed');
+            if(i !== parseInt(stepNumber)) indicator.querySelector('.step-circle').innerHTML = i;
+        }
+    }
+
+    nextBtns.forEach(btn => btn.addEventListener('click', function() {
+        showStep(this.getAttribute('data-next'));
+    }));
+
+    prevBtns.forEach(btn => btn.addEventListener('click', function() {
+        showStep(this.getAttribute('data-prev'));
+    }));
+
+    const addTaskBtn = document.getElementById('add-task-btn');
+    const tasksContainer = document.getElementById('tasks-container');
+    const totalFormsInput = document.querySelector('#id_tasks-TOTAL_FORMS');
+    const emptyFormTemplate = document.getElementById('empty-task-form').innerHTML;
+
+    if (addTaskBtn) {
+        addTaskBtn.addEventListener('click', function() {
+            let formIdx = parseInt(totalFormsInput.value);
+            let newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formIdx);
+            tasksContainer.insertAdjacentHTML('beforeend', newFormHtml);
+            totalFormsInput.value = formIdx + 1;
+        });
+    }
+});
+</script>
 {% endblock %}

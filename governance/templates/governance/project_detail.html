@@ -1,0 +1,840 @@
+{% extends 'layouts/base.html' %}
+{% load static humanize crispy_forms_tags %}
+
+{% block title %}{{ project.name }} - ITMS Pro{% endblock %}
+
+{% block content %}
+<style>
+/* PREMIUM UI ADJUSTMENTS based on Mockup */
+body {
+    background-color: #f8fafc;
+}
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.status-badge.completed { background-color: #dcfce7; color: #16a34a; }
+.status-badge.planning { background-color: #f1f5f9; color: #64748b; }
+.status-badge.in-progress { background-color: #dbeafe; color: #2563eb; }
+
+/* Tabs */
+.custom-tabs {
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 25px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+}
+.custom-tabs .nav-link {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 10px 16px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.custom-tabs .nav-link:hover {
+    color: #3b82f6;
+}
+.custom-tabs .nav-link.active {
+    color: #3b82f6;
+    border-bottom: 3px solid #3b82f6;
+}
+
+/* Cards */
+.card-premium {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+}
+.card-header-premium {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: transparent;
+}
+.card-title-premium {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.card-body-premium {
+    padding: 24px;
+}
+
+/* Project Info Layout */
+.info-grid {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 20px;
+}
+.info-label {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.info-value {
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.info-value a {
+    text-decoration: none;
+    color: #3b82f6;
+}
+.project-image {
+    width: 200px;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Stats */
+.progress-huge {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+}
+.custom-progress-bar {
+    height: 12px;
+    border-radius: 10px;
+    background-color: #f1f5f9;
+    margin-top: 15px;
+    margin-bottom: 25px;
+}
+.custom-progress-bar .progress-bar {
+    border-radius: 10px;
+    background-color: #10b981;
+}
+.stat-box-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+.stat-box {
+    text-align: center;
+    padding: 15px 10px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+.stat-box.blue { border-top: 3px solid #3b82f6; }
+.stat-box.green { border-top: 3px solid #10b981; }
+.stat-box.orange { border-top: 3px solid #f59e0b; }
+.stat-box.red { border-top: 3px solid #ef4444; }
+
+.stat-num {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+.stat-box.blue .stat-num { color: #3b82f6; }
+.stat-box.green .stat-num { color: #10b981; }
+.stat-box.orange .stat-num { color: #f59e0b; }
+.stat-box.red .stat-num { color: #ef4444; }
+.stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Lists */
+.team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.team-member {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+}
+.doc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.doc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.doc-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+</style>
+
+<!-- Breadcrumb & Header -->
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="text-muted small">
+            <a href="{% url 'project_list' %}" class="text-decoration-none text-muted">IT Projects</a> &rsaquo;&rsaquo; <span class="fw-bold">{{ project.name }}</span>
+        </div>
+        <div>
+            <a href="{% url 'project_update' project.pk %}" class="btn btn-primary btn-sm rounded-3 px-3 fw-bold shadow-sm"><i class="fas fa-edit me-2"></i>Edit Project</a>
+            <button class="btn btn-outline-secondary btn-sm rounded-3 px-3 ms-2 bg-white">More Actions <i class="fas fa-chevron-down ms-1"></i></button>
+        </div>
+    </div>
+    
+    <div class="d-flex align-items-center gap-3">
+        <div class="bg-primary text-white rounded p-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px; font-size: 1.5rem;">
+            <i class="fas fa-briefcase"></i>
+        </div>
+        <div>
+            <h1 class="page-title mb-1">{{ project.name }}</h1>
+            <div class="d-flex align-items-center gap-3">
+                <span class="status-badge {% if project.status == 'Completed' %}completed{% elif project.status == 'Planning' %}planning{% else %}in-progress{% endif %}">
+                    {% if project.status == 'Completed' %}<i class="fas fa-check-circle"></i>
+                    {% elif project.status == 'Planning' %}<i class="fas fa-clock"></i>
+                    {% else %}<i class="fas fa-spinner fa-spin"></i>{% endif %}
+                    {{ project.status }}
+                </span>
+                <span class="text-muted small fw-medium">
+                    <i class="far fa-calendar-alt me-1"></i> {{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TABS -->
+<ul class="nav custom-tabs" id="projectTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab">
+            <i class="fas fa-cube"></i> Overview
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tasks-tab" data-bs-toggle="pill" data-bs-target="#tasks" type="button" role="tab">
+            <i class="fas fa-list-ul"></i> Tasks
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="timeline-tab" data-bs-toggle="pill" data-bs-target="#timeline" type="button" role="tab">
+            <i class="fas fa-stream"></i> Timeline
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button" role="tab">
+            <i class="far fa-folder-open"></i> Files
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="budget-tab" data-bs-toggle="pill" data-bs-target="#budget" type="button" role="tab">
+            <i class="fas fa-dollar-sign"></i> Budget
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="team-tab" data-bs-toggle="pill" data-bs-target="#team" type="button" role="tab">
+            <i class="fas fa-users"></i> Team
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="activity-tab" data-bs-toggle="pill" data-bs-target="#activity" type="button" role="tab">
+            <i class="fas fa-history"></i> Activity Log
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- OVERVIEW TAB -->
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+        <div class="row">
+            <!-- Left Column (Project Info & Description) -->
+            <div class="col-lg-7 col-xl-8">
+                <!-- Project Information -->
+                <div class="card-premium">
+                    <div class="card-body-premium d-flex gap-4 flex-column flex-md-row">
+                        <div class="flex-shrink-0">
+                            {% if project.thumbnail %}
+                                <img src="{{ project.thumbnail.url }}" class="project-image" alt="Project Thumbnail">
+                            {% else %}
+                                <div class="project-image bg-light d-flex align-items-center justify-content-center text-muted fs-1 border">
+                                    <i class="fas fa-image opacity-25"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h3 class="card-title-premium mb-4">Project Information</h3>
+                            
+                            <div class="row g-3">
+                                <div class="col-sm-3 info-label">Category</div>
+                                <div class="col-sm-9 info-value"><span class="badge bg-primary bg-opacity-10 text-primary px-3 rounded-pill">{{ project.category }}</span></div>
+                                
+                                <div class="col-sm-3 info-label">Location</div>
+                                <div class="col-sm-9 info-value">{{ project.location.name|default:"-" }}</div>
+                                
+                                <div class="col-sm-3 info-label">Manager</div>
+                                <div class="col-sm-9 info-value d-flex align-items-center gap-2">
+                                    <div class="avatar bg-primary" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                        {{ project.manager.first_name.0|default:"M" }}
+                                    </div>
+                                    {{ project.manager.get_full_name|default:project.manager.username|default:"Unassigned" }}
+                                </div>
+                                
+                                <div class="col-sm-3 info-label">Vendor</div>
+                                <div class="col-sm-9 info-value text-primary">{{ project.vendor.name|default:"-" }}</div>
+                                
+                                <div class="col-sm-3 info-label">Budget</div>
+                                <div class="col-sm-9 info-value text-success">Rp {{ project.budget_allocated|intcomma|default:"0" }}</div>
+                                
+                                <div class="col-sm-3 info-label">Actual Cost</div>
+                                <div class="col-sm-9 info-value text-danger">Rp {{ project.actual_cost|intcomma|default:"0" }}</div>
+                                
+                                <div class="col-sm-3 info-label">Start Date</div>
+                                <div class="col-sm-9 info-value">{{ project.start_date|date:"d M Y" }}</div>
+                                
+                                <div class="col-sm-3 info-label">End Date</div>
+                                <div class="col-sm-9 info-value">{{ project.end_date|date:"d M Y" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Description -->
+                <div class="card-premium">
+                    <div class="card-header-premium">
+                        <h3 class="card-title-premium"><i class="fas fa-align-left text-primary opacity-75"></i> Project Description</h3>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold"><i class="fas fa-edit me-1"></i> Edit</button>
+                    </div>
+                    <div class="card-body-premium" style="line-height: 1.8; color: #334155;">
+                        {{ project.description|linebreaks }}
+                    </div>
+                </div>
+
+                <!-- S-Curve Chart -->
+                <div class="card-premium">
+                    <div class="card-header-premium">
+                        <h3 class="card-title-premium"><i class="fas fa-chart-line text-primary opacity-75"></i> S-Curve Analytics (Planned vs Actual)</h3>
+                    </div>
+                    <div class="card-body-premium">
+                        <canvas id="sCurveChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column (Stats, Team, Docs) -->
+            <div class="col-lg-5 col-xl-4">
+                
+                <!-- Overall Progress -->
+                <div class="card-premium">
+                    <div class="card-body-premium">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="card-title-premium m-0">Overall Progress</h3>
+                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                <i class="fas fa-check" style="font-size: 0.7rem;"></i>
+                            </div>
+                        </div>
+                        <div class="progress-huge mt-3">{{ project.progress }}%</div>
+                        <div class="progress custom-progress-bar">
+                            <div class="progress-bar" role="progressbar" style="width: {{ project.progress }}%"></div>
+                        </div>
+                        
+                        <div class="stat-box-container">
+                            <div class="stat-box blue">
+                                <div class="stat-num">{{ project.tasks.count }}</div>
+                                <div class="stat-label">Total Tasks</div>
+                            </div>
+                            <div class="stat-box green">
+                                <!-- Temporary static logic for display -->
+                                <div class="stat-num">{{ project.tasks.count }}</div>
+                                <div class="stat-label">Completed</div>
+                            </div>
+                            <div class="stat-box orange">
+                                <div class="stat-num">0</div>
+                                <div class="stat-label">In Progress</div>
+                            </div>
+                            <div class="stat-box red">
+                                <div class="stat-num">0</div>
+                                <div class="stat-label">Overdue</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Team -->
+                <div class="card-premium">
+                    <div class="card-header-premium">
+                        <h3 class="card-title-premium">Project Team</h3>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">Manage Team</button>
+                    </div>
+                    <div class="card-body-premium">
+                        <div class="team-list">
+                            <!-- Lead -->
+                            <div class="team-member">
+                                <div class="avatar bg-primary shadow-sm">{{ project.manager.first_name.0|default:"M" }}</div>
+                                <div>
+                                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ project.manager.get_full_name|default:project.manager.username|default:"Unassigned" }}</div>
+                                    <div class="text-muted small">Project Lead</div>
+                                </div>
+                            </div>
+                            <!-- Members (Extracted from tasks or team logic) -->
+                            {% for task in project.tasks.all|slice:":3" %}
+                                {% if task.assigned_to and task.assigned_to != project.manager %}
+                                <div class="team-member">
+                                    <div class="avatar" style="background-color: #8b5cf6;">{{ task.assigned_to.first_name.0|default:"U" }}</div>
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</div>
+                                        <div class="text-muted small">Member</div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Documents -->
+                <div class="card-premium">
+                    <div class="card-header-premium">
+                        <h3 class="card-title-premium"><i class="far fa-file-alt text-primary opacity-75"></i> Project Documents</h3>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold"><i class="fas fa-upload me-1"></i> Upload File</button>
+                    </div>
+                    <div class="card-body-premium">
+                        <div class="doc-list">
+                            <!-- Dummy Data for Visual Display based on Mockup -->
+                            <div class="doc-item">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                    <div>
+                                        <div class="text-dark fw-medium small">BOQ_CCTV_PKS.pdf</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted small">1.2 MB</span>
+                                    <span class="text-muted small">12 May 2026</span>
+                                    <a href="#" class="text-primary"><i class="fas fa-download"></i></a>
+                                </div>
+                            </div>
+                            <div class="doc-item">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                    <div>
+                                        <div class="text-dark fw-medium small">Gambar_Instalasi.pdf</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted small">2.4 MB</span>
+                                    <span class="text-muted small">12 May 2026</span>
+                                    <a href="#" class="text-primary"><i class="fas fa-download"></i></a>
+                                </div>
+                            </div>
+                            <div class="doc-item">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                    <div>
+                                        <div class="text-dark fw-medium small">Laporan_Penyelesaian.pdf</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted small">450 KB</span>
+                                    <span class="text-muted small">16 May 2026</span>
+                                    <a href="#" class="text-primary"><i class="fas fa-download"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- KANBAN TASKS TAB -->
+    <div class="tab-pane fade" id="tasks" role="tabpanel">
+        <!-- Header & Toolbar -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="card-title-premium m-0"><i class="fas fa-columns text-primary me-2"></i> Project Board</h3>
+            <div>
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold me-2"><i class="fas fa-filter"></i> Filter</button>
+                <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" onclick="openTaskDetail('', '', 'Pending', '', '', '', '0', '')">
+                    <i class="fas fa-plus me-1"></i> Add Task
+                </button>
+            </div>
+        </div>
+
+        <!-- Kanban Container -->
+        <div class="row g-4 kanban-container" style="min-height: 60vh;">
+            
+            <!-- PENDING -->
+            <div class="col-md-4">
+                <div class="bg-light rounded-3 p-3 h-100 border border-light shadow-sm d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-secondary fw-bold m-0" style="font-size: 0.9rem;"><i class="fas fa-circle text-secondary fs-6 me-2"></i> PENDING</h6>
+                        <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill" id="count-Pending">{{ tasks_pending.count }}</span>
+                    </div>
+                    <div class="kanban-cards sortable-list flex-grow-1" id="list-Pending" data-status="Pending" style="min-height: 200px;">
+                        {% for task in tasks_pending %}
+                            {% include 'governance/partials/kanban_card.html' %}
+                        {% endfor %}
+                    </div>
+                    <!-- Quick Add Task -->
+                    <div class="mt-3 pt-3 border-top border-secondary border-opacity-25">
+                        <input type="text" id="quickAddTaskInput" class="form-control form-control-sm shadow-sm border-0 py-2" placeholder="+ Add a new task and press Enter...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- IN PROGRESS -->
+            <div class="col-md-4">
+                <div class="bg-light rounded-3 p-3 h-100 border border-light shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary fw-bold m-0" style="font-size: 0.9rem;"><i class="fas fa-circle text-primary fs-6 me-2"></i> IN PROGRESS</h6>
+                        <span class="badge bg-primary bg-opacity-25 text-primary rounded-pill" id="count-In Progress">{{ tasks_progress.count }}</span>
+                    </div>
+                    <div class="kanban-cards sortable-list min-vh-50" id="list-In Progress" data-status="In Progress" style="min-height: 200px;">
+                        {% for task in tasks_progress %}
+                            {% include 'governance/partials/kanban_card.html' %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPLETED -->
+            <div class="col-md-4">
+                <div class="bg-light rounded-3 p-3 h-100 border border-light shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-success fw-bold m-0" style="font-size: 0.9rem;"><i class="fas fa-circle text-success fs-6 me-2"></i> COMPLETED</h6>
+                        <span class="badge bg-success bg-opacity-25 text-success rounded-pill" id="count-Completed">{{ tasks_completed.count }}</span>
+                    </div>
+                    <div class="kanban-cards sortable-list min-vh-50" id="list-Completed" data-status="Completed" style="min-height: 200px;">
+                        {% for task in tasks_completed %}
+                            {% include 'governance/partials/kanban_card.html' %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <div class="tab-pane fade" id="timeline" role="tabpanel">
+        <div class="card-premium p-5 text-center">
+            <div class="display-1 text-primary opacity-25 mb-3"><i class="fas fa-stream"></i></div>
+            <h4 class="text-muted fw-bold">Gantt Chart Timeline</h4>
+            <p class="text-secondary">Will be implemented in Phase 6 of the deployment plan.</p>
+        </div>
+    </div>
+</div>
+
+<!-- S-Curve Chart Logic -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+<!-- Offcanvas Slide-over for Task Detail -->
+<div class="offcanvas offcanvas-end border-start-0 shadow-lg" tabindex="-1" id="taskSlideOver" aria-labelledby="taskSlideOverLabel" style="width: 500px;">
+    <div class="offcanvas-header border-bottom py-3 px-4">
+        <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center" id="taskSlideOverLabel">
+            <i class="fas fa-list-check text-primary me-2"></i> Task Details
+        </h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-4 position-relative">
+        <form id="taskDetailForm" class="d-flex flex-column h-100">
+            <input type="hidden" id="taskId">
+            
+            <div class="mb-4 pb-2 border-bottom">
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Task Name</label>
+                <input type="text" class="form-control border-0 px-0 fs-5 fw-bold text-dark" id="taskName" required placeholder="Enter task name..." style="box-shadow: none; border-radius: 0;">
+            </div>
+            
+            <div class="row mb-4 g-4">
+                <div class="col-6">
+                    <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="far fa-user me-1"></i> Assignee</label>
+                    <select class="form-select text-dark" id="taskAssignee">
+                        <option value="">Unassigned</option>
+                        {% for user in team_members %}
+                            <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="fas fa-tasks me-1"></i> Status</label>
+                    <select class="form-select text-dark" id="taskStatus">
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row mb-4 g-4">
+                <div class="col-6">
+                    <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="far fa-calendar-alt me-1"></i> Start Date</label>
+                    <input type="date" class="form-control text-dark" id="taskStartDate">
+                </div>
+                <div class="col-6">
+                    <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="far fa-calendar-check me-1"></i> Due Date</label>
+                    <input type="date" class="form-control text-dark" id="taskDueDate">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="fas fa-caret-up me-1"></i> Weight / Progress (%)</label>
+                <input type="number" class="form-control text-dark" id="taskWeight" min="0" max="100" style="width: 100px;">
+                <div class="form-text small mt-1 text-muted" style="font-size: 0.8rem;">
+                    Value 0-100 to calculate accuracy of S-Curve / Sub-progress.
+                </div>
+            </div>
+            
+            <div class="mb-4 flex-grow-1">
+                <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="fas fa-list-ul me-1"></i> Description</label>
+                <textarea class="form-control text-dark border-0 bg-light rounded-3 p-3" id="taskDescription" rows="5" placeholder="Add detailed instructions, notes, or checklist..." style="resize: none;"></textarea>
+            </div>
+            
+        </form>
+    </div>
+    <div class="offcanvas-footer p-4 bg-white d-flex justify-content-end align-items-center">
+        <button type="button" class="btn btn-link text-dark text-decoration-none fw-bold me-2" data-bs-dismiss="offcanvas">Cancel</button>
+        <button type="button" class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm" onclick="saveTaskDetails()">Save Changes</button>
+    </div>
+</div>
+
+<script>
+// Kanban Drag & Drop with SortableJS
+document.addEventListener("DOMContentLoaded", function() {
+    const kanbanLists = document.querySelectorAll('.sortable-list');
+    
+    kanbanLists.forEach(list => {
+        new Sortable(list, {
+            group: 'kanban',
+            animation: 150,
+            ghostClass: 'bg-light',
+            onEnd: function(evt) {
+                const itemEl = evt.item;
+                const taskId = itemEl.getAttribute('data-id');
+                const toList = evt.to;
+                const newStatus = toList.getAttribute('data-status');
+                
+                // Only send request if column actually changed
+                if (evt.from !== toList) {
+                    updateTaskStatus(taskId, newStatus);
+                    updateCounters();
+                }
+            }
+        });
+    });
+
+    // Quick Add Task on Enter key
+    const quickAddInput = document.getElementById('quickAddTaskInput');
+    if(quickAddInput) {
+        quickAddInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const taskName = this.value.trim();
+                if (taskName) {
+                    createTaskInline(taskName);
+                }
+            }
+        });
+    }
+});
+
+function createTaskInline(name) {
+    fetch(`/governance/projects/{{ project.id }}/tasks/create/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ name: name, weight: 0 })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            window.location.reload(); // Simplest way to re-render the card with Django template
+        } else {
+            alert('Failed to add task.');
+        }
+    });
+}
+
+function updateTaskStatus(taskId, status) {
+    fetch(`/governance/projects/tasks/${taskId}/update-status/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(!data.success) {
+            alert('Failed to update task status.');
+            window.location.reload(); // Revert UI
+        }
+    });
+}
+
+function updateCounters() {
+    ['Pending', 'In Progress', 'Completed'].forEach(status => {
+        const list = document.getElementById('list-' + status);
+        const counter = document.getElementById('count-' + status);
+        if (list && counter) {
+            counter.innerText = list.children.length;
+        }
+    });
+}
+
+// Slide-over Logic
+let taskSlideOver;
+
+function openTaskDetail(id, name, status, assignee, start, due, weight, desc) {
+    if (!taskSlideOver) {
+        taskSlideOver = new bootstrap.Offcanvas(document.getElementById('taskSlideOver'));
+    }
+    
+    document.getElementById('taskId').value = id;
+    document.getElementById('taskName').value = name;
+    document.getElementById('taskStatus').value = status;
+    document.getElementById('taskAssignee').value = assignee;
+    document.getElementById('taskStartDate').value = start;
+    document.getElementById('taskDueDate').value = due;
+    document.getElementById('taskWeight').value = weight;
+    document.getElementById('taskDescription').value = desc;
+    
+    taskSlideOver.show();
+}
+
+function saveTaskDetails() {
+    const id = document.getElementById('taskId').value;
+    const data = {
+        name: document.getElementById('taskName').value,
+        status: document.getElementById('taskStatus').value,
+        assigned_to_id: document.getElementById('taskAssignee').value,
+        start_date: document.getElementById('taskStartDate').value,
+        due_date: document.getElementById('taskDueDate').value,
+        weight: document.getElementById('taskWeight').value,
+        description: document.getElementById('taskDescription').value,
+    };
+    
+    // Determine Endpoint based on New vs Update
+    let endpoint = `/governance/projects/tasks/${id}/update-details/`;
+    
+    if (!id) {
+        // If creating new via 'Add Task' button (which passes empty ID)
+        endpoint = `/governance/projects/{{ project.id }}/tasks/create/`;
+    }
+    
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            taskSlideOver.hide();
+            window.location.reload(); // Quick refresh to update board visuals
+        } else {
+            alert('Error saving task: ' + data.error);
+        }
+    });
+}
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById('sCurveChart');
+    if (ctx) {
+        // Mock Data for S-Curve (To be replaced by dynamic data processing based on Tasks Weights)
+        const labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'];
+        const plannedData = [5, 15, 35, 65, 85, 100]; 
+        const actualData = [5, 12, 28, 45, null, null]; 
+
+        new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Planned Progress (%)',
+                        data: plannedData,
+                        borderColor: '#94a3b8',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false,
+                        pointBackgroundColor: '#94a3b8'
+                    },
+                    {
+                        label: 'Actual Progress (%)',
+                        data: actualData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#3b82f6',
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) { return value + '%' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

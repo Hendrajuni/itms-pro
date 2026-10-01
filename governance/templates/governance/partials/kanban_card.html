@@ -1,0 +1,53 @@
+<div class="card shadow-sm border-0 mb-3 kanban-card cursor-grab" data-id="{{ task.id }}" onclick="openTaskDetail({{ task.id }}, '{{ task.name|escapejs }}', '{{ task.status }}', '{{ task.assigned_to_id|default:'' }}', '{{ task.start_date|date:'Y-m-d'|default:'' }}', '{{ task.due_date|date:'Y-m-d'|default:'' }}', '{{ task.weight|default:0 }}', '{{ task.description|escapejs }}')">
+    <div class="card-body p-3">
+        <!-- Labels -->
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge 
+                {% if task.priority == 'High' %}bg-danger
+                {% elif task.priority == 'Medium' %}bg-warning text-dark
+                {% else %}bg-info text-dark{% endif %} bg-opacity-10 
+                {% if task.priority == 'High' %}text-danger
+                {% elif task.priority == 'Medium' %}text-warning
+                {% else %}text-info{% endif %} 
+                rounded-pill border-0" style="font-size: 0.7rem;">
+                {{ task.priority|default:"Medium" }} Priority
+            </span>
+            {% if task.weight > 0 %}
+            <span class="text-muted small fw-bold" style="font-size: 0.75rem;"><i class="fas fa-weight-hanging me-1"></i>{{ task.weight }}</span>
+            {% endif %}
+        </div>
+        
+        <!-- Title -->
+        <h6 class="fw-bold mb-2 text-dark">{{ task.name }}</h6>
+        
+        <!-- Details & Assignee -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted" style="font-size: 0.75rem;">
+                {% if task.due_date %}
+                <span class="{% if task.is_past_due %}text-danger fw-bold{% endif %}">
+                    <i class="far fa-calendar-alt me-1"></i> 
+                    {% if task.is_past_due %}Overdue{% else %}{{ task.due_date|date:"d M" }}{% endif %}
+                </span>
+                {% else %}
+                <span><i class="far fa-calendar me-1"></i> No Date</span>
+                {% endif %}
+            </div>
+            
+            <div>
+                {% if task.assigned_to %}
+                <div class="avatar bg-primary text-white d-flex align-items-center justify-content-center shadow-sm" 
+                     style="width: 26px; height: 26px; border-radius: 50%; font-size: 0.7rem;" 
+                     title="{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}">
+                    {{ task.assigned_to.first_name.0|default:"U" }}
+                </div>
+                {% else %}
+                <div class="avatar bg-secondary text-white d-flex align-items-center justify-content-center opacity-50" 
+                     style="width: 26px; height: 26px; border-radius: 50%; font-size: 0.7rem; border: 1px dashed #6c757d;" 
+                     title="Unassigned">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
