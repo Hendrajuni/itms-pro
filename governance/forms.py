@@ -54,16 +54,38 @@ DailyLogItemFormSet = inlineformset_factory(
 
 from .models import Project, ProjectTask
 
+class ProjectForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = ['name', 'category', 'description', 'thumbnail', 'location', 'vendor', 'tags', 'template', 'budget', 'budget_source', 'budget_allocated', 'start_date', 'end_date', 'manager']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Penambahan CCTV'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Describe project objectives...'}),
+            'thumbnail': forms.FileInput(attrs={'class': 'form-control'}),
+            'location': forms.Select(attrs={'class': 'form-select'}),
+            'vendor': forms.Select(attrs={'class': 'form-select'}),
+            'tags': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Add tags (e.g., CCTV, Network)'}),
+            'template': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Project Template'}),
+            'budget': forms.Select(attrs={'class': 'form-select'}),
+            'budget_source': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Funding source'}),
+            'budget_allocated': forms.NumberInput(attrs={'class': 'form-control'}),
+            'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'manager': forms.Select(attrs={'class': 'form-select'}),
+        }
+
 class ProjectTaskForm(forms.ModelForm):
     class Meta:
         model = ProjectTask
-        fields = ['name', 'assigned_to', 'status', 'start_date', 'due_date', 'description']
+        fields = ['name', 'assigned_to', 'status', 'start_date', 'due_date', 'weight', 'description']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Task Name'}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'weight': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0-100'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Optional description'}),
         }
 

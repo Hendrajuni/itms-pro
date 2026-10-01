@@ -15,6 +15,9 @@ urlpatterns = [
     path('projects/<int:pk>/', views.ProjectDetailView.as_view(), name='project_detail'),
     path('projects/<int:pk>/edit/', views.ProjectUpdateView.as_view(), name='project_update'),
     path('projects/tasks/<int:pk>/complete/', views.CompleteProjectTaskView.as_view(), name='complete_project_task'),
+    path('projects/tasks/<int:pk>/update-status/', views.UpdateTaskStatusView.as_view(), name='update_task_status'),
+    path('projects/tasks/<int:pk>/update-details/', views.UpdateTaskDetailsView.as_view(), name='update_task_details'),
+    path('projects/<int:project_id>/tasks/create/', views.CreateProjectTaskView.as_view(), name='create_project_task'),
     path('logs/<int:pk>/add-item/', views.DailyLogItemCreateView.as_view(), name='dailylog_item_create'),
     
     # Other Governance Modules

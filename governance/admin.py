@@ -21,9 +21,9 @@ class ProjectTaskInline(admin.TabularInline):
 
 @admin.register(Project)
 class ProjectAdmin(ImportExportModelAdmin):
-    list_display = ('name', 'manager', 'start_date', 'end_date', 'status', 'progress')
-    list_filter = ('status', 'manager')
-    search_fields = ('name', 'description')
+    list_display = ('name', 'category', 'manager', 'start_date', 'end_date', 'status', 'progress')
+    list_filter = ('category', 'status', 'manager')
+    search_fields = ('name', 'description', 'tags')
     inlines = [ProjectTaskInline]
 
 # C. Daily Logs

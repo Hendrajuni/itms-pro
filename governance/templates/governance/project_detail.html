@@ -348,7 +348,10 @@ body {
                         <h3 class="card-title-premium"><i class="fas fa-chart-line text-primary opacity-75"></i> S-Curve Analytics (Planned vs Actual)</h3>
                     </div>
                     <div class="card-body-premium">
-                        <canvas id="sCurveChart" height="100"></canvas>
+                        <div style="position: relative; height: 350px; width: 100%;">
+                            <canvas id="sCurveChart"></canvas>
+                        </div>
+                        <div id="sCurveTableContainer" class="mt-4"></div>
                     </div>
                 </div>
             </div>
@@ -372,20 +375,19 @@ body {
                         
                         <div class="stat-box-container">
                             <div class="stat-box blue">
-                                <div class="stat-num">{{ project.tasks.count }}</div>
+                                <div class="stat-num">{{ tasks.count }}</div>
                                 <div class="stat-label">Total Tasks</div>
                             </div>
                             <div class="stat-box green">
-                                <!-- Temporary static logic for display -->
-                                <div class="stat-num">{{ project.tasks.count }}</div>
+                                <div class="stat-num">{{ tasks_completed.count }}</div>
                                 <div class="stat-label">Completed</div>
                             </div>
                             <div class="stat-box orange">
-                                <div class="stat-num">0</div>
+                                <div class="stat-num">{{ tasks_progress.count }}</div>
                                 <div class="stat-label">In Progress</div>
                             </div>
                             <div class="stat-box red">
-                                <div class="stat-num">0</div>
+                                <div class="stat-num">{{ tasks_overdue }}</div>
                                 <div class="stat-label">Overdue</div>
                             </div>
                         </div>
@@ -779,14 +781,20 @@ function saveTaskDetails() {
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const ctx = document.getElementById('sCurveChart');
-    if (ctx) {
-        // Mock Data for S-Curve (To be replaced by dynamic data processing based on Tasks Weights)
-        const labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'];
-        const plannedData = [5, 15, 35, 65, 85, 100]; 
-        const actualData = [5, 12, 28, 45, null, null]; 
+    const canvas = document.getElementById('sCurveChart');
+    if (canvas) {
+        const ctx2d = canvas.getContext('2d');
+        // Dynamic Data from Backend based on Task Weights
+        const labels = {{ scurve_labels|safe }};
+        const plannedData = {{ scurve_planned|safe }};
+        const actualData = {{ scurve_actual|safe }};
 
-        new Chart(ctx.getContext('2d'), {
+        // Create Gradient for Actual Line
+        let gradient = ctx2d.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+        new Chart(ctx2d, {
             type: 'line',
             data: {
                 labels: labels,
@@ -795,19 +803,27 @@ document.addEventListener("DOMContentLoaded", function() {
                         label: 'Planned Progress (%)',
                         data: plannedData,
                         borderColor: '#94a3b8',
+                        borderWidth: 2,
                         borderDash: [5, 5],
                         tension: 0.4,
                         fill: false,
-                        pointBackgroundColor: '#94a3b8'
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#94a3b8',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
                     },
                     {
                         label: 'Actual Progress (%)',
                         data: actualData,
                         borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        backgroundColor: gradient,
                         tension: 0.4,
                         fill: true,
-                        pointBackgroundColor: '#3b82f6',
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
                         pointRadius: 5,
                         pointHoverRadius: 7
                     }
@@ -815,24 +831,82 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'top' },
+                    legend: { 
+                        position: 'top',
+                        labels: {
+                            font: { family: "'Inter', sans-serif", size: 12, weight: '500' },
+                            usePointStyle: true,
+                            boxWidth: 8
+                        }
+                    },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleFont: { size: 13, family: "'Inter', sans-serif" },
+                        bodyFont: { size: 12, family: "'Inter', sans-serif" },
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + '%';
+                            }
+                        }
                     }
                 },
                 scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Inter', sans-serif", size: 11 } }
+                    },
                     y: {
                         min: 0,
                         max: 100,
+                        grid: { borderDash: [4, 4], color: '#e2e8f0' },
                         ticks: {
+                            font: { family: "'Inter', sans-serif", size: 11 },
                             callback: function(value) { return value + '%' }
                         }
                     }
                 }
             }
         });
+
+        // Generate S-Curve Data Table
+        const tableContainer = document.getElementById('sCurveTableContainer');
+        if (tableContainer) {
+            let tableHTML = `<div class="table-responsive"><table class="table table-sm table-bordered m-0 text-center" style="font-size: 0.85rem;">
+                <thead style="background-color: #f8fafc;">
+                    <tr>
+                        <th class="text-start text-muted fw-bold border-bottom-0" style="width:120px;">Period</th>`;
+            
+            labels.forEach(label => {
+                tableHTML += `<th class="text-muted fw-bold border-bottom-0">${label}</th>`;
+            });
+            
+            tableHTML += `</tr></thead><tbody><tr>
+                <td class="text-start fw-bold" style="color: #64748b;">Planned</td>`;
+            
+            plannedData.forEach(val => {
+                tableHTML += `<td style="color: #64748b;">${val}%</td>`;
+            });
+            
+            tableHTML += `</tr><tr>
+                <td class="text-start fw-bold text-primary">Actual</td>`;
+            
+            actualData.forEach(val => {
+                if (val !== null) {
+                    tableHTML += `<td class="fw-bold text-primary">${val}%</td>`;
+                } else {
+                    tableHTML += `<td class="text-muted">-</td>`;
+                }
+            });
+            
+            tableHTML += `</tr></tbody></table></div>`;
+            tableContainer.innerHTML = tableHTML;
+        }
     }
 });
 </script>

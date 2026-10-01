@@ -514,10 +514,11 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         project = self.object
         tasks = project.tasks.select_related('assigned_to').all()
         
-        # 1. Kanban Buckets
+        # 1. Kanban Buckets & KPI Stats
         context['tasks_pending'] = tasks.filter(status='Pending')
         context['tasks_progress'] = tasks.filter(status='In Progress')
         context['tasks_completed'] = tasks.filter(status='Completed')
+        context['tasks_overdue'] = tasks.exclude(status='Completed').filter(due_date__lt=timezone.now().date()).count()
         
         # 2. My Active Tasks (for quick action)
         context['my_tasks'] = tasks.filter(assigned_to=self.request.user).exclude(status='Completed')
@@ -533,13 +534,72 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         # 4. Progress & Timeline
         total = tasks.count()
         completed = context['tasks_completed'].count()
-        context['progress_percent'] = int((completed / total) * 100) if total > 0 else 0
+        context['progress_percent'] = project.progress
         
         today = timezone.now().date()
         if project.end_date and project.end_date >= today:
             context['days_remaining'] = (project.end_date - today).days
         else:
             context['days_remaining'] = 0
+            
+        # 5. Dynamic S-Curve Calculation
+        import json
+        from datetime import timedelta
+        
+        start_date = project.start_date
+        end_date = project.end_date
+        if not start_date or not end_date:
+            start_date = today
+            end_date = start_date + timedelta(days=30)
+            
+        total_days = (end_date - start_date).days
+        if total_days <= 0: total_days = 1
+        
+        # Determine interval (max 10 points on the chart)
+        interval = max(1, total_days // 10)
+        
+        labels = []
+        planned_data = []
+        actual_data = []
+        
+        # Start one interval before the project starts to create a 0% baseline (Day 0)
+        current_date = start_date - timedelta(days=interval)
+        all_tasks = list(tasks)
+        
+        # Use 100 as the base total weight for S-Curve calculation, assuming user inputs weights summing up to 100.
+        # Fallback to dynamic total_weight only if it exceeds 100 (which shouldn't happen, but just in case)
+        actual_total_weight = sum([t.weight for t in all_tasks])
+        total_weight_base = 100 if actual_total_weight > 0 else 1
+        
+        while current_date <= end_date + timedelta(days=interval):
+            # Special label for baseline
+            if current_date < start_date:
+                labels.append("Start")
+            else:
+                labels.append(current_date.strftime('%d %b'))
+            
+            # Planned Progress: Tasks that should be completed by current_date
+            planned_sum = sum([t.weight for t in all_tasks if t.due_date and t.due_date <= current_date])
+            if current_date >= end_date:
+                planned_sum += sum([t.weight for t in all_tasks if not t.due_date])
+            
+            planned_perc = min(100, round((planned_sum / total_weight_base) * 100, 1))
+            planned_data.append(planned_perc)
+            
+            # Actual Progress: Tasks completed by current_date
+            if current_date <= today:
+                actual_sum = sum([t.weight for t in all_tasks if t.status == 'Completed' and t.completed_at and t.completed_at.date() <= current_date])
+                actual_sum_fallback = sum([t.weight for t in all_tasks if t.status == 'Completed' and not t.completed_at])
+                actual_perc = min(100, round(((actual_sum + actual_sum_fallback) / total_weight_base) * 100, 1))
+                actual_data.append(actual_perc)
+            else:
+                actual_data.append(None)
+                
+            current_date += timedelta(days=interval)
+            
+        context['scurve_labels'] = json.dumps(labels)
+        context['scurve_planned'] = json.dumps(planned_data)
+        context['scurve_actual'] = json.dumps(actual_data)
             
         # 5. Financials (Placeholder for now, using BudgetPost if linked)
         context['budget_allocated'] = project.budget.allocated_amount if project.budget else 0
@@ -592,9 +652,66 @@ class CompleteProjectTaskView(LoginRequiredMixin, View):
         )
 
         return redirect('project_detail', pk=task.project.pk)
+
+from django.http import JsonResponse
+import json
+
+class UpdateTaskStatusView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        try:
+            task = ProjectTask.objects.get(pk=pk)
+            data = json.loads(request.body)
+            new_status = data.get('status')
+            if new_status in dict(ProjectTask.STATUS_CHOICES):
+                task.status = new_status
+                task.save()
+                return JsonResponse({'success': True, 'status': task.status})
+            return JsonResponse({'success': False, 'error': 'Invalid status'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class UpdateTaskDetailsView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        try:
+            task = ProjectTask.objects.get(pk=pk)
+            data = json.loads(request.body)
+            if 'name' in data: task.name = data['name']
+            if 'status' in data: task.status = data['status']
+            if 'weight' in data: task.weight = data['weight'] or 0
+            if 'start_date' in data: task.start_date = data['start_date'] or None
+            if 'due_date' in data: task.due_date = data['due_date'] or None
+            if 'description' in data: task.description = data['description']
+            if 'assigned_to_id' in data: 
+                task.assigned_to_id = data['assigned_to_id'] or None
+            task.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class CreateProjectTaskView(LoginRequiredMixin, View):
+    def post(self, request, project_id):
+        try:
+            project = Project.objects.get(pk=project_id)
+            data = json.loads(request.body)
+            task_name = data.get('name')
+            if not task_name:
+                return JsonResponse({'success': False, 'error': 'Name is required'})
+            
+            task = ProjectTask.objects.create(
+                project=project,
+                name=task_name,
+                status='Pending',
+                weight=data.get('weight', 0)
+            )
+            return JsonResponse({'success': True, 'task_id': task.id, 'name': task.name})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+from .forms import ProjectForm
+
 class ProjectCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Project
-    fields = ['name', 'category', 'description', 'manager', 'location', 'vendor', 'start_date', 'end_date', 'budget']
+    form_class = ProjectForm
     template_name = 'governance/project_form.html'
     success_url = reverse_lazy('project_list')
 
@@ -624,7 +741,7 @@ class ProjectCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
 class ProjectUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Project
-    fields = ['name', 'category', 'description', 'manager', 'location', 'vendor', 'start_date', 'end_date', 'status', 'budget'] # Removed progress (auto-calculated)
+    form_class = ProjectForm
     template_name = 'governance/project_form.html'
     success_url = reverse_lazy('project_list')
 

@@ -56,22 +56,36 @@ class Project(models.Model):
     name = models.CharField(max_length=200)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Software Development')
     description = models.TextField()
+    thumbnail = models.ImageField(upload_to='project_thumbnails/', blank=True, null=True)
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_projects')
     location = models.ForeignKey('assets.Location', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
     vendor = models.ForeignKey('assets.Vendor', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
     budget = models.ForeignKey('BudgetPost', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects', help_text="Funding Source")
+    budget_source = models.CharField(max_length=200, blank=True)
+    budget_allocated = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    actual_cost = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    tags = models.CharField(max_length=200, blank=True)
+    template = models.CharField(max_length=100, blank=True)
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(default=timezone.now)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Planning')
     progress = models.IntegerField(default=0, help_text="0-100%")
 
     def update_progress(self):
-        total_tasks = self.tasks.count()
-        if total_tasks > 0:
-            completed_tasks = self.tasks.filter(status='Completed').count()
-            self.progress = int((completed_tasks / total_tasks) * 100)
+        total_weight = self.tasks.aggregate(total=models.Sum('weight'))['total'] or 0
+        
+        # If tasks have weight, calculate against a strict 100% total base (Standard Project Management)
+        if total_weight > 0:
+            completed_weight = self.tasks.filter(status='Completed').aggregate(total=models.Sum('weight'))['total'] or 0
+            self.progress = min(100, int(completed_weight))
         else:
-            self.progress = 0
+            # Fallback to simple count if no tasks have weights assigned yet
+            total_tasks = self.tasks.count()
+            if total_tasks > 0:
+                completed_tasks = self.tasks.filter(status='Completed').count()
+                self.progress = int((completed_tasks / total_tasks) * 100)
+            else:
+                self.progress = 0
         
         # Auto-update status based on progress
         # Only auto-start the project, do not auto-complete (requires manual sign-off)
@@ -97,6 +111,7 @@ class ProjectTask(models.Model):
     start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    weight = models.IntegerField(default=0, help_text="Value 0-100 to calculate accuracy of S-Curve / Sub-progress")
     
     # Analytics
     PRIORITY_CHOICES = [('High', 'High'), ('Medium', 'Medium'), ('Low', 'Low')]
@@ -112,6 +127,10 @@ class ProjectTask(models.Model):
         return self.status != 'Completed' and self.due_date and self.due_date < timezone.now().date()
 
     def save(self, *args, **kwargs):
+        if self.status == 'Completed' and not self.completed_at:
+            self.completed_at = timezone.now()
+        elif self.status != 'Completed':
+            self.completed_at = None
         super().save(*args, **kwargs)
         self.project.update_progress()
 
@@ -122,6 +141,31 @@ class ProjectTask(models.Model):
 
     def __str__(self):
         return f"{self.project.name} - {self.name}"
+
+class ProjectDocument(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='documents')
+    file = models.FileField(upload_to='project_documents/')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.file.name.split('/')[-1]
+
+    @property
+    def filename(self):
+        import os
+        return os.path.basename(self.file.name)
+
+    @property
+    def filesize_formatted(self):
+        try:
+            size = self.file.size
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:.1f} {unit}"
+                size /= 1024.0
+        except Exception:
+            return "Unknown"
 
 # C. Daily Logs
 class RoutineTask(models.Model):
