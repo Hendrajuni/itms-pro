@@ -915,18 +915,36 @@ body {
                 <div class="gantt-sidebar bg-white d-flex flex-column" style="width: 400px; flex-shrink: 0; z-index: 10; border-right: 1px solid #e2e8f0;">
                     <!-- Header -->
                     <div class="gantt-sidebar-header fw-bold text-muted d-flex align-items-center border-bottom" style="height: 50px; background: #f8fafc; font-size: 0.85rem; letter-spacing: 0.5px;">
-                        <div class="px-2 text-center" style="width: 45px; border-right: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center;">NO</div>
-                        <div class="px-3 flex-grow-1 text-truncate" style="display: flex; align-items: center; height: 100%;">TASK NAME</div>
-                        <div class="px-2 text-center" style="width: 100px; border-left: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center;">PERSENTASE</div>
+                        <div class="px-2 text-center flex-shrink-0" style="width: 45px; border-right: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center;">NO</div>
+                        <div class="px-3 flex-grow-1 text-truncate" style="display: flex; align-items: center; height: 100%; min-width: 0;">TASK NAME</div>
+                        <div class="px-2 text-center flex-shrink-0" style="width: 100px; border-left: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center;">PERSENTASE</div>
                     </div>
                     <!-- Task List -->
                     <div id="gantt-sidebar-list" class="gantt-sidebar-list bg-white">
                         <!-- Populated via JS -->
                     </div>
                 </div>
-                <!-- Right Side: Scrolling Gantt -->
-                <div class="gantt-wrapper bg-white" style="overflow-x: auto; flex-grow: 1;">
-                    <svg id="gantt"></svg>
+                <!-- Right Side: Scrolling Gantt & Legend -->
+                <div class="d-flex flex-column flex-grow-1 bg-white" style="min-width: 0;">
+                    <div class="gantt-wrapper bg-white" style="overflow-x: auto; flex-grow: 1;">
+                        <svg id="gantt"></svg>
+                    </div>
+                    <!-- Legend Footer -->
+                    <div class="gantt-legend d-flex align-items-center gap-4 p-3 border-top text-muted mt-auto" style="font-size: 0.85rem; background-color: #f8fafc;">
+                        <span class="fw-bold me-2 text-dark">Keterangan Warna:</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="width: 16px; height: 16px; border-radius: 4px; background-color: #10b981;"></div>
+                            <span class="fw-medium">Completed</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="width: 16px; height: 16px; border-radius: 4px; background-color: #3b82f6;"></div>
+                            <span class="fw-medium">In Progress</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="width: 16px; height: 16px; border-radius: 4px; background-color: #cbd5e1;"></div>
+                            <span class="fw-medium">Pending</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1714,9 +1732,9 @@ document.addEventListener("DOMContentLoaded", function() {
         // height: 48px to perfectly match Frappe Gantt's row height (bar_height 30 + padding 18)
         sidebarHtml += `
             <div class="gantt-sidebar-item d-flex align-items-center border-bottom" style="height: 48px; font-size: 0.85rem; font-weight: 500; color: #334155;" title="${task.name}">
-                <div class="px-2 text-center text-muted" style="width: 45px; border-right: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">${index + 1}</div>
-                <div class="px-3 flex-grow-1 text-truncate">${task.name}</div>
-                <div class="px-2 text-center text-primary fw-bold" style="width: 100px; border-left: 1px solid #e2e8f0; font-size: 0.8rem; height: 100%; display: flex; align-items: center; justify-content: center;">${task.weight}%</div>
+                <div class="px-2 text-center text-muted flex-shrink-0" style="width: 45px; border-right: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">${index + 1}</div>
+                <div class="px-3 flex-grow-1 text-truncate" style="min-width: 0;">${task.name}</div>
+                <div class="px-2 text-center text-primary fw-bold flex-shrink-0" style="width: 100px; border-left: 1px solid #e2e8f0; font-size: 0.8rem; height: 100%; display: flex; align-items: center; justify-content: center;">${task.weight}%</div>
             </div>
         `;
     });
