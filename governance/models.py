@@ -154,29 +154,58 @@ class ProjectTask(models.Model):
         return f"{self.project.name} - {self.name}"
 
 class ProjectDocument(models.Model):
+    DOCUMENT_TYPES = [
+        ('Legal & Permit', 'Legal & Permit'),
+        ('BAST & Handover', 'BAST & Handover'),
+        ('Finance & Invoice', 'Finance & Invoice'),
+        ('Design & Planning', 'Design & Planning'),
+        ('Media & External Links', 'Media & External Links'),
+        ('Other', 'Other'),
+    ]
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='documents')
-    file = models.FileField(upload_to='project_documents/')
+    name = models.CharField(max_length=255, blank=True, help_text="Custom name or title")
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES, default='Other')
+    file = models.FileField(upload_to='project_documents/', blank=True, null=True)
+    external_link = models.URLField(blank=True, null=True, help_text="Link to Google Drive, OneDrive, etc.")
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.file.name.split('/')[-1]
+        if self.name:
+            return self.name
+        elif self.file:
+            return self.file.name.split('/')[-1]
+        elif self.external_link:
+            return "External Link"
+        return f"Document {self.id}"
 
     @property
     def filename(self):
-        import os
-        return os.path.basename(self.file.name)
+        if self.name:
+            return self.name
+        if self.file:
+            import os
+            return os.path.basename(self.file.name)
+        if self.external_link:
+            return "Cloud Link"
+        return "Unknown"
 
     @property
     def filesize_formatted(self):
-        try:
-            size = self.file.size
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size < 1024.0:
-                    return f"{size:.1f} {unit}"
-                size /= 1024.0
-        except Exception:
-            return "Unknown"
+        if self.file:
+            try:
+                size = self.file.size
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if size < 1024.0:
+                        return f"{size:.1f} {unit}"
+                    size /= 1024.0
+            except Exception:
+                return "Unknown"
+        return "External"
+        
+    @property
+    def is_link(self):
+        return bool(self.external_link and not self.file)
 
 # C. Daily Logs
 class RoutineTask(models.Model):

@@ -362,8 +362,9 @@ body {
 
 </style>
 
-<!-- Breadcrumb & Header -->
-<div class="mb-2">
+<div class="container-fluid px-4 py-3">
+    <!-- Breadcrumb & Header -->
+    <div class="mb-2">
         <div class="text-muted small">
             <a href="{% url 'project_list' %}" class="text-decoration-none text-muted">Projects</a> &rsaquo; <span class="fw-bold">{{ project.name }}</span>
         </div>
@@ -949,7 +950,280 @@ body {
             </div>
         </div>
     </div>
+    
+    <!-- FILES TAB (WEB FILE MANAGER) -->
+    <div class="tab-pane fade" id="files" role="tabpanel">
+        <div class="card-premium d-flex flex-row overflow-hidden mb-0" style="height: 70vh;">
+            
+            <!-- Sidebar: Folders / Categories -->
+            <div class="file-manager-sidebar bg-light border-end d-flex flex-column" style="width: 250px; flex-shrink: 0;">
+                <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-dark"><i class="fas fa-folder text-primary me-2"></i> Categories</h6>
+                </div>
+                <div class="flex-grow-1 overflow-auto p-2" id="fileCategoryList">
+                    <button class="btn btn-light w-100 text-start text-dark fw-bold mb-1 active-category" style="font-size: 0.9rem;" onclick="filterFiles('All', this)">
+                        <i class="fas fa-hdd text-secondary me-2"></i> All Files
+                    </button>
+                    <button class="btn btn-light w-100 text-start text-secondary fw-medium mb-1" style="font-size: 0.9rem;" onclick="filterFiles('Legal & Permit', this)">
+                        <i class="fas fa-balance-scale text-warning me-2"></i> Legal & Permit
+                    </button>
+                    <button class="btn btn-light w-100 text-start text-secondary fw-medium mb-1" style="font-size: 0.9rem;" onclick="filterFiles('BAST & Handover', this)">
+                        <i class="fas fa-file-signature text-success me-2"></i> BAST & Handover
+                    </button>
+                    <button class="btn btn-light w-100 text-start text-secondary fw-medium mb-1" style="font-size: 0.9rem;" onclick="filterFiles('Finance & Invoice', this)">
+                        <i class="fas fa-file-invoice-dollar text-danger me-2"></i> Finance & Invoice
+                    </button>
+                    <button class="btn btn-light w-100 text-start text-secondary fw-medium mb-1" style="font-size: 0.9rem;" onclick="filterFiles('Design & Planning', this)">
+                        <i class="fas fa-drafting-compass text-info me-2"></i> Design & Planning
+                    </button>
+                    <button class="btn btn-light w-100 text-start text-secondary fw-medium mb-1" style="font-size: 0.9rem;" onclick="filterFiles('Media & External Links', this)">
+                        <i class="fas fa-cloud text-primary me-2"></i> Media Links
+                    </button>
+                    <button class="btn btn-light w-100 text-start text-secondary fw-medium mb-1" style="font-size: 0.9rem;" onclick="filterFiles('Other', this)">
+                        <i class="fas fa-folder-open text-muted me-2"></i> Other
+                    </button>
+                </div>
+                <!-- Storage Info -->
+                <div class="p-3 border-top bg-white">
+                    <div class="d-flex justify-content-between text-muted mb-1" style="font-size: 0.75rem;">
+                        <span class="fw-bold">Storage Used</span>
+                        <span>0%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 5%"></div>
+                    </div>
+                    <div class="text-muted mt-2" style="font-size: 0.7rem;">Unlimited via Cloud Links</div>
+                </div>
+            </div>
+
+            <!-- Main Area: File List -->
+            <div class="file-manager-main d-flex flex-column flex-grow-1 bg-white" style="min-width: 0;">
+                
+                <!-- Toolbar -->
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white shadow-sm" style="z-index: 10;">
+                    <div class="d-flex align-items-center gap-3">
+                        <h5 class="m-0 fw-bold text-dark" id="currentCategoryTitle">All Files</h5>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill" id="fileCountBadge">{{ project.documents.count }} items</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <div class="position-relative">
+                            <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem;"></i>
+                            <input type="text" class="form-control form-control-sm ps-5 rounded-pill border" placeholder="Search files..." style="width: 200px; border-color: #e2e8f0;">
+                        </div>
+                        <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addDocumentModal">
+                            <i class="fas fa-plus me-1"></i> New
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- File List Table -->
+                <div class="flex-grow-1 overflow-auto p-0">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                        <thead class="bg-light sticky-top" style="z-index: 5;">
+                            <tr>
+                                <th class="text-muted fw-bold border-0 py-3 ps-4" style="width: 60px;"></th>
+                                <th class="text-muted fw-bold border-0 py-3">Name</th>
+                                <th class="text-muted fw-bold border-0 py-3">Category</th>
+                                <th class="text-muted fw-bold border-0 py-3">Size</th>
+                                <th class="text-muted fw-bold border-0 py-3">Uploaded</th>
+                                <th class="text-muted fw-bold border-0 py-3 text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fileTableBody">
+                            {% for doc in project.documents.all %}
+                            <tr class="file-row" data-category="{{ doc.document_type }}">
+                                <td class="ps-4">
+                                    {% if doc.is_link %}
+                                        <div class="bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;"><i class="fas fa-link"></i></div>
+                                    {% elif '.pdf' in doc.filename|lower %}
+                                        <div class="bg-danger bg-opacity-10 text-danger rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;"><i class="fas fa-file-pdf"></i></div>
+                                    {% elif '.xls' in doc.filename|lower or '.csv' in doc.filename|lower %}
+                                        <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;"><i class="fas fa-file-excel"></i></div>
+                                    {% elif '.doc' in doc.filename|lower %}
+                                        <div class="bg-info bg-opacity-10 text-info rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;"><i class="fas fa-file-word"></i></div>
+                                    {% elif '.jpg' in doc.filename|lower or '.png' in doc.filename|lower %}
+                                        <div class="bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;"><i class="fas fa-image"></i></div>
+                                    {% else %}
+                                        <div class="bg-secondary bg-opacity-10 text-secondary rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;"><i class="fas fa-file-alt"></i></div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ doc.filename }}</div>
+                                    {% if doc.is_link %}
+                                        <div class="text-muted small text-truncate" style="max-width: 250px;">{{ doc.external_link }}</div>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-light text-dark border">{{ doc.document_type }}</span></td>
+                                <td class="text-muted">{{ doc.filesize_formatted }}</td>
+                                <td>
+                                    <div class="text-dark">{{ doc.uploaded_at|date:"d M Y" }}</div>
+                                    <div class="text-muted small">{{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }}</div>
+                                </td>
+                                <td class="text-end pe-4">
+                                    {% if doc.is_link %}
+                                        <a href="{{ doc.external_link }}" target="_blank" class="btn btn-sm btn-light text-primary rounded-circle shadow-sm"><i class="fas fa-external-link-alt"></i></a>
+                                    {% else %}
+                                        <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-light text-primary rounded-circle shadow-sm"><i class="fas fa-download"></i></a>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-light text-danger rounded-circle ms-1 shadow-sm"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr id="emptyFileState">
+                                <td colspan="6" class="text-center py-5">
+                                    <div class="display-4 text-muted opacity-25 mb-3"><i class="fas fa-folder-open"></i></div>
+                                    <h5 class="fw-bold text-muted">Folder Kosong</h5>
+                                    <p class="text-secondary small">Belum ada file di kategori ini.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <!-- Hidden empty state for JS filtering -->
+                            <tr id="jsEmptyFileState" style="display: none;">
+                                <td colspan="6" class="text-center py-5">
+                                    <div class="display-4 text-muted opacity-25 mb-3"><i class="fas fa-folder-open"></i></div>
+                                    <h5 class="fw-bold text-muted">Folder Kosong</h5>
+                                    <p class="text-secondary small">Belum ada file di kategori ini.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
+
+<!-- Add Document Modal -->
+<div class="modal fade" id="addDocumentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark"><i class="fas fa-upload text-primary me-2"></i> Add New Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addDocumentForm" method="POST" action="{% url 'project_document_upload' project.id %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-4 d-flex bg-light p-1 rounded-pill">
+                        <button type="button" class="btn flex-fill rounded-pill fw-bold btn-primary" id="btnModeUpload" onclick="toggleDocMode('upload')">
+                            <i class="fas fa-file-upload me-1"></i> Upload File
+                        </button>
+                        <button type="button" class="btn flex-fill rounded-pill fw-bold text-secondary border-0 bg-transparent" id="btnModeLink" onclick="toggleDocMode('link')">
+                            <i class="fas fa-link me-1"></i> Cloud Link
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-bold small text-uppercase">Document Type</label>
+                        <select name="document_type" class="form-select border-0 bg-light shadow-none">
+                            <option value="Legal & Permit">Legal & Permit</option>
+                            <option value="BAST & Handover">BAST & Handover</option>
+                            <option value="Finance & Invoice">Finance & Invoice</option>
+                            <option value="Design & Planning">Design & Planning</option>
+                            <option value="Media & External Links">Media & External Links</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-bold small text-uppercase">Custom Name <span class="text-lowercase fw-normal">(optional)</span></label>
+                        <input type="text" name="name" class="form-control border-0 bg-light shadow-none" placeholder="e.g. BAST Final Signed">
+                    </div>
+
+                    <div id="uploadFieldGroup" class="mb-3">
+                        <label class="form-label text-muted fw-bold small text-uppercase">Select File</label>
+                        <input type="file" name="file" class="form-control border-0 bg-light shadow-none" id="fileInput" required>
+                        <div class="form-text small">Accepted formats: PDF, DOCX, XLSX, JPG, PNG.</div>
+                    </div>
+
+                    <div id="linkFieldGroup" class="mb-3 d-none">
+                        <label class="form-label text-muted fw-bold small text-uppercase">Cloud URL (Google Drive, OneDrive)</label>
+                        <input type="url" name="external_link" class="form-control border-0 bg-light shadow-none" id="linkInput" placeholder="https://drive.google.com/...">
+                        <div class="form-text small">Tautan akan disimpan tanpa membebani storage server.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="document.getElementById('addDocumentForm').submit()">Save Document</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.file-manager-sidebar .btn-light:hover { background-color: #e2e8f0; }
+.file-manager-sidebar .active-category { background-color: #e2e8f0; border-left: 3px solid #3b82f6; }
+.file-row { transition: all 0.2s ease; cursor: pointer; }
+.file-row:hover { background-color: #f8fafc; }
+</style>
+
+<script>
+function filterFiles(category, btnElement) {
+    // Update active UI
+    document.querySelectorAll('#fileCategoryList button').forEach(btn => {
+        btn.classList.remove('active-category', 'text-dark', 'fw-bold');
+        btn.classList.add('text-secondary', 'fw-medium');
+    });
+    btnElement.classList.add('active-category', 'text-dark', 'fw-bold');
+    btnElement.classList.remove('text-secondary', 'fw-medium');
+    
+    document.getElementById('currentCategoryTitle').innerText = category;
+    
+    // Filter rows
+    const rows = document.querySelectorAll('.file-row');
+    let visibleCount = 0;
+    rows.forEach(row => {
+        if (category === 'All' || row.dataset.category === category) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Show empty state if needed
+    const jsEmptyState = document.getElementById('jsEmptyFileState');
+    const nativeEmptyState = document.getElementById('emptyFileState');
+    if (nativeEmptyState) {
+        nativeEmptyState.style.display = 'none'; // always hide django empty state when filtering
+    }
+    
+    if (visibleCount === 0) {
+        jsEmptyState.style.display = '';
+    } else {
+        jsEmptyState.style.display = 'none';
+    }
+}
+
+function toggleDocMode(mode) {
+    const btnUpload = document.getElementById('btnModeUpload');
+    const btnLink = document.getElementById('btnModeLink');
+    const uploadGroup = document.getElementById('uploadFieldGroup');
+    const linkGroup = document.getElementById('linkFieldGroup');
+    const fileInput = document.getElementById('fileInput');
+    const linkInput = document.getElementById('linkInput');
+    
+    if (mode === 'upload') {
+        btnUpload.className = 'btn flex-fill rounded-pill fw-bold btn-primary';
+        btnLink.className = 'btn flex-fill rounded-pill fw-bold text-secondary border-0 bg-transparent';
+        uploadGroup.classList.remove('d-none');
+        linkGroup.classList.add('d-none');
+        fileInput.required = true;
+        linkInput.required = false;
+        linkInput.value = '';
+    } else {
+        btnLink.className = 'btn flex-fill rounded-pill fw-bold btn-primary';
+        btnUpload.className = 'btn flex-fill rounded-pill fw-bold text-secondary border-0 bg-transparent';
+        linkGroup.classList.remove('d-none');
+        uploadGroup.classList.add('d-none');
+        linkInput.required = true;
+        fileInput.required = false;
+        fileInput.value = '';
+    }
+}
+</script>
 
 <!-- S-Curve Chart Logic -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1794,5 +2068,6 @@ document.addEventListener("DOMContentLoaded", function() {
 /* Hide default Frappe Gantt text labels inside SVG */
 .gantt .bar-label { display: none !important; }
 </style>
+</div>
 
 {% endblock %}

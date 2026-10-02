@@ -775,6 +775,34 @@ class CreateProjectTaskView(LoginRequiredMixin, View):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
+class ProjectDocumentUploadView(LoginRequiredMixin, View):
+    def post(self, request, project_id):
+        from django.contrib import messages
+        from django.shortcuts import get_object_or_404, redirect
+        from .models import ProjectDocument
+        
+        project = get_object_or_404(Project, pk=project_id)
+        
+        document_type = request.POST.get('document_type', 'Other')
+        name = request.POST.get('name', '')
+        external_link = request.POST.get('external_link', '')
+        file_obj = request.FILES.get('file')
+        
+        if not file_obj and not external_link:
+            messages.error(request, "Harap unggah file fisik atau masukkan Cloud Link.")
+        else:
+            doc = ProjectDocument.objects.create(
+                project=project,
+                document_type=document_type,
+                name=name,
+                external_link=external_link,
+                file=file_obj,
+                uploaded_by=request.user
+            )
+            messages.success(request, f"Document '{doc.filename}' berhasil ditambahkan ke kategori {document_type}.")
+            
+        return redirect(f"/governance/projects/{project.id}/#files")
+
 from .forms import ProjectForm
 
 class ProjectCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
