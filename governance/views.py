@@ -627,6 +627,36 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['budget_allocated'] = project.budget.allocated_amount if project.budget else 0
         # Future: Calculate actual expenses
         
+        # 6. Gantt Chart Data
+        gantt_tasks = []
+        for t in all_tasks:
+            # Frappe Gantt requires valid start and end dates. Provide fallbacks if empty.
+            start = t.start_date.strftime('%Y-%m-%d') if t.start_date else (project.start_date.strftime('%Y-%m-%d') if project.start_date else today.strftime('%Y-%m-%d'))
+            # If no due_date, default to 1 day after start
+            if t.due_date:
+                end = t.due_date.strftime('%Y-%m-%d')
+            else:
+                end = (datetime.strptime(start, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+                
+            progress = 100 if t.status == 'Completed' else (50 if t.status == 'In Progress' else 0)
+            custom_class = f"bar-{t.status.lower().replace(' ', '')}"
+            if getattr(t, 'flagged', False):
+                custom_class += " bar-flagged"
+                
+            gantt_tasks.append({
+                'id': str(t.id),
+                'name': t.name,
+                'start': start,
+                'end': end,
+                'progress': progress,
+                'weight': t.weight,
+                'dependencies': '',
+                'custom_class': custom_class,
+                'assignee': t.assigned_to.get_full_name() if t.assigned_to else 'Unassigned'
+            })
+            
+        context['gantt_tasks'] = json.dumps(gantt_tasks)
+        
         return context
 
 @method_decorator(transaction.atomic, name='dispatch')

@@ -895,10 +895,40 @@ body {
     </div>
     
     <div class="tab-pane fade" id="timeline" role="tabpanel">
-        <div class="card-premium p-5 text-center">
-            <div class="display-1 text-primary opacity-25 mb-3"><i class="fas fa-stream"></i></div>
-            <h4 class="text-muted fw-bold">Gantt Chart Timeline</h4>
-            <p class="text-secondary">Will be implemented in Phase 6 of the deployment plan.</p>
+        <div class="card-premium p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                <h3 class="card-title-premium m-0"><i class="fas fa-stream text-primary opacity-75 me-2"></i> Project Timeline</h3>
+                <div class="btn-group" role="group" aria-label="Gantt View Mode">
+                    <button type="button" class="btn btn-outline-primary btn-sm active fw-bold" id="gantt-view-Day">Day</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="gantt-view-Week">Week</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="gantt-view-Month">Month</button>
+                </div>
+            </div>
+            
+            <div id="gantt-empty-state" class="d-none text-center py-5">
+                <div class="display-1 text-muted opacity-25 mb-3"><i class="fas fa-stream"></i></div>
+                <h4 class="text-muted fw-bold">Belum Ada Task</h4>
+                <p class="text-secondary">Silakan tambahkan task di tab Tasks untuk memunculkan timeline.</p>
+            </div>
+            <div id="gantt-split-container" class="d-flex border rounded overflow-hidden">
+                <!-- Left Sidebar: Task Names & Weight -->
+                <div class="gantt-sidebar bg-white d-flex flex-column" style="width: 400px; flex-shrink: 0; z-index: 10; border-right: 1px solid #e2e8f0;">
+                    <!-- Header -->
+                    <div class="gantt-sidebar-header fw-bold text-muted d-flex align-items-center border-bottom" style="height: 50px; background: #f8fafc; font-size: 0.85rem; letter-spacing: 0.5px;">
+                        <div class="px-2 text-center" style="width: 45px; border-right: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center;">NO</div>
+                        <div class="px-3 flex-grow-1 text-truncate" style="display: flex; align-items: center; height: 100%;">TASK NAME</div>
+                        <div class="px-2 text-center" style="width: 100px; border-left: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center;">PERSENTASE</div>
+                    </div>
+                    <!-- Task List -->
+                    <div id="gantt-sidebar-list" class="gantt-sidebar-list bg-white">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+                <!-- Right Side: Scrolling Gantt -->
+                <div class="gantt-wrapper bg-white" style="overflow-x: auto; flex-grow: 1;">
+                    <svg id="gantt"></svg>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -907,6 +937,9 @@ body {
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Frappe Gantt -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
 
 <!-- Offcanvas Slide-over for Task Detail -->
 <div class="offcanvas offcanvas-end border-start-0 shadow-lg" tabindex="-1" id="taskSlideOver" aria-labelledby="taskSlideOverLabel" style="width: 500px;">
@@ -1627,5 +1660,121 @@ function quickAddTask(input, projectId, status) {
     });
 }
 </script>
+
+<!-- Gantt Chart Logic -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const ganttTasksRaw = {{ gantt_tasks|safe|default:"[]" }};
+    
+    if (ganttTasksRaw.length === 0) {
+        document.getElementById('gantt-empty-state').classList.remove('d-none');
+        document.getElementById('gantt-split-container').classList.add('d-none');
+        return;
+    }
+    
+    // Frappe Gantt initialization
+    let gantt = new Gantt("#gantt", ganttTasksRaw, {
+        header_height: 50,
+        column_width: 30,
+        step: 24,
+        view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
+        bar_height: 30,
+        bar_corner_radius: 6,
+        arrow_curve: 5,
+        padding: 18,
+        view_mode: 'Day',
+        date_format: 'YYYY-MM-DD',
+        custom_popup_html: function(task) {
+            return `
+                <div class="p-3" style="min-width: 200px; color: #f8fafc;">
+                    <h6 class="fw-bold mb-1 text-white">${task.name}</h6>
+                    <p class="mb-1 small" style="color: #cbd5e1;"><i class="far fa-user me-1"></i> ${task.assignee || 'Unassigned'}</p>
+                    <p class="mb-2 small" style="color: #cbd5e1;"><i class="far fa-calendar-alt me-1"></i> ${task.start} - ${task.end}</p>
+                    <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1);">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: ${task.progress}%" aria-valuenow="${task.progress}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="d-block mt-1 text-end fw-bold text-info">Persentase: ${task.weight}%</small>
+                </div>
+            `;
+        }
+    });
+    
+    // Populate Sidebar Task List
+    const sidebarList = document.getElementById('gantt-sidebar-list');
+    let sidebarHtml = '';
+    let totalWeight = 0;
+    let completedWeight = 0;
+    
+    ganttTasksRaw.forEach((task, index) => {
+        totalWeight += task.weight;
+        if (task.progress === 100) {
+            completedWeight += task.weight;
+        }
+        
+        // height: 48px to perfectly match Frappe Gantt's row height (bar_height 30 + padding 18)
+        sidebarHtml += `
+            <div class="gantt-sidebar-item d-flex align-items-center border-bottom" style="height: 48px; font-size: 0.85rem; font-weight: 500; color: #334155;" title="${task.name}">
+                <div class="px-2 text-center text-muted" style="width: 45px; border-right: 1px solid #e2e8f0; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">${index + 1}</div>
+                <div class="px-3 flex-grow-1 text-truncate">${task.name}</div>
+                <div class="px-2 text-center text-primary fw-bold" style="width: 100px; border-left: 1px solid #e2e8f0; font-size: 0.8rem; height: 100%; display: flex; align-items: center; justify-content: center;">${task.weight}%</div>
+            </div>
+        `;
+    });
+    
+    let notCompletedWeight = totalWeight - completedWeight;
+    let sisaBobot = 100 - totalWeight;
+    
+    // Add Summary Footer
+    sidebarHtml += `
+        <div class="gantt-sidebar-footer d-flex flex-column justify-content-center bg-light p-3 border-bottom" style="font-size: 0.85rem;">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted fw-bold">Total Persentase:</span>
+                <span class="fw-bold text-dark">${totalWeight}%</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted fw-bold">Belum Selesai:</span>
+                <span class="fw-bold text-warning">${notCompletedWeight}%</span>
+            </div>
+            <div class="d-flex justify-content-between pt-2 border-top border-secondary border-opacity-25">
+                <span class="text-muted fw-bold">Sisa Kuota Persentase:</span>
+                <span class="fw-bold ${sisaBobot === 0 ? 'text-success' : 'text-danger'}">${sisaBobot}%</span>
+            </div>
+        </div>
+    `;
+    
+    sidebarList.innerHTML = sidebarHtml;
+    
+    // Setup View Mode buttons
+    const viewButtons = ['Day', 'Week', 'Month'];
+    viewButtons.forEach(mode => {
+        const btn = document.getElementById(`gantt-view-${mode}`);
+        if(btn) {
+            btn.addEventListener('click', function() {
+                // Update active state
+                viewButtons.forEach(m => document.getElementById(`gantt-view-${m}`).classList.remove('active'));
+                this.classList.add('active');
+                // Change view mode
+                gantt.change_view_mode(mode);
+            });
+        }
+    });
+});
+</script>
+
+<style>
+/* Custom Gantt Styles */
+.gantt .bar-completed .bar { fill: #10b981 !important; }
+.gantt .bar-inprogress .bar { fill: #3b82f6 !important; }
+.gantt .bar-pending .bar { fill: #cbd5e1 !important; }
+.gantt .bar-flagged .bar { fill: #ef4444 !important; }
+
+.gantt .bar-progress { fill: rgba(255,255,255, 0.4) !important; }
+
+/* Hide handles so users can't resize */
+.gantt .handle-group { display: none !important; }
+
+/* Hide default Frappe Gantt text labels inside SVG */
+.gantt .bar-label { display: none !important; }
+</style>
 
 {% endblock %}
