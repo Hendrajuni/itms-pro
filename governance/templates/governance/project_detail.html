@@ -202,36 +202,300 @@ body {
     border-bottom: none;
     padding-bottom: 0;
 }
+
+/* ============================================
+   KANBAN BOARD PREMIUM STYLES
+   ============================================ */
+
+/* Kanban Column */
+.kanban-column {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s ease;
+}
+.kanban-column:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+/* Column Dot */
+.kanban-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* Kanban Card */
+.kanban-card {
+    border: 1px solid #e8ecf1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+.kanban-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    border-color: #cbd5e1;
+}
+.kanban-card:active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* Overdue Card */
+.kanban-card-overdue {
+    border-left: 4px solid #ef4444 !important;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 30%);
+}
+.kanban-card-accent-overdue {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+/* Card Title */
+.kanban-card-title {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Card Menu Button */
+.kanban-card-menu {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.kanban-card:hover .kanban-card-menu {
+    opacity: 1;
+}
+
+/* Priority Badges */
+.kanban-badge-high {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+.kanban-badge-medium {
+    background-color: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+.kanban-badge-low {
+    background-color: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+/* Progress Bar */
+.kanban-progress-bar {
+    height: 6px;
+    border-radius: 6px;
+    background-color: #e2e8f0;
+}
+.kanban-progress-bar .progress-bar {
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Avatars */
+.kanban-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.kanban-avatar-empty {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #94a3b8;
+    border: 1.5px dashed #cbd5e1;
+    flex-shrink: 0;
+}
+
+/* Filter Active State */
+.kanban-card.filtered-out {
+    display: none !important;
+}
+
+/* Cursor */
+.cursor-grab { cursor: grab; }
+.cursor-grab:active { cursor: grabbing; }
+
+/* Quick Add Button */
+.quick-add-btn {
+    border-style: dashed !important;
+    border-width: 1.5px !important;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+}
+.quick-add-btn:hover {
+    background-color: rgba(59, 130, 246, 0.04);
+    border-color: #3b82f6 !important;
+    color: #3b82f6 !important;
+}
+.quick-add-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 </style>
 
 <!-- Breadcrumb & Header -->
-<div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+<div class="mb-2">
         <div class="text-muted small">
-            <a href="{% url 'project_list' %}" class="text-decoration-none text-muted">IT Projects</a> &rsaquo;&rsaquo; <span class="fw-bold">{{ project.name }}</span>
-        </div>
-        <div>
-            <a href="{% url 'project_update' project.pk %}" class="btn btn-primary btn-sm rounded-3 px-3 fw-bold shadow-sm"><i class="fas fa-edit me-2"></i>Edit Project</a>
-            <button class="btn btn-outline-secondary btn-sm rounded-3 px-3 ms-2 bg-white">More Actions <i class="fas fa-chevron-down ms-1"></i></button>
+            <a href="{% url 'project_list' %}" class="text-decoration-none text-muted">Projects</a> &rsaquo; <span class="fw-bold">{{ project.name }}</span>
         </div>
     </div>
     
-    <div class="d-flex align-items-center gap-3">
-        <div class="bg-primary text-white rounded p-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px; font-size: 1.5rem;">
-            <i class="fas fa-briefcase"></i>
+    
+    <div class="d-flex justify-content-between align-items-start gap-3">
+        <!-- Left: Project Info -->
+        <div class="d-flex gap-3">
+            <div class="bg-primary text-white rounded-3 p-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px; font-size: 1.5rem;">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <div>
+                <h1 class="page-title mb-1">{{ project.name }}</h1>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-1">
+                    <span class="status-badge {% if project.status == 'Completed' %}completed{% elif project.status == 'Planning' %}planning{% else %}in-progress{% endif %}">
+                        {% if project.status == 'Completed' %}<i class="fas fa-check-circle"></i>
+                        {% elif project.status == 'Planning' %}<i class="fas fa-clock"></i>
+                        {% else %}<i class="fas fa-spinner fa-spin"></i>{% endif %}
+                        {{ project.status }}
+                    </span>
+                    <span class="text-muted small fw-medium">
+                        <i class="far fa-calendar-alt me-1"></i> {{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}
+                    </span>
+                    {% if project.location %}
+                    <span class="text-muted small fw-medium">
+                        <i class="fas fa-map-marker-alt me-1"></i> {{ project.location }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% if project.description %}
+                <p class="text-muted small mb-0" style="max-width: 600px;">{{ project.description|striptags|truncatewords:20 }}</p>
+                {% endif %}
+            </div>
         </div>
-        <div>
-            <h1 class="page-title mb-1">{{ project.name }}</h1>
-            <div class="d-flex align-items-center gap-3">
-                <span class="status-badge {% if project.status == 'Completed' %}completed{% elif project.status == 'Planning' %}planning{% else %}in-progress{% endif %}">
-                    {% if project.status == 'Completed' %}<i class="fas fa-check-circle"></i>
-                    {% elif project.status == 'Planning' %}<i class="fas fa-clock"></i>
-                    {% else %}<i class="fas fa-spinner fa-spin"></i>{% endif %}
-                    {{ project.status }}
-                </span>
-                <span class="text-muted small fw-medium">
-                    <i class="far fa-calendar-alt me-1"></i> {{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}
-                </span>
+        
+        <!-- Right: Mini Overall Progress -->
+        <div class="card-premium mb-0 d-none d-md-block" style="min-width: 400px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="card-body-premium p-3">
+                <div class="d-flex justify-content-between align-items-end mb-2">
+                    <span class="text-muted fw-bold small" style="font-size: 0.8rem;">Overall Progress</span>
+                    <span class="fw-bold fs-5" style="color: #0f172a;">{{ project.progress }}%</span>
+                </div>
+                <div class="progress custom-progress-bar mt-0 mb-2" style="height: 10px; background-color: #e2e8f0;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ project.progress }}%"></div>
+                </div>
+                <div class="text-muted" style="font-size: 0.7rem;">
+                    {{ tasks_completed.count }} / {{ tasks.count }} tasks completed
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI CARDS (Visible Across All Tabs) -->
+<div class="row g-3 mb-4 row-cols-1 row-cols-md-3 row-cols-lg-5">
+    <!-- Total Tasks -->
+    <div class="col">
+        <div class="card-premium mb-0" style="border-radius: 12px;">
+            <div class="card-body-premium d-flex align-items-center gap-3 py-2 px-3">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div>
+                    <div class="text-muted fw-bold" style="font-size: 0.75rem;">Total Tasks</div>
+                    <div class="fs-4 fw-bold text-dark lh-1 mb-1">{{ tasks.count }}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">{{ tasks_completed.count }} completed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pending -->
+    <div class="col">
+        <div class="card-premium mb-0" style="border-radius: 12px;">
+            <div class="card-body-premium d-flex align-items-center gap-3 py-2 px-3">
+                <div class="bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    <i class="far fa-clock"></i>
+                </div>
+                <div>
+                    <div class="text-muted fw-bold" style="font-size: 0.75rem;">Pending</div>
+                    <div class="fs-4 fw-bold text-dark lh-1 mb-1">{{ tasks_pending.count }}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">Perlu dikerjakan</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- In Progress -->
+    <div class="col">
+        <div class="card-premium mb-0" style="border-radius: 12px;">
+            <div class="card-body-premium d-flex align-items-center gap-3 py-2 px-3">
+                <div class="bg-info bg-opacity-10 text-info rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div>
+                    <div class="text-muted fw-bold" style="font-size: 0.75rem;">In Progress</div>
+                    <div class="fs-4 fw-bold text-dark lh-1 mb-1">{{ tasks_progress.count }}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">Sedang berjalan</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Completed -->
+    <div class="col">
+        <div class="card-premium mb-0" style="border-radius: 12px;">
+            <div class="card-body-premium d-flex align-items-center gap-3 py-2 px-3">
+                <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div>
+                    <div class="text-muted fw-bold" style="font-size: 0.75rem;">Completed</div>
+                    <div class="fs-4 fw-bold text-dark lh-1 mb-1">{{ tasks_completed.count }}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">Selesai</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overdue -->
+    <div class="col">
+        <div class="card-premium mb-0" style="border-radius: 12px;">
+            <div class="card-body-premium d-flex align-items-center gap-3 py-2 px-3">
+                <div class="bg-danger bg-opacity-10 text-danger rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="text-muted fw-bold" style="font-size: 0.75rem;">Overdue</div>
+                    <div class="fs-4 fw-bold text-danger lh-1 mb-1">{{ tasks_overdue }}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">Terlambat</div>
+                </div>
             </div>
         </div>
     </div>
@@ -282,52 +546,16 @@ body {
         <div class="row">
             <!-- Left Column (Project Info & Description) -->
             <div class="col-lg-7 col-xl-8">
-                <!-- Project Information -->
+                <!-- S-Curve Chart -->
                 <div class="card-premium">
-                    <div class="card-body-premium d-flex gap-4 flex-column flex-md-row">
-                        <div class="flex-shrink-0">
-                            {% if project.thumbnail %}
-                                <img src="{{ project.thumbnail.url }}" class="project-image" alt="Project Thumbnail">
-                            {% else %}
-                                <div class="project-image bg-light d-flex align-items-center justify-content-center text-muted fs-1 border">
-                                    <i class="fas fa-image opacity-25"></i>
-                                </div>
-                            {% endif %}
+                    <div class="card-header-premium">
+                        <h3 class="card-title-premium"><i class="fas fa-chart-line text-primary opacity-75"></i> S-Curve Analytics (Planned vs Actual)</h3>
+                    </div>
+                    <div class="card-body-premium">
+                        <div style="position: relative; height: 350px; width: 100%;">
+                            <canvas id="sCurveChart"></canvas>
                         </div>
-                        <div class="flex-grow-1">
-                            <h3 class="card-title-premium mb-4">Project Information</h3>
-                            
-                            <div class="row g-3">
-                                <div class="col-sm-3 info-label">Category</div>
-                                <div class="col-sm-9 info-value"><span class="badge bg-primary bg-opacity-10 text-primary px-3 rounded-pill">{{ project.category }}</span></div>
-                                
-                                <div class="col-sm-3 info-label">Location</div>
-                                <div class="col-sm-9 info-value">{{ project.location.name|default:"-" }}</div>
-                                
-                                <div class="col-sm-3 info-label">Manager</div>
-                                <div class="col-sm-9 info-value d-flex align-items-center gap-2">
-                                    <div class="avatar bg-primary" style="width: 24px; height: 24px; font-size: 0.7rem;">
-                                        {{ project.manager.first_name.0|default:"M" }}
-                                    </div>
-                                    {{ project.manager.get_full_name|default:project.manager.username|default:"Unassigned" }}
-                                </div>
-                                
-                                <div class="col-sm-3 info-label">Vendor</div>
-                                <div class="col-sm-9 info-value text-primary">{{ project.vendor.name|default:"-" }}</div>
-                                
-                                <div class="col-sm-3 info-label">Budget</div>
-                                <div class="col-sm-9 info-value text-success">Rp {{ project.budget_allocated|intcomma|default:"0" }}</div>
-                                
-                                <div class="col-sm-3 info-label">Actual Cost</div>
-                                <div class="col-sm-9 info-value text-danger">Rp {{ project.actual_cost|intcomma|default:"0" }}</div>
-                                
-                                <div class="col-sm-3 info-label">Start Date</div>
-                                <div class="col-sm-9 info-value">{{ project.start_date|date:"d M Y" }}</div>
-                                
-                                <div class="col-sm-3 info-label">End Date</div>
-                                <div class="col-sm-9 info-value">{{ project.end_date|date:"d M Y" }}</div>
-                            </div>
-                        </div>
+                        <div id="sCurveTableContainer" class="mt-4"></div>
                     </div>
                 </div>
 
@@ -341,54 +569,61 @@ body {
                         {{ project.description|linebreaks }}
                     </div>
                 </div>
-
-                <!-- S-Curve Chart -->
-                <div class="card-premium">
-                    <div class="card-header-premium">
-                        <h3 class="card-title-premium"><i class="fas fa-chart-line text-primary opacity-75"></i> S-Curve Analytics (Planned vs Actual)</h3>
-                    </div>
-                    <div class="card-body-premium">
-                        <div style="position: relative; height: 350px; width: 100%;">
-                            <canvas id="sCurveChart"></canvas>
-                        </div>
-                        <div id="sCurveTableContainer" class="mt-4"></div>
-                    </div>
-                </div>
             </div>
 
             <!-- Right Column (Stats, Team, Docs) -->
             <div class="col-lg-5 col-xl-4">
                 
-                <!-- Overall Progress -->
+                <!-- Project Information -->
                 <div class="card-premium">
-                    <div class="card-body-premium">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h3 class="card-title-premium m-0">Overall Progress</h3>
-                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
-                                <i class="fas fa-check" style="font-size: 0.7rem;"></i>
-                            </div>
+                    <div class="card-body-premium d-flex gap-4 flex-column">
+                        <div class="flex-shrink-0 text-center">
+                            {% if project.thumbnail %}
+                                <img src="{{ project.thumbnail.url }}" class="project-image mx-auto" style="width: 100%; height: auto; max-height: 250px;" alt="Project Thumbnail">
+                            {% else %}
+                                <div class="project-image bg-light d-flex align-items-center justify-content-center text-muted fs-1 border mx-auto" style="width: 100%; max-width: 300px; height: 200px;">
+                                    <i class="fas fa-image opacity-25"></i>
+                                </div>
+                            {% endif %}
                         </div>
-                        <div class="progress-huge mt-3">{{ project.progress }}%</div>
-                        <div class="progress custom-progress-bar">
-                            <div class="progress-bar" role="progressbar" style="width: {{ project.progress }}%"></div>
-                        </div>
-                        
-                        <div class="stat-box-container">
-                            <div class="stat-box blue">
-                                <div class="stat-num">{{ tasks.count }}</div>
-                                <div class="stat-label">Total Tasks</div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                                <h3 class="card-title-premium m-0">Project Information</h3>
+                                <div>
+                                    <a href="{% url 'project_update' project.pk %}" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm"><i class="fas fa-edit me-1"></i>Edit</a>
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 ms-1 bg-white"><i class="fas fa-ellipsis-v"></i></button>
+                                </div>
                             </div>
-                            <div class="stat-box green">
-                                <div class="stat-num">{{ tasks_completed.count }}</div>
-                                <div class="stat-label">Completed</div>
-                            </div>
-                            <div class="stat-box orange">
-                                <div class="stat-num">{{ tasks_progress.count }}</div>
-                                <div class="stat-label">In Progress</div>
-                            </div>
-                            <div class="stat-box red">
-                                <div class="stat-num">{{ tasks_overdue }}</div>
-                                <div class="stat-label">Overdue</div>
+                            
+                            <div class="row g-3">
+                                <div class="col-sm-4 info-label">Category</div>
+                                <div class="col-sm-8 info-value"><span class="badge bg-primary bg-opacity-10 text-primary px-3 rounded-pill">{{ project.category }}</span></div>
+                                
+                                <div class="col-sm-4 info-label">Location</div>
+                                <div class="col-sm-8 info-value">{{ project.location.name|default:"-" }}</div>
+                                
+                                <div class="col-sm-4 info-label">Manager</div>
+                                <div class="col-sm-8 info-value d-flex align-items-center gap-2">
+                                    <div class="avatar bg-primary" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                        {{ project.manager.first_name.0|default:"M" }}
+                                    </div>
+                                    {{ project.manager.get_full_name|default:project.manager.username|default:"Unassigned" }}
+                                </div>
+                                
+                                <div class="col-sm-4 info-label">Vendor</div>
+                                <div class="col-sm-8 info-value text-primary">{{ project.vendor.name|default:"-" }}</div>
+                                
+                                <div class="col-sm-4 info-label">Budget</div>
+                                <div class="col-sm-8 info-value text-success">Rp {{ project.budget_allocated|intcomma|default:"0" }}</div>
+                                
+                                <div class="col-sm-4 info-label">Actual Cost</div>
+                                <div class="col-sm-8 info-value text-danger">Rp {{ project.actual_cost|intcomma|default:"0" }}</div>
+                                
+                                <div class="col-sm-4 info-label">Start Date</div>
+                                <div class="col-sm-8 info-value">{{ project.start_date|date:"d M Y" }}</div>
+                                
+                                <div class="col-sm-4 info-label">End Date</div>
+                                <div class="col-sm-8 info-value">{{ project.end_date|date:"d M Y" }}</div>
                             </div>
                         </div>
                     </div>
@@ -484,49 +719,132 @@ body {
 
     <!-- KANBAN TASKS TAB -->
     <div class="tab-pane fade" id="tasks" role="tabpanel">
-        <!-- Header & Toolbar -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="card-title-premium m-0"><i class="fas fa-columns text-primary me-2"></i> Project Board</h3>
-            <div>
-                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold me-2"><i class="fas fa-filter"></i> Filter</button>
-                <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" onclick="openTaskDetail('', '', 'Pending', '', '', '', '0', '')">
+        <!-- Functional Toolbar -->
+        <div class="d-flex align-items-center mb-3 gap-2 bg-white p-2 rounded-3 shadow-sm border border-light" style="flex-wrap: nowrap;">
+            <!-- Search -->
+            <div class="position-relative flex-shrink-0" style="width: 220px;">
+                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem;"></i>
+                <input type="text" id="kanbanSearchInput" class="form-control form-control-sm ps-5 py-2 border rounded-3 text-muted bg-white" placeholder="Search tasks..." style="border-color: #e2e8f0;">
+            </div>
+            
+            <!-- Priority Filter -->
+            <select id="kanbanFilterPriority" class="form-select form-select-sm border rounded-3 py-2 px-3 fw-medium text-muted bg-white flex-shrink-0" style="border-color: #e2e8f0; width: 140px;">
+                <option value="">All Priorities</option>
+                <option value="High">🔴 High</option>
+                <option value="Medium">🟡 Medium</option>
+                <option value="Low">🟢 Low</option>
+            </select>
+            
+            <!-- Assignee Filter -->
+            <select id="kanbanFilterAssignee" class="form-select form-select-sm border rounded-3 py-2 px-3 fw-medium text-muted bg-white flex-shrink-0" style="border-color: #e2e8f0; width: 160px;">
+                <option value="">All Assignees</option>
+                {% for member in team_members %}
+                <option value="{{ member.id }}">{{ member.get_full_name|default:member.username }}</option>
+                {% endfor %}
+                <option value="unassigned">Unassigned</option>
+            </select>
+
+            <!-- Spacer + Right side -->
+            <div class="ms-auto d-flex align-items-center gap-2 flex-shrink-0">
+                <!-- Task Count Summary -->
+                <span class="text-muted fw-medium small d-none d-lg-inline" id="kanbanFilterCount">Showing all tasks</span>
+                
+                <!-- View Toggle -->
+                <div class="btn-group rounded-3 overflow-hidden border flex-shrink-0" role="group" style="border-color: #e2e8f0;">
+                    <button type="button" class="btn btn-primary btn-sm px-3 py-2 fw-bold border-0"><i class="fas fa-columns me-1"></i> Kanban</button>
+                    <button type="button" class="btn btn-white bg-white btn-sm px-3 py-2 fw-medium text-muted border-start" disabled><i class="fas fa-list-ul me-1"></i> List</button>
+                    <button type="button" class="btn btn-white bg-white btn-sm px-3 py-2 fw-medium text-muted border-start" disabled><i class="far fa-calendar-alt me-1"></i> Calendar</button>
+                </div>
+                
+                <!-- Add Task -->
+                <button class="btn btn-primary btn-sm rounded-3 px-3 py-2 fw-bold text-nowrap" onclick="openTaskDetail('', '', 'Pending', '', '', '', '0', '')">
                     <i class="fas fa-plus me-1"></i> Add Task
                 </button>
             </div>
         </div>
 
         <!-- Kanban Container -->
-        <div class="row g-4 kanban-container" style="min-height: 60vh;">
+        <div class="row g-3 kanban-container" style="min-height: 60vh;">
             
             <!-- PENDING -->
             <div class="col-md-4">
-                <div class="bg-light rounded-3 p-3 h-100 border border-light shadow-sm d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-secondary fw-bold m-0" style="font-size: 0.9rem;"><i class="fas fa-circle text-secondary fs-6 me-2"></i> PENDING</h6>
-                        <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill" id="count-Pending">{{ tasks_pending.count }}</span>
+                <div class="kanban-column kanban-column-pending rounded-4 p-3 h-100 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="kanban-dot bg-secondary"></span>
+                            <h6 class="fw-bold m-0 text-dark" style="font-size: 0.95rem;">Pending</h6>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2 py-1 fw-bold" id="count-Pending">{{ tasks_pending.count }}</span>
+                            <button class="btn btn-link text-muted p-0 text-decoration-none" onclick="openTaskDetail('', '', 'Pending', '', '', '', '0', '')"><i class="fas fa-plus"></i></button>
+                            <button class="btn btn-link text-muted p-0 text-decoration-none"><i class="fas fa-ellipsis-h"></i></button>
+                        </div>
+                    </div>
+                    <!-- Quick Add -->
+                    <div class="mb-2">
+                        <button class="btn btn-outline-secondary btn-sm w-100 rounded-3 py-2 fw-medium quick-add-btn" onclick="toggleQuickAdd(this, 'Pending')">
+                            <i class="fas fa-plus me-1"></i> Quick Add Task
+                        </button>
+                        <div class="quick-add-form d-none mt-2">
+                            <input type="text" class="form-control form-control-sm rounded-3 py-2 mb-2 quick-add-input" placeholder="Task name..." data-status="Pending" onkeydown="if(event.key==='Enter') quickAddTask(this, {{ project.id }}, 'Pending')">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm flex-fill rounded-3 fw-bold" onclick="quickAddTask(this.parentElement.querySelector('input'), {{ project.id }}, 'Pending')"><i class="fas fa-check me-1"></i>Add</button>
+                                <button class="btn btn-light btn-sm rounded-3" onclick="cancelQuickAdd(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
                     </div>
                     <div class="kanban-cards sortable-list flex-grow-1" id="list-Pending" data-status="Pending" style="min-height: 200px;">
                         {% for task in tasks_pending %}
                             {% include 'governance/partials/kanban_card.html' %}
+                        {% empty %}
+                            <div class="empty-kanban text-center py-5 d-flex flex-column align-items-center justify-content-center h-100">
+                                <div class="bg-white rounded-circle p-3 mb-3 shadow-sm text-secondary opacity-50">
+                                    <i class="fas fa-inbox fs-3"></i>
+                                </div>
+                                <p class="text-muted small mb-0">Task pending akan muncul di sini.</p>
+                            </div>
                         {% endfor %}
-                    </div>
-                    <!-- Quick Add Task -->
-                    <div class="mt-3 pt-3 border-top border-secondary border-opacity-25">
-                        <input type="text" id="quickAddTaskInput" class="form-control form-control-sm shadow-sm border-0 py-2" placeholder="+ Add a new task and press Enter...">
                     </div>
                 </div>
             </div>
 
             <!-- IN PROGRESS -->
             <div class="col-md-4">
-                <div class="bg-light rounded-3 p-3 h-100 border border-light shadow-sm">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-primary fw-bold m-0" style="font-size: 0.9rem;"><i class="fas fa-circle text-primary fs-6 me-2"></i> IN PROGRESS</h6>
-                        <span class="badge bg-primary bg-opacity-25 text-primary rounded-pill" id="count-In Progress">{{ tasks_progress.count }}</span>
+                <div class="kanban-column kanban-column-progress rounded-4 p-3 h-100 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="kanban-dot bg-primary"></span>
+                            <h6 class="fw-bold m-0 text-primary" style="font-size: 0.95rem;">In Progress</h6>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1 fw-bold" id="count-In Progress">{{ tasks_progress.count }}</span>
+                            <button class="btn btn-link text-muted p-0 text-decoration-none" onclick="openTaskDetail('', '', 'In Progress', '', '', '', '0', '')"><i class="fas fa-plus"></i></button>
+                            <button class="btn btn-link text-muted p-0 text-decoration-none"><i class="fas fa-ellipsis-h"></i></button>
+                        </div>
                     </div>
-                    <div class="kanban-cards sortable-list min-vh-50" id="list-In Progress" data-status="In Progress" style="min-height: 200px;">
+                    <!-- Quick Add -->
+                    <div class="mb-2">
+                        <button class="btn btn-outline-primary btn-sm w-100 rounded-3 py-2 fw-medium quick-add-btn" onclick="toggleQuickAdd(this, 'In Progress')">
+                            <i class="fas fa-plus me-1"></i> Quick Add Task
+                        </button>
+                        <div class="quick-add-form d-none mt-2">
+                            <input type="text" class="form-control form-control-sm rounded-3 py-2 mb-2 quick-add-input" placeholder="Task name..." data-status="In Progress" onkeydown="if(event.key==='Enter') quickAddTask(this, {{ project.id }}, 'In Progress')">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm flex-fill rounded-3 fw-bold" onclick="quickAddTask(this.parentElement.querySelector('input'), {{ project.id }}, 'In Progress')"><i class="fas fa-check me-1"></i>Add</button>
+                                <button class="btn btn-light btn-sm rounded-3" onclick="cancelQuickAdd(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kanban-cards sortable-list flex-grow-1" id="list-In Progress" data-status="In Progress" style="min-height: 200px;">
                         {% for task in tasks_progress %}
                             {% include 'governance/partials/kanban_card.html' %}
+                        {% empty %}
+                            <div class="empty-kanban text-center py-5 d-flex flex-column align-items-center justify-content-center h-100">
+                                <div class="bg-white rounded-circle p-3 mb-3 shadow-sm text-primary opacity-50">
+                                    <i class="fas fa-spinner fs-3"></i>
+                                </div>
+                                <p class="text-muted small mb-0">Task sedang dikerjakan muncul di sini.</p>
+                            </div>
                         {% endfor %}
                     </div>
                 </div>
@@ -534,19 +852,45 @@ body {
 
             <!-- COMPLETED -->
             <div class="col-md-4">
-                <div class="bg-light rounded-3 p-3 h-100 border border-light shadow-sm">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-success fw-bold m-0" style="font-size: 0.9rem;"><i class="fas fa-circle text-success fs-6 me-2"></i> COMPLETED</h6>
-                        <span class="badge bg-success bg-opacity-25 text-success rounded-pill" id="count-Completed">{{ tasks_completed.count }}</span>
+                <div class="kanban-column kanban-column-completed rounded-4 p-3 h-100 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="kanban-dot bg-success"></span>
+                            <h6 class="fw-bold m-0 text-success" style="font-size: 0.95rem;">Completed</h6>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1 fw-bold" id="count-Completed">{{ tasks_completed.count }}</span>
+                            <button class="btn btn-link text-muted p-0 text-decoration-none" onclick="openTaskDetail('', '', 'Completed', '', '', '', '0', '')"><i class="fas fa-plus"></i></button>
+                            <button class="btn btn-link text-muted p-0 text-decoration-none"><i class="fas fa-ellipsis-h"></i></button>
+                        </div>
                     </div>
-                    <div class="kanban-cards sortable-list min-vh-50" id="list-Completed" data-status="Completed" style="min-height: 200px;">
+                    <!-- Quick Add -->
+                    <div class="mb-2">
+                        <button class="btn btn-outline-success btn-sm w-100 rounded-3 py-2 fw-medium quick-add-btn" onclick="toggleQuickAdd(this, 'Completed')">
+                            <i class="fas fa-plus me-1"></i> Quick Add Task
+                        </button>
+                        <div class="quick-add-form d-none mt-2">
+                            <input type="text" class="form-control form-control-sm rounded-3 py-2 mb-2 quick-add-input" placeholder="Task name..." data-status="Completed" onkeydown="if(event.key==='Enter') quickAddTask(this, {{ project.id }}, 'Completed')">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success btn-sm flex-fill rounded-3 fw-bold" onclick="quickAddTask(this.parentElement.querySelector('input'), {{ project.id }}, 'Completed')"><i class="fas fa-check me-1"></i>Add</button>
+                                <button class="btn btn-light btn-sm rounded-3" onclick="cancelQuickAdd(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kanban-cards sortable-list flex-grow-1" id="list-Completed" data-status="Completed" style="min-height: 200px;">
                         {% for task in tasks_completed %}
                             {% include 'governance/partials/kanban_card.html' %}
+                        {% empty %}
+                            <div class="empty-kanban text-center py-5 d-flex flex-column align-items-center justify-content-center h-100">
+                                <div class="bg-white rounded-circle p-3 mb-3 shadow-sm text-success opacity-50">
+                                    <i class="fas fa-check-double fs-3"></i>
+                                </div>
+                                <p class="text-muted small mb-0">Task selesai akan muncul di sini.</p>
+                            </div>
                         {% endfor %}
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
     
@@ -562,6 +906,7 @@ body {
 <!-- S-Curve Chart Logic -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- Offcanvas Slide-over for Task Detail -->
 <div class="offcanvas offcanvas-end border-start-0 shadow-lg" tabindex="-1" id="taskSlideOver" aria-labelledby="taskSlideOverLabel" style="width: 500px;">
@@ -575,9 +920,20 @@ body {
         <form id="taskDetailForm" class="d-flex flex-column h-100">
             <input type="hidden" id="taskId">
             
-            <div class="mb-4 pb-2 border-bottom">
+            <div class="mb-4 pb-2 border-bottom position-relative">
                 <label class="form-label text-muted small fw-bold text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Task Name</label>
                 <input type="text" class="form-control border-0 px-0 fs-5 fw-bold text-dark" id="taskName" required placeholder="Enter task name..." style="box-shadow: none; border-radius: 0;">
+                
+                <!-- Flag Info Alert (hidden by default) -->
+                <div id="taskFlagAlert" class="alert alert-warning py-2 mt-2 mb-0 d-none" style="font-size: 0.8rem; border-radius: 0.5rem;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-exclamation-triangle me-1"></i> <strong>Flagged:</strong>
+                            <span id="taskFlagReasonText"></span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;" onclick="toggleTaskFlag(document.getElementById('taskId').value, false, event)">Hapus Flag</button>
+                    </div>
+                </div>
             </div>
             
             <div class="row mb-4 g-4">
@@ -616,6 +972,7 @@ body {
                 <input type="number" class="form-control text-dark" id="taskWeight" min="0" max="100" style="width: 100px;">
                 <div class="form-text small mt-1 text-muted" style="font-size: 0.8rem;">
                     Value 0-100 to calculate accuracy of S-Curve / Sub-progress.
+                    <div id="taskWeightHelper" class="mt-1 fw-bold text-primary">Sisa bobot tersedia: 100%</div>
                 </div>
             </div>
             
@@ -633,6 +990,30 @@ body {
 </div>
 
 <script>
+const totalAllocatedWeight = {{ total_allocated_weight|default:0 }};
+
+// Tab persistence
+document.addEventListener("DOMContentLoaded", function() {
+    const hash = window.location.hash;
+    if (hash) {
+        const triggerEl = document.querySelector(`button[data-bs-target="${hash}"]`);
+        if (triggerEl) {
+            const tab = new bootstrap.Tab(triggerEl);
+            tab.show();
+        }
+    }
+    
+    // Update hash when tab changes
+    const tabEls = document.querySelectorAll('button[data-bs-toggle="pill"]');
+    tabEls.forEach(el => {
+        el.addEventListener('shown.bs.tab', function (event) {
+            window.location.hash = event.target.getAttribute('data-bs-target');
+        });
+    });
+});
+</script>
+
+<script>
 // Kanban Drag & Drop with SortableJS
 document.addEventListener("DOMContentLoaded", function() {
     const kanbanLists = document.querySelectorAll('.sortable-list');
@@ -645,13 +1026,60 @@ document.addEventListener("DOMContentLoaded", function() {
             onEnd: function(evt) {
                 const itemEl = evt.item;
                 const taskId = itemEl.getAttribute('data-id');
+                const fromList = evt.from;
                 const toList = evt.to;
+                
+                const oldStatus = fromList.getAttribute('data-status');
                 const newStatus = toList.getAttribute('data-status');
                 
                 // Only send request if column actually changed
-                if (evt.from !== toList) {
-                    updateTaskStatus(taskId, newStatus);
-                    updateCounters();
+                if (fromList !== toList) {
+                    
+                    // Workflow Enforcement Rules
+                    if (oldStatus === 'Pending' && newStatus === 'Completed') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Workflow Error',
+                            text: 'Task tidak bisa langsung dari Pending ke Completed. Harus melalui In Progress.',
+                            confirmButtonColor: '#3085d6'
+                        }).then(() => {
+                            window.location.hash = 'tasks';
+                            window.location.reload(); // revert DOM
+                        });
+                        return;
+                    }
+                    if (oldStatus === 'Completed' && newStatus === 'Pending') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Workflow Error',
+                            text: 'Task Completed tidak bisa dikembalikan ke Pending.',
+                            confirmButtonColor: '#3085d6'
+                        }).then(() => {
+                            window.location.hash = 'tasks';
+                            window.location.reload(); // revert DOM
+                        });
+                        return;
+                    }
+                    
+                    fetch(`/governance/projects/tasks/${taskId}/update-status/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        // Always reload to sync UI with database
+                        window.location.hash = 'tasks';
+                        window.location.reload();
+                    })
+                    .catch(err => {
+                        Swal.fire('Error', 'Failed to update task status.', 'error').then(() => {
+                            window.location.reload();
+                        });
+                    });
                 }
             }
         });
@@ -686,7 +1114,7 @@ function createTaskInline(name) {
         if(data.success) {
             window.location.reload(); // Simplest way to re-render the card with Django template
         } else {
-            alert('Failed to add task.');
+            Swal.fire('Error', 'Failed to add task.', 'error');
         }
     });
 }
@@ -703,8 +1131,9 @@ function updateTaskStatus(taskId, status) {
     .then(response => response.json())
     .then(data => {
         if(!data.success) {
-            alert('Failed to update task status.');
-            window.location.reload(); // Revert UI
+            Swal.fire('Error', 'Failed to update task status.', 'error').then(() => {
+                window.location.reload(); // Revert UI
+            });
         }
     });
 }
@@ -719,27 +1148,158 @@ function updateCounters() {
     });
 }
 
+function toggleTaskFlag(taskId, isFlagged, evt) {
+    if (evt) evt.preventDefault(); // prevent opening side panel if clicked from menu
+    
+    if (isFlagged) {
+        Swal.fire({
+            title: 'Flag Masalah',
+            text: 'Masukkan alasan kenapa task ini ditandai bermasalah:',
+            input: 'text',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Flag Task',
+            cancelButtonText: 'Batal',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Alasan tidak boleh kosong!'
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                executeToggleFlag(taskId, isFlagged, result.value);
+            }
+        });
+    } else {
+        executeToggleFlag(taskId, isFlagged, '');
+    }
+}
+
+function executeToggleFlag(taskId, isFlagged, flagReason) {
+    fetch(`/governance/projects/tasks/${taskId}/toggle-flag/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            is_flagged: isFlagged,
+            flag_reason: flagReason
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            window.location.hash = 'tasks';
+            window.location.reload();
+        } else {
+            Swal.fire('Error', 'Failed to toggle flag: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(err => {
+        Swal.fire('Error', 'Network error while toggling flag.', 'error');
+    });
+}
+
 // Slide-over Logic
 let taskSlideOver;
 
-function openTaskDetail(id, name, status, assignee, start, due, weight, desc) {
+function openTaskDetailFromCard(el) {
+    const id = el.getAttribute('data-id');
+    const name = el.getAttribute('data-name');
+    const status = el.getAttribute('data-status');
+    const assignee = el.getAttribute('data-assignee') !== 'unassigned' ? el.getAttribute('data-assignee') : '';
+    const start = el.getAttribute('data-start');
+    const due = el.getAttribute('data-due');
+    const weight = el.getAttribute('data-weight');
+    const desc = el.getAttribute('data-desc');
+    const flagged = el.getAttribute('data-flagged') === 'true';
+    const flagReason = el.querySelector('[title]') ? el.querySelector('[title]').getAttribute('title') : '';
+    
+    openTaskDetail(id, name, status, assignee, start, due, weight, desc, flagged, flagReason);
+}
+
+function openTaskDetail(id, name, status, assignee, start, due, weight, desc, flagged=false, flagReason='') {
     if (!taskSlideOver) {
         taskSlideOver = new bootstrap.Offcanvas(document.getElementById('taskSlideOver'));
     }
     
+    // Helper to force-set the status select by rebuilding options
+    function applyStatus() {
+        const sel = document.getElementById('taskStatus');
+        const options = [
+            {value: 'Pending', text: 'Pending'},
+            {value: 'In Progress', text: 'In Progress'},
+            {value: 'Completed', text: 'Completed'}
+        ];
+        // Rebuild entire select to force browser re-render
+        sel.innerHTML = options.map(o => 
+            `<option value="${o.value}" ${o.value === status ? 'selected' : ''}>${o.text}</option>`
+        ).join('');
+    }
+    
+    // Set all form values immediately
     document.getElementById('taskId').value = id;
     document.getElementById('taskName').value = name;
-    document.getElementById('taskStatus').value = status;
     document.getElementById('taskAssignee').value = assignee;
     document.getElementById('taskStartDate').value = start;
     document.getElementById('taskDueDate').value = due;
     document.getElementById('taskWeight').value = weight;
+    
+    // Calculate and display remaining weight
+    const currentTaskWeight = parseInt(weight) || 0;
+    const remainingWeight = Math.max(0, 100 - (totalAllocatedWeight - currentTaskWeight));
+    
+    const weightHelper = document.getElementById('taskWeightHelper');
+    const weightInput = document.getElementById('taskWeight');
+    
+    weightHelper.innerText = `Sisa bobot tersedia: ${remainingWeight}%`;
+    weightHelper.className = 'mt-1 fw-bold text-primary';
+    weightInput.classList.remove('is-invalid');
+    weightInput.max = remainingWeight;
+    
+    // Validation on input
+    weightInput.oninput = function() {
+        const val = parseInt(this.value) || 0;
+        if (val > remainingWeight) {
+            this.classList.add('is-invalid');
+            weightHelper.className = 'mt-1 fw-bold text-danger';
+            weightHelper.innerText = `Sisa bobot tersedia: ${remainingWeight}% (Melebihi batas!)`;
+        } else {
+            this.classList.remove('is-invalid');
+            weightHelper.className = 'mt-1 fw-bold text-primary';
+            weightHelper.innerText = `Sisa bobot tersedia: ${remainingWeight}%`;
+        }
+    };
+    
     document.getElementById('taskDescription').value = desc;
     
+    // Flag info
+    const flagAlert = document.getElementById('taskFlagAlert');
+    if (flagged) {
+        flagAlert.classList.remove('d-none');
+        document.getElementById('taskFlagReasonText').textContent = flagReason;
+    } else {
+        flagAlert.classList.add('d-none');
+    }
+    
+    applyStatus();
+    
     taskSlideOver.show();
+    
+    // Force re-apply status after offcanvas animation completes
+    setTimeout(applyStatus, 100);
+    setTimeout(applyStatus, 350);
+    setTimeout(applyStatus, 600);
 }
 
 function saveTaskDetails() {
+    const weightInput = document.getElementById('taskWeight');
+    if (weightInput.classList.contains('is-invalid')) {
+        Swal.fire('Error', 'Bobot melebihi sisa yang tersedia!', 'error');
+        return;
+    }
+
     const id = document.getElementById('taskId').value;
     const data = {
         name: document.getElementById('taskName').value,
@@ -747,7 +1307,7 @@ function saveTaskDetails() {
         assigned_to_id: document.getElementById('taskAssignee').value,
         start_date: document.getElementById('taskStartDate').value,
         due_date: document.getElementById('taskDueDate').value,
-        weight: document.getElementById('taskWeight').value,
+        weight: weightInput.value,
         description: document.getElementById('taskDescription').value,
     };
     
@@ -771,6 +1331,7 @@ function saveTaskDetails() {
     .then(data => {
         if(data.success) {
             taskSlideOver.hide();
+            window.location.hash = 'tasks';
             window.location.reload(); // Quick refresh to update board visuals
         } else {
             alert('Error saving task: ' + data.error);
@@ -909,6 +1470,149 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 });
+</script>
+
+<!-- Kanban Realtime Filter -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById('kanbanSearchInput');
+    const priorityFilter = document.getElementById('kanbanFilterPriority');
+    const assigneeFilter = document.getElementById('kanbanFilterAssignee');
+    const countLabel = document.getElementById('kanbanFilterCount');
+    
+    function filterKanbanCards() {
+        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const priorityVal = priorityFilter ? priorityFilter.value : '';
+        const assigneeVal = assigneeFilter ? assigneeFilter.value : '';
+        
+        const allCards = document.querySelectorAll('.kanban-card');
+        let shown = 0;
+        let total = allCards.length;
+        
+        allCards.forEach(card => {
+            const name = (card.getAttribute('data-name') || '').toLowerCase();
+            const priority = card.getAttribute('data-priority') || '';
+            const assignee = card.getAttribute('data-assignee') || '';
+            
+            let visible = true;
+            
+            // Search filter
+            if (searchTerm && !name.includes(searchTerm)) {
+                visible = false;
+            }
+            
+            // Priority filter
+            if (priorityVal && priority !== priorityVal) {
+                visible = false;
+            }
+            
+            // Assignee filter
+            if (assigneeVal) {
+                if (assigneeVal === 'unassigned' && assignee !== 'unassigned') {
+                    visible = false;
+                } else if (assigneeVal !== 'unassigned' && assignee !== assigneeVal) {
+                    visible = false;
+                }
+            }
+            
+            if (visible) {
+                card.classList.remove('filtered-out');
+                shown++;
+            } else {
+                card.classList.add('filtered-out');
+            }
+        });
+        
+        // Update count badges per column
+        ['Pending', 'In Progress', 'Completed'].forEach(status => {
+            const list = document.getElementById('list-' + status);
+            if (list) {
+                const visibleCards = list.querySelectorAll('.kanban-card:not(.filtered-out)');
+                const badge = document.getElementById('count-' + status);
+                if (badge) badge.textContent = visibleCards.length;
+            }
+        });
+        
+        // Update summary label
+        if (countLabel) {
+            if (searchTerm || priorityVal || assigneeVal) {
+                countLabel.textContent = `Showing ${shown} of ${total} tasks`;
+                countLabel.classList.add('text-primary');
+                countLabel.classList.remove('text-muted');
+            } else {
+                countLabel.textContent = 'Showing all tasks';
+                countLabel.classList.remove('text-primary');
+                countLabel.classList.add('text-muted');
+            }
+        }
+    }
+    
+    // Bind events
+    if (searchInput) searchInput.addEventListener('input', filterKanbanCards);
+    if (priorityFilter) priorityFilter.addEventListener('change', filterKanbanCards);
+    if (assigneeFilter) assigneeFilter.addEventListener('change', filterKanbanCards);
+});
+</script>
+
+<!-- Quick Add Task Functions -->
+<script>
+function toggleQuickAdd(btn, status) {
+    const container = btn.parentElement;
+    const form = container.querySelector('.quick-add-form');
+    btn.classList.add('d-none');
+    form.classList.remove('d-none');
+    const input = form.querySelector('input');
+    input.value = '';
+    input.focus();
+}
+
+function cancelQuickAdd(btn) {
+    const form = btn.closest('.quick-add-form');
+    const container = form.parentElement;
+    const addBtn = container.querySelector('.quick-add-btn');
+    form.classList.add('d-none');
+    addBtn.classList.remove('d-none');
+}
+
+function quickAddTask(input, projectId, status) {
+    const name = input.value.trim();
+    if (!name) {
+        input.classList.add('is-invalid');
+        setTimeout(() => input.classList.remove('is-invalid'), 1500);
+        return;
+    }
+    
+    // Disable input during request
+    input.disabled = true;
+    const addBtn = input.parentElement.querySelector('.btn-primary, .btn-success');
+    if (addBtn) addBtn.disabled = true;
+    
+    fetch(`/governance/projects/${projectId}/tasks/create/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}&priority=Medium`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' || data.id) {
+            // Reload page to show new task
+            location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Failed to create task'));
+            input.disabled = false;
+            if (addBtn) addBtn.disabled = false;
+        }
+    })
+    .catch(err => {
+        alert('Network error. Please try again.');
+        input.disabled = false;
+        if (addBtn) addBtn.disabled = false;
+    });
+}
 </script>
 
 {% endblock %}

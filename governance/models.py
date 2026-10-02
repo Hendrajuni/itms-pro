@@ -122,9 +122,20 @@ class ProjectTask(models.Model):
     completion_note = models.TextField(blank=True, help_text="How was the task solved?")
     actual_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     
+    # Flag/Mark for problematic tasks
+    is_flagged = models.BooleanField(default=False)
+    flag_reason = models.CharField(max_length=200, blank=True, help_text="Alasan kenapa task ditandai bermasalah")
+    
     @property
     def is_past_due(self):
         return self.status != 'Completed' and self.due_date and self.due_date < timezone.now().date()
+        
+    @property
+    def duration_days(self):
+        if self.start_date and self.due_date:
+            days = (self.due_date - self.start_date).days
+            return max(0, days)
+        return 0
 
     def save(self, *args, **kwargs):
         if self.status == 'Completed' and not self.completed_at:

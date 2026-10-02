@@ -1,53 +1,113 @@
-<div class="card shadow-sm border-0 mb-3 kanban-card cursor-grab" data-id="{{ task.id }}" onclick="openTaskDetail({{ task.id }}, '{{ task.name|escapejs }}', '{{ task.status }}', '{{ task.assigned_to_id|default:'' }}', '{{ task.start_date|date:'Y-m-d'|default:'' }}', '{{ task.due_date|date:'Y-m-d'|default:'' }}', '{{ task.weight|default:0 }}', '{{ task.description|escapejs }}')">
+<div class="kanban-card card bg-white mb-3 rounded-3 cursor-grab {% if task.is_past_due %}kanban-card-overdue{% endif %}" 
+     data-id="{{ task.id }}" 
+     data-priority="{{ task.priority|default:'Medium' }}" 
+     data-assignee="{{ task.assigned_to_id|default:'unassigned' }}"
+     data-status="{{ task.status }}"
+     data-name="{{ task.name }}"
+     data-start="{{ task.start_date|date:'Y-m-d'|default:'' }}"
+     data-due="{{ task.due_date|date:'Y-m-d'|default:'' }}"
+     data-weight="{{ task.weight|default:0 }}"
+     data-desc="{{ task.description }}"
+     data-flagged="{{ task.is_flagged|yesno:'true,false' }}"
+     onclick="openTaskDetailFromCard(this)">
+    
+    {% if task.is_past_due %}<div class="kanban-card-accent-overdue"></div>{% endif %}
+
     <div class="card-body p-3">
-        <!-- Labels -->
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <span class="badge 
-                {% if task.priority == 'High' %}bg-danger
-                {% elif task.priority == 'Medium' %}bg-warning text-dark
-                {% else %}bg-info text-dark{% endif %} bg-opacity-10 
-                {% if task.priority == 'High' %}text-danger
-                {% elif task.priority == 'Medium' %}text-warning
-                {% else %}text-info{% endif %} 
-                rounded-pill border-0" style="font-size: 0.7rem;">
-                {{ task.priority|default:"Medium" }} Priority
-            </span>
-            {% if task.weight > 0 %}
-            <span class="text-muted small fw-bold" style="font-size: 0.75rem;"><i class="fas fa-weight-hanging me-1"></i>{{ task.weight }}</span>
-            {% endif %}
-        </div>
-        
-        <!-- Title -->
-        <h6 class="fw-bold mb-2 text-dark">{{ task.name }}</h6>
-        
-        <!-- Details & Assignee -->
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <div class="text-muted" style="font-size: 0.75rem;">
-                {% if task.due_date %}
-                <span class="{% if task.is_past_due %}text-danger fw-bold{% endif %}">
-                    <i class="far fa-calendar-alt me-1"></i> 
-                    {% if task.is_past_due %}Overdue{% else %}{{ task.due_date|date:"d M" }}{% endif %}
+        <!-- Priority + Menu -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex gap-1 align-items-center">
+                <span class="badge rounded-pill px-2 py-1 fw-bold
+                    {% if task.priority == 'High' %}kanban-badge-high
+                    {% elif task.priority == 'Medium' %}kanban-badge-medium
+                    {% else %}kanban-badge-low{% endif %}" style="font-size: 0.68rem;">
+                    {% if task.priority == 'High' %}🔴{% elif task.priority == 'Medium' %}🟡{% else %}🟢{% endif %}
+                    {{ task.priority|default:"Medium" }}
                 </span>
-                {% else %}
-                <span><i class="far fa-calendar me-1"></i> No Date</span>
+                {% if task.is_flagged %}
+                <span class="badge rounded-pill kanban-badge-high px-2 py-1" style="font-size: 0.68rem;" title="{{ task.flag_reason|default:'Ada masalah pada task ini' }}">
+                    ⚠️ Flagged
+                </span>
                 {% endif %}
             </div>
             
-            <div>
+            <div class="dropdown" onclick="event.stopPropagation();">
+                <button class="btn btn-link text-muted p-0 text-decoration-none kanban-card-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size: 0.85rem;">
+                    {% if task.is_flagged %}
+                    <li><a class="dropdown-item text-success" href="#" onclick="toggleTaskFlag({{ task.id }}, false, event)"><i class="fas fa-check-circle me-2"></i>Hapus Flag Masalah</a></li>
+                    {% else %}
+                    <li><a class="dropdown-item text-danger" href="#" onclick="toggleTaskFlag({{ task.id }}, true, event)"><i class="fas fa-exclamation-triangle me-2"></i>Flag Masalah</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Title -->
+        <h6 class="fw-bold mb-3 text-dark kanban-card-title">{{ task.name }}</h6>
+        
+        <!-- Date Range -->
+        <div class="d-flex justify-content-between align-items-center mb-2 text-muted" style="font-size: 0.78rem;">
+            <div class="d-flex align-items-center gap-1">
+                <i class="far fa-calendar-alt" style="font-size: 0.7rem;"></i>
+                <span>
+                    {% if task.start_date %}{{ task.start_date|date:"d M Y" }}{% else %}—{% endif %}
+                    <span class="mx-1" style="opacity: 0.4;">→</span>
+                    {% if task.due_date %}
+                        <span class="{% if task.is_past_due %}text-danger fw-bold{% endif %}">{{ task.due_date|date:"d M Y" }}</span>
+                    {% else %}—{% endif %}
+                </span>
+            </div>
+            {% if task.duration_days %}
+            <span class="fw-bold" style="font-size: 0.72rem; color: #94a3b8;">
+                <i class="far fa-clock"></i> {{ task.duration_days }}d
+            </span>
+            {% endif %}
+        </div>
+        
+        <!-- Bobot Progress Bar -->
+        <div class="mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-1 text-muted flex-shrink-0" style="font-size: 0.72rem;">
+                    <i class="fas fa-chart-pie" style="font-size: 0.65rem;"></i>
+                    <span>Bobot</span>
+                </div>
+                <div class="progress kanban-progress-bar flex-grow-1">
+                    <div class="progress-bar 
+                        {% if task.status == 'Completed' %}bg-success
+                        {% elif task.weight >= 10 %}bg-primary
+                        {% else %}bg-secondary bg-opacity-50{% endif %}" 
+                        role="progressbar" style="width: {{ task.weight|default:0 }}%"></div>
+                </div>
+                <span class="fw-bold flex-shrink-0 {% if task.status == 'Completed' %}text-success{% elif task.weight > 0 %}text-primary{% else %}text-muted{% endif %}" style="font-size: 0.75rem; min-width: 32px; text-align: right;">{{ task.weight|default:0 }}%</span>
+            </div>
+        </div>
+        
+        <!-- Assignee + Overdue -->
+        <div class="d-flex justify-content-between align-items-center pt-2" style="border-top: 1px solid #f1f5f9;">
+            <div class="d-flex align-items-center gap-2">
                 {% if task.assigned_to %}
-                <div class="avatar bg-primary text-white d-flex align-items-center justify-content-center shadow-sm" 
-                     style="width: 26px; height: 26px; border-radius: 50%; font-size: 0.7rem;" 
+                <div class="kanban-avatar" 
+                     style="background-color: {% cycle '#3b82f6' '#10b981' '#8b5cf6' '#f59e0b' '#ef4444' %};" 
                      title="{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}">
-                    {{ task.assigned_to.first_name.0|default:"U" }}
+                    {{ task.assigned_to.first_name.0|default:"U"|upper }}
                 </div>
+                <span class="text-muted fw-medium" style="font-size: 0.75rem;">{{ task.assigned_to.first_name|default:task.assigned_to.username }}</span>
                 {% else %}
-                <div class="avatar bg-secondary text-white d-flex align-items-center justify-content-center opacity-50" 
-                     style="width: 26px; height: 26px; border-radius: 50%; font-size: 0.7rem; border: 1px dashed #6c757d;" 
-                     title="Unassigned">
-                    <i class="fas fa-user-plus"></i>
+                <div class="kanban-avatar-empty" title="Unassigned">
+                    <i class="fas fa-user" style="font-size: 0.55rem;"></i>
                 </div>
+                <span class="text-muted" style="font-size: 0.75rem;">Unassigned</span>
                 {% endif %}
             </div>
+            
+            {% if task.is_past_due %}
+            <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1" style="font-size: 0.6rem;">
+                <i class="fas fa-exclamation-triangle me-1"></i>Overdue
+            </span>
+            {% endif %}
         </div>
     </div>
 </div>

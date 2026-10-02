@@ -515,10 +515,14 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         tasks = project.tasks.select_related('assigned_to').all()
         
         # 1. Kanban Buckets & KPI Stats
+        from django.db.models import Sum
+        context['tasks'] = tasks
         context['tasks_pending'] = tasks.filter(status='Pending')
         context['tasks_progress'] = tasks.filter(status='In Progress')
         context['tasks_completed'] = tasks.filter(status='Completed')
         context['tasks_overdue'] = tasks.exclude(status='Completed').filter(due_date__lt=timezone.now().date()).count()
+        context['tasks_flagged_count'] = tasks.filter(is_flagged=True).count()
+        context['total_allocated_weight'] = tasks.aggregate(Sum('weight'))['weight__sum'] or 0
         
         # 2. My Active Tasks (for quick action)
         context['my_tasks'] = tasks.filter(assigned_to=self.request.user).exclude(status='Completed')
@@ -685,6 +689,22 @@ class UpdateTaskDetailsView(LoginRequiredMixin, View):
                 task.assigned_to_id = data['assigned_to_id'] or None
             task.save()
             return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class ToggleTaskFlagView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        try:
+            task = ProjectTask.objects.get(pk=pk)
+            data = json.loads(request.body)
+            task.is_flagged = data.get('is_flagged', not task.is_flagged)
+            task.flag_reason = data.get('flag_reason', '') if task.is_flagged else ''
+            task.save()
+            return JsonResponse({
+                'success': True, 
+                'is_flagged': task.is_flagged,
+                'flag_reason': task.flag_reason
+            })
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
