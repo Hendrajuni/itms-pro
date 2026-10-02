@@ -565,6 +565,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         labels = []
         planned_data = []
         actual_data = []
+        actual_tasks = {}
         
         # Start one interval before the project starts to create a 0% baseline (Day 0)
         current_date = start_date - timedelta(days=interval)
@@ -575,6 +576,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         actual_total_weight = sum([t.weight for t in all_tasks])
         total_weight_base = 100 if actual_total_weight > 0 else 1
         
+        index = 0
         while current_date <= end_date + timedelta(days=interval):
             # Special label for baseline
             if current_date < start_date:
@@ -592,18 +594,34 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
             
             # Actual Progress: Tasks completed by current_date
             if current_date <= today:
-                actual_sum = sum([t.weight for t in all_tasks if t.status == 'Completed' and t.completed_at and t.completed_at.date() <= current_date])
-                actual_sum_fallback = sum([t.weight for t in all_tasks if t.status == 'Completed' and not t.completed_at])
+                valid_completed = [t for t in all_tasks if t.status == 'Completed' and t.completed_at and t.completed_at.date() <= current_date]
+                fallback_completed = [t for t in all_tasks if t.status == 'Completed' and not t.completed_at]
+                
+                actual_sum = sum([t.weight for t in valid_completed])
+                actual_sum_fallback = sum([t.weight for t in fallback_completed])
                 actual_perc = min(100, round(((actual_sum + actual_sum_fallback) / total_weight_base) * 100, 1))
                 actual_data.append(actual_perc)
+                
+                # Store tasks for this period
+                completed_list = []
+                for t in (valid_completed + fallback_completed):
+                    assignee_name = t.assigned_to.get_full_name() if t.assigned_to else t.assigned_to.username if t.assigned_to else 'Unassigned'
+                    completed_list.append({
+                        'name': t.name,
+                        'weight': t.weight,
+                        'assignee': assignee_name
+                    })
+                actual_tasks[index] = completed_list
             else:
                 actual_data.append(None)
                 
             current_date += timedelta(days=interval)
+            index += 1
             
         context['scurve_labels'] = json.dumps(labels)
         context['scurve_planned'] = json.dumps(planned_data)
         context['scurve_actual'] = json.dumps(actual_data)
+        context['scurve_actual_tasks'] = json.dumps(actual_tasks)
             
         # 5. Financials (Placeholder for now, using BudgetPost if linked)
         context['budget_allocated'] = project.budget.allocated_amount if project.budget else 0

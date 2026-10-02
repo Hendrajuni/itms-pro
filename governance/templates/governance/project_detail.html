@@ -1349,6 +1349,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const labels = {{ scurve_labels|safe }};
         const plannedData = {{ scurve_planned|safe }};
         const actualData = {{ scurve_actual|safe }};
+        const scurveActualTasks = {{ scurve_actual_tasks|safe|default:"{}" }};
 
         // Create Gradient for Actual Line
         let gradient = ctx2d.createLinearGradient(0, 0, 0, 400);
@@ -1413,6 +1414,18 @@ document.addEventListener("DOMContentLoaded", function() {
                         callbacks: {
                             label: function(context) {
                                 return context.dataset.label + ': ' + context.parsed.y + '%';
+                            },
+                            afterBody: function(context) {
+                                const dataIndex = context[0].dataIndex;
+                                const periodTasks = scurveActualTasks[dataIndex] || [];
+                                
+                                if (periodTasks.length === 0) return '';
+                                
+                                let lines = [' ', 'Completed Tasks:'];
+                                periodTasks.forEach(t => {
+                                    lines.push(`✓ ${t.name} (${t.weight}%)`);
+                                });
+                                return lines;
                             }
                         }
                     }
