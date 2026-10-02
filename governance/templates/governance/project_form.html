@@ -430,4 +430,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+<style>
+    .ck-editor__editable_inline {
+        min-height: 250px;
+    }
+</style>
+<script>
+    ClassicEditor
+        .create(document.querySelector('#id_description'), {
+            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'undo', 'redo']
+        })
+        .catch(error => {
+            console.error(error);
+        });
+</script>
 {% endblock %}

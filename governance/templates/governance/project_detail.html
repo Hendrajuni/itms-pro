@@ -666,50 +666,53 @@ body {
                 <div class="card-premium">
                     <div class="card-header-premium">
                         <h3 class="card-title-premium"><i class="far fa-file-alt text-primary opacity-75"></i> Project Documents</h3>
-                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold"><i class="fas fa-upload me-1"></i> Upload File</button>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#addDocumentModal"><i class="fas fa-upload me-1"></i> Upload</button>
                     </div>
                     <div class="card-body-premium">
                         <div class="doc-list">
-                            <!-- Dummy Data for Visual Display based on Mockup -->
+                            {% for doc in project.documents.all|slice:":5" %}
                             <div class="doc-item">
                                 <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                    {% if doc.is_link %}
+                                        <i class="fas fa-link text-primary fs-5"></i>
+                                    {% elif '.pdf' in doc.filename|lower %}
+                                        <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                    {% elif '.xls' in doc.filename|lower or '.csv' in doc.filename|lower %}
+                                        <i class="fas fa-file-excel text-success fs-5"></i>
+                                    {% elif '.doc' in doc.filename|lower %}
+                                        <i class="fas fa-file-word text-info fs-5"></i>
+                                    {% elif '.jpg' in doc.filename|lower or '.png' in doc.filename|lower %}
+                                        <i class="fas fa-image text-warning fs-5"></i>
+                                    {% else %}
+                                        <i class="fas fa-file-alt text-secondary fs-5"></i>
+                                    {% endif %}
                                     <div>
-                                        <div class="text-dark fw-medium small">BOQ_CCTV_PKS.pdf</div>
+                                        <div class="text-dark fw-medium small text-truncate" style="max-width: 150px;" title="{{ doc.filename }}">{{ doc.filename }}</div>
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="text-muted small">1.2 MB</span>
-                                    <span class="text-muted small">12 May 2026</span>
-                                    <a href="#" class="text-primary"><i class="fas fa-download"></i></a>
+                                    <span class="text-muted small">{% if doc.is_link %}Link{% else %}{{ doc.filesize_formatted }}{% endif %}</span>
+                                    <span class="text-muted small d-none d-xxl-inline">{{ doc.uploaded_at|date:"d M y" }}</span>
+                                    {% if doc.is_link %}
+                                        <a href="{{ doc.external_link }}" target="_blank" class="text-primary"><i class="fas fa-external-link-alt"></i></a>
+                                    {% else %}
+                                        <a href="{{ doc.file.url }}" target="_blank" class="text-primary"><i class="fas fa-download"></i></a>
+                                    {% endif %}
                                 </div>
                             </div>
-                            <div class="doc-item">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-file-pdf text-danger fs-5"></i>
-                                    <div>
-                                        <div class="text-dark fw-medium small">Gambar_Instalasi.pdf</div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-3">
-                                    <span class="text-muted small">2.4 MB</span>
-                                    <span class="text-muted small">12 May 2026</span>
-                                    <a href="#" class="text-primary"><i class="fas fa-download"></i></a>
-                                </div>
+                            {% empty %}
+                            <div class="text-center py-4 text-muted small">
+                                <i class="fas fa-folder-open fs-3 mb-2 opacity-50"></i><br>
+                                Belum ada dokumen.<br>
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#addDocumentModal" class="text-decoration-none">Upload dokumen pertama</a>
                             </div>
-                            <div class="doc-item">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-file-pdf text-danger fs-5"></i>
-                                    <div>
-                                        <div class="text-dark fw-medium small">Laporan_Penyelesaian.pdf</div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-3">
-                                    <span class="text-muted small">450 KB</span>
-                                    <span class="text-muted small">16 May 2026</span>
-                                    <a href="#" class="text-primary"><i class="fas fa-download"></i></a>
-                                </div>
+                            {% endfor %}
+                            
+                            {% if project.documents.count > 5 %}
+                            <div class="text-center mt-3">
+                                <a href="#" class="text-decoration-none small fw-bold" onclick="document.getElementById('files-tab').click(); return false;">View All Documents <i class="fas fa-arrow-right ms-1"></i></a>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

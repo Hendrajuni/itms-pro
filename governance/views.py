@@ -548,7 +548,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
             
         # 5. Dynamic S-Curve Calculation
         import json
-        from datetime import timedelta
+        from datetime import timedelta, datetime
         
         start_date = project.start_date
         end_date = project.end_date
