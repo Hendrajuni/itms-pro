@@ -1,4 +1,5 @@
-<div class="kanban-card card bg-white mb-3 rounded-3 cursor-grab {% if task.is_past_due %}kanban-card-overdue{% endif %}" 
+<div class="kanban-card card mb-3 rounded-3 cursor-grab {% if task.is_past_due %}kanban-card-overdue{% endif %}
+     {% if task.status == 'Pending' %}bg-white border-secondary border-opacity-25{% elif task.status == 'In Progress' %}bg-primary bg-opacity-10 border-primary border-opacity-50{% elif task.status == 'Completed' %}bg-success bg-opacity-10 border-success border-opacity-50{% endif %}" 
      data-id="{{ task.id }}" 
      data-priority="{{ task.priority|default:'Medium' }}" 
      data-assignee="{{ task.assigned_to_id|default:'unassigned' }}"

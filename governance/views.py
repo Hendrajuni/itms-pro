@@ -733,6 +733,7 @@ class UpdateTaskDetailsView(LoginRequiredMixin, View):
             if 'start_date' in data: task.start_date = data['start_date'] or None
             if 'due_date' in data: task.due_date = data['due_date'] or None
             if 'description' in data: task.description = data['description']
+            if 'priority' in data: task.priority = data['priority']
             if 'assigned_to_id' in data: 
                 task.assigned_to_id = data['assigned_to_id'] or None
             task.save()
@@ -765,12 +766,23 @@ class CreateProjectTaskView(LoginRequiredMixin, View):
             if not task_name:
                 return JsonResponse({'success': False, 'error': 'Name is required'})
             
-            task = ProjectTask.objects.create(
+            task = ProjectTask(
                 project=project,
                 name=task_name,
-                status='Pending',
-                weight=data.get('weight', 0)
+                status=data.get('status', 'Pending'),
+                weight=data.get('weight', 0),
+                priority=data.get('priority', 'Medium')
             )
+            if 'assigned_to_id' in data and data['assigned_to_id']:
+                task.assigned_to_id = data['assigned_to_id']
+            if 'start_date' in data and data['start_date']:
+                task.start_date = data['start_date']
+            if 'due_date' in data and data['due_date']:
+                task.due_date = data['due_date']
+            if 'description' in data:
+                task.description = data['description']
+                
+            task.save()
             return JsonResponse({'success': True, 'task_id': task.id, 'name': task.name})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})

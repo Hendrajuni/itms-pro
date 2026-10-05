@@ -5,6 +5,54 @@
 
 {% block content %}
 <style>
+/* PRINT LAYOUT ADJUSTMENTS */
+@media print {
+    @page {
+        size: legal landscape;
+        margin: 15mm;
+    }
+    body * {
+        visibility: hidden;
+    }
+    #timeline, #timeline * {
+        visibility: visible;
+    }
+    #timeline {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+    .card-premium {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    #timeline .btn, #timeline .btn-group {
+        display: none !important;
+    }
+    .gantt-wrapper {
+        overflow: visible !important;
+        height: auto !important;
+    }
+    #gantt-split-container {
+        border: 1px solid #ccc !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+    .gantt-sidebar {
+        height: auto !important;
+        overflow: visible !important;
+    }
+    body, html {
+        height: auto !important;
+        overflow: visible !important;
+    }
+}
+
 /* PREMIUM UI ADJUSTMENTS based on Mockup */
 body {
     background-color: #f8fafc;
@@ -209,10 +257,20 @@ body {
 
 /* Kanban Column */
 .kanban-column {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     transition: box-shadow 0.2s ease;
+}
+.kanban-column-pending {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+.kanban-column-progress {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-color: #bae6fd;
+}
+.kanban-column-completed {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #bbf7d0;
 }
 .kanban-column:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.06);
@@ -900,12 +958,26 @@ body {
     
     <div class="tab-pane fade" id="timeline" role="tabpanel">
         <div class="card-premium p-4">
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <!-- Custom Print Header (Sembunyi di web, muncul di print) -->
+            <div class="d-none d-print-block mb-4 pb-3 border-bottom">
+                <h2 class="fw-bold text-dark mb-1">{{ project.name }}</h2>
+                <div class="text-secondary small mb-3" style="max-width: 800px;">{{ project.description|striptags|truncatewords:40|safe|default:"Tidak ada deskripsi." }}</div>
+                <div class="d-flex gap-4">
+                    <div><strong>Start Date:</strong> {{ project.start_date|date:"d M Y"|default:"-" }}</div>
+                    <div><strong>End Date:</strong> {{ project.end_date|date:"d M Y"|default:"-" }}</div>
+                </div>
+            </div>
+            
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 d-print-none">
                 <h3 class="card-title-premium m-0"><i class="fas fa-stream text-primary opacity-75 me-2"></i> Project Timeline</h3>
-                <div class="btn-group" role="group" aria-label="Gantt View Mode">
-                    <button type="button" class="btn btn-outline-primary btn-sm active fw-bold" id="gantt-view-Day">Day</button>
-                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="gantt-view-Week">Week</button>
-                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="gantt-view-Month">Month</button>
+                <div class="d-flex gap-2">
+                    <div class="btn-group" role="group" aria-label="Gantt View Mode">
+                        <button type="button" class="btn btn-outline-primary btn-sm active fw-bold" id="gantt-view-Day">Day</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="gantt-view-Week">Week</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="gantt-view-Month">Month</button>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm fw-bold shadow-sm" onclick="window.print()" title="Print Timeline"><i class="fas fa-print"></i> Print</button>
+                    <button type="button" class="btn btn-outline-success btn-sm fw-bold shadow-sm" onclick="alert('Export Excel sedang dalam pengembangan');" title="Export to Excel"><i class="fas fa-file-excel"></i> Export</button>
                 </div>
             </div>
             
@@ -1264,8 +1336,8 @@ function toggleDocMode(mode) {
                 </div>
             </div>
             
-            <div class="row mb-4 g-4">
-                <div class="col-6">
+            <div class="row mb-4 g-3">
+                <div class="col-4">
                     <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="far fa-user me-1"></i> Assignee</label>
                     <select class="form-select text-dark" id="taskAssignee">
                         <option value="">Unassigned</option>
@@ -1274,12 +1346,20 @@ function toggleDocMode(mode) {
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-6">
+                <div class="col-4">
                     <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="fas fa-tasks me-1"></i> Status</label>
                     <select class="form-select text-dark" id="taskStatus">
                         <option value="Pending">Pending</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="col-4">
+                    <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="fas fa-flag me-1"></i> Priority</label>
+                    <select class="form-select text-dark" id="taskPriority">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
                     </select>
                 </div>
             </div>
@@ -1543,11 +1623,12 @@ function openTaskDetailFromCard(el) {
     const desc = el.getAttribute('data-desc');
     const flagged = el.getAttribute('data-flagged') === 'true';
     const flagReason = el.querySelector('[title]') ? el.querySelector('[title]').getAttribute('title') : '';
+    const priority = el.getAttribute('data-priority') || 'Medium';
     
-    openTaskDetail(id, name, status, assignee, start, due, weight, desc, flagged, flagReason);
+    openTaskDetail(id, name, status, assignee, start, due, weight, desc, flagged, flagReason, priority);
 }
 
-function openTaskDetail(id, name, status, assignee, start, due, weight, desc, flagged=false, flagReason='') {
+function openTaskDetail(id, name, status, assignee, start, due, weight, desc, flagged=false, flagReason='', priority='Medium') {
     if (!taskSlideOver) {
         taskSlideOver = new bootstrap.Offcanvas(document.getElementById('taskSlideOver'));
     }
@@ -1570,6 +1651,7 @@ function openTaskDetail(id, name, status, assignee, start, due, weight, desc, fl
     document.getElementById('taskId').value = id;
     document.getElementById('taskName').value = name;
     document.getElementById('taskAssignee').value = assignee;
+    document.getElementById('taskPriority').value = priority;
     document.getElementById('taskStartDate').value = start;
     document.getElementById('taskDueDate').value = due;
     document.getElementById('taskWeight').value = weight;
@@ -1636,6 +1718,7 @@ function saveTaskDetails() {
         start_date: document.getElementById('taskStartDate').value,
         due_date: document.getElementById('taskDueDate').value,
         weight: weightInput.value,
+        priority: document.getElementById('taskPriority').value,
         description: document.getElementById('taskDescription').value,
     };
     
@@ -1931,11 +2014,11 @@ function quickAddTask(input, projectId, status) {
     fetch(`/governance/projects/${projectId}/tasks/create/`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
             'X-Requested-With': 'XMLHttpRequest'
         },
-        body: `name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}&priority=Medium`
+        body: JSON.stringify({ name: name, status: status, priority: 'Medium', weight: 0 })
     })
     .then(response => response.json())
     .then(data => {
@@ -2025,6 +2108,10 @@ document.addEventListener("DOMContentLoaded", function() {
             <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted fw-bold">Total Persentase:</span>
                 <span class="fw-bold text-dark">${totalWeight}%</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted fw-bold">Sudah Selesai:</span>
+                <span class="fw-bold text-success">${completedWeight}%</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted fw-bold">Belum Selesai:</span>
