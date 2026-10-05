@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.utils import timezone
 from .models import (
-    DailyLog, DailyLogItem, Project, ProjectTask, FiscalYear, MonthlyReport, BudgetPost, DisposalRequest
+    DailyLog, DailyLogItem, Project, ProjectTask, FiscalYear, MonthlyReport, BudgetPost, DisposalRequest, ProjectActivity
 )
 from maintenance.models import AssetMaintenance, InfraMaintenance
 from tickets.models import Ticket
@@ -540,6 +540,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         completed = context['tasks_completed'].count()
         context['progress_percent'] = project.progress
         
+        # Activity Log
+        context['activities'] = project.activities.all()[:50]
+        
         today = timezone.now().date()
         if project.end_date and project.end_date >= today:
             context['days_remaining'] = (project.end_date - today).days
@@ -717,6 +720,14 @@ class UpdateTaskStatusView(LoginRequiredMixin, View):
             if new_status in dict(ProjectTask.STATUS_CHOICES):
                 task.status = new_status
                 task.save()
+                
+                ProjectActivity.objects.create(
+                    project=task.project,
+                    user=request.user,
+                    action="Status Tugas Diperbarui",
+                    description=f"Mengubah status tugas <b>{task.name}</b> menjadi <i>{new_status}</i>."
+                )
+                
                 return JsonResponse({'success': True, 'status': task.status})
             return JsonResponse({'success': False, 'error': 'Invalid status'})
         except Exception as e:
@@ -737,6 +748,14 @@ class UpdateTaskDetailsView(LoginRequiredMixin, View):
             if 'assigned_to_id' in data: 
                 task.assigned_to_id = data['assigned_to_id'] or None
             task.save()
+            
+            ProjectActivity.objects.create(
+                project=task.project,
+                user=request.user,
+                action="Detail Tugas Diperbarui",
+                description=f"Memperbarui detail (status, prioritas, bobot, dsb) pada tugas <b>{task.name}</b>."
+            )
+            
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -749,6 +768,17 @@ class ToggleTaskFlagView(LoginRequiredMixin, View):
             task.is_flagged = data.get('is_flagged', not task.is_flagged)
             task.flag_reason = data.get('flag_reason', '') if task.is_flagged else ''
             task.save()
+            
+            action_title = "Tugas Ditandai Masalah (Flagged)" if task.is_flagged else "Bendera Masalah Dihapus"
+            desc = f"Tugas <b>{task.name}</b> ditandai bermasalah: <i>{task.flag_reason}</i>" if task.is_flagged else f"Tanda masalah pada <b>{task.name}</b> telah dihapus."
+            
+            ProjectActivity.objects.create(
+                project=task.project,
+                user=request.user,
+                action=action_title,
+                description=desc
+            )
+            
             return JsonResponse({
                 'success': True, 
                 'is_flagged': task.is_flagged,
@@ -783,6 +813,14 @@ class CreateProjectTaskView(LoginRequiredMixin, View):
                 task.description = data['description']
                 
             task.save()
+            
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                action="Tugas Baru Dibuat",
+                description=f"Menambahkan tugas baru: <b>{task.name}</b> ({task.status})."
+            )
+            
             return JsonResponse({'success': True, 'task_id': task.id, 'name': task.name})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -811,6 +849,14 @@ class ProjectDocumentUploadView(LoginRequiredMixin, View):
                 file=file_obj,
                 uploaded_by=request.user
             )
+            
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                action="Dokumen Diunggah",
+                description=f"Mengunggah dokumen <b>{doc.filename}</b> ke kategori <i>{document_type}</i>."
+            )
+            
             messages.success(request, f"Document '{doc.filename}' berhasil ditambahkan ke kategori {document_type}.")
             
         return redirect(f"/governance/projects/{project.id}/#files")

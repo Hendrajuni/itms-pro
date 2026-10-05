@@ -208,6 +208,21 @@ class ProjectDocument(models.Model):
         return bool(self.external_link and not self.file)
 
 # C. Daily Logs
+class ProjectActivity(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='activities')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=255, help_text="Short action title, e.g. 'Task Created'")
+    description = models.TextField(blank=True, help_text="Detailed HTML or text description of the change")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        user_name = self.user.username if self.user else 'System'
+        return f"{user_name} - {self.action} on {self.project.name}"
+
+
 class RoutineTask(models.Model):
     CATEGORY_CHOICES = [
         ('Network', 'Network'),

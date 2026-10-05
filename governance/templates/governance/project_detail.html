@@ -622,10 +622,10 @@ body {
                 <div class="card-premium">
                     <div class="card-header-premium">
                         <h3 class="card-title-premium"><i class="fas fa-align-left text-primary opacity-75"></i> Project Description</h3>
-                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold"><i class="fas fa-edit me-1"></i> Edit</button>
+                        <a href="{% url 'project_update' project.id %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold"><i class="fas fa-edit me-1"></i> Edit</a>
                     </div>
                     <div class="card-body-premium" style="line-height: 1.8; color: #334155;">
-                        {{ project.description|linebreaks }}
+                        {{ project.description|safe }}
                     </div>
                 </div>
             </div>
@@ -1167,6 +1167,44 @@ body {
 
         </div>
     </div>
+    
+    <!-- ACTIVITY LOG TAB -->
+    <div class="tab-pane fade" id="activity" role="tabpanel">
+        <div class="card-premium">
+            <div class="card-header-premium">
+                <h3 class="card-title-premium"><i class="fas fa-history text-primary opacity-75"></i> Project Activity Log</h3>
+            </div>
+            <div class="card-body-premium p-4">
+                {% if activities %}
+                <div class="activity-timeline position-relative ps-4" style="border-left: 2px solid #e2e8f0; margin-left: 10px;">
+                    {% for log in activities %}
+                    <div class="activity-item position-relative mb-4">
+                        <div class="activity-dot position-absolute bg-primary rounded-circle" style="width: 14px; height: 14px; left: -30px; top: 4px; border: 2px solid white; box-shadow: 0 0 0 2px #3b82f6;"></div>
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="fw-bold text-dark m-0">{{ log.action }}</h6>
+                            <span class="text-muted small fw-medium" title="{{ log.timestamp }}"><i class="far fa-clock me-1"></i>{{ log.timestamp|timesince }} ago</span>
+                        </div>
+                        <div class="text-secondary small mb-2" style="line-height: 1.5;">{{ log.description|safe }}</div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold shadow-sm" style="width: 24px; height: 24px; font-size: 0.75rem;">
+                                {{ log.user.first_name|default:log.user.username|make_list|first|upper|default:'S' }}
+                            </div>
+                            <span class="text-muted small fw-bold">{{ log.user.get_full_name|default:log.user.username|default:'System' }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="display-4 text-muted opacity-25 mb-3"><i class="fas fa-history"></i></div>
+                    <h5 class="fw-bold text-muted">Belum Ada Aktivitas</h5>
+                    <p class="text-secondary small">Riwayat pembuatan tugas, pembaruan status, dan unggahan dokumen akan muncul di sini.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
 </div>
 
 <!-- Add Document Modal -->
