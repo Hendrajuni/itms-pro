@@ -31,13 +31,14 @@ class DailyLogForm(forms.ModelForm):
 class DailyLogItemForm(forms.ModelForm):
     class Meta:
         model = DailyLogItem
-        fields = ['task_name', 'category', 'start_time', 'end_time', 'status', 'related_asset', 'related_infra', 'note']
+        fields = ['task_name', 'category', 'start_time', 'end_time', 'status', 'project_task', 'related_asset', 'related_infra', 'note']
         widgets = {
             'task_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Task description'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
+            'project_task': forms.Select(attrs={'class': 'form-select'}),
             'related_asset': forms.Select(attrs={'class': 'form-select'}), 
             'related_infra': forms.Select(attrs={'class': 'form-select'}),
             'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 1, 'placeholder': 'Notes'}),

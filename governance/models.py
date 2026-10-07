@@ -48,6 +48,7 @@ class Project(models.Model):
     ]
     CATEGORY_CHOICES = [
         ('Software Development', 'Software Development'),
+        ('Software Implementation', 'Software Implementation'),
         ('Infrastructure & Network', 'Infrastructure & Network'),
         ('Cybersecurity', 'Cybersecurity'),
         ('System Information / Data', 'System Information / Data'),
@@ -283,6 +284,7 @@ class DailyLogItem(models.Model):
         ('Server', 'Server'),
         ('Support', 'Support'),
         ('Development', 'Development'),
+        ('Project / Implementation', 'Project / Implementation'),
         ('Meeting', 'Meeting'),
         ('Other', 'Other'),
     ]
@@ -292,9 +294,10 @@ class DailyLogItem(models.Model):
     task_name = models.CharField(max_length=200, blank=True)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Other')
     
-    # Optional Relations to Assets/Infra (Explicit)
+    # Optional Relations to Assets/Infra/Projects (Explicit)
     related_asset = models.ForeignKey('assets.Asset', on_delete=models.SET_NULL, null=True, blank=True, related_name='daily_log_items')
     related_infra = models.ForeignKey('assets.Infrastructure', on_delete=models.SET_NULL, null=True, blank=True, related_name='daily_log_items')
+    project_task = models.ForeignKey('ProjectTask', on_delete=models.SET_NULL, null=True, blank=True, related_name='daily_log_items')
 
     # Keep Legacy Generic Relations for Signals/Auto-log (Ticket/Maintenance)
     # We can hide this from the manual form but keep it for the system.

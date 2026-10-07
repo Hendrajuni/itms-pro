@@ -580,6 +580,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         total_weight_base = 100 if actual_total_weight > 0 else 1
         
         index = 0
+        prev_date = None
         while current_date <= end_date + timedelta(days=interval):
             # Special label for baseline
             if current_date < start_date:
@@ -605,9 +606,19 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
                 actual_perc = min(100, round(((actual_sum + actual_sum_fallback) / total_weight_base) * 100, 1))
                 actual_data.append(actual_perc)
                 
-                # Store tasks for this period
+                # Hanya simpan task yang selesai pada periode interval ini saja
+                period_tasks = []
+                for t in valid_completed:
+                    c_date = t.completed_at.date()
+                    if prev_date is None or (prev_date < c_date <= current_date):
+                        period_tasks.append(t)
+                        
+                # Jika task tidak ada completed_at (fallback), masukkan hanya di node pertama (Start)
+                if prev_date is None:
+                    period_tasks.extend(fallback_completed)
+                
                 completed_list = []
-                for t in (valid_completed + fallback_completed):
+                for t in period_tasks:
                     assignee_name = t.assigned_to.get_full_name() if t.assigned_to else t.assigned_to.username if t.assigned_to else 'Unassigned'
                     completed_list.append({
                         'name': t.name,
@@ -618,6 +629,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
             else:
                 actual_data.append(None)
                 
+            prev_date = current_date
             current_date += timedelta(days=interval)
             index += 1
             
