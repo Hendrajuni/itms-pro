@@ -1463,9 +1463,18 @@ function toggleDocMode(mode) {
             
         </form>
     </div>
-    <div class="offcanvas-footer p-4 bg-white d-flex justify-content-end align-items-center">
-        <button type="button" class="btn btn-link text-dark text-decoration-none fw-bold me-2" data-bs-dismiss="offcanvas">Cancel</button>
-        <button type="button" class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm" onclick="saveTaskDetails()">Save Changes</button>
+    <div class="offcanvas-footer p-4 bg-white d-flex justify-content-between align-items-center">
+        <div>
+            {% if can_delete_task %}
+            <button type="button" class="btn btn-outline-danger fw-bold rounded-pill btn-sm shadow-sm" onclick="deleteTask(document.getElementById('taskId').value)">
+                <i class="fas fa-trash-alt me-1"></i> Delete
+            </button>
+            {% endif %}
+        </div>
+        <div>
+            <button type="button" class="btn btn-link text-dark text-decoration-none fw-bold me-2" data-bs-dismiss="offcanvas">Cancel</button>
+            <button type="button" class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm" onclick="saveTaskDetails()">Save Changes</button>
+        </div>
     </div>
 </div>
 
@@ -1773,6 +1782,51 @@ function openTaskDetail(id, name, status, assignee, start, due, weight, desc, fl
     setTimeout(applyStatus, 100);
     setTimeout(applyStatus, 350);
     setTimeout(applyStatus, 600);
+}
+
+function deleteTask(taskId) {
+    if (!taskId) return;
+    
+    Swal.fire({
+        title: 'Hapus Tugas?',
+        text: "Data tugas ini akan dihapus permanen. Aksi ini tidak dapat dibatalkan!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/governance/projects/tasks/${taskId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Terhapus!',
+                        text: 'Tugas berhasil dihapus.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Gagal!', data.error || 'Terjadi kesalahan sistem.', 'error');
+                }
+            })
+            .catch(err => {
+                Swal.fire('Error!', 'Masalah jaringan atau server terputus.', 'error');
+            });
+        }
+    });
 }
 
 function saveTaskDetails() {
@@ -2094,17 +2148,27 @@ function quickAddTask(input, projectId, status) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.status === 'success' || data.id) {
+        if (data.success) {
             // Reload page to show new task
             location.reload();
         } else {
-            alert('Error: ' + (data.message || 'Failed to create task'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal Menambah Tugas',
+                text: data.error || 'Terjadi kesalahan sistem',
+                confirmButtonColor: '#3b82f6'
+            });
             input.disabled = false;
             if (addBtn) addBtn.disabled = false;
         }
     })
     .catch(err => {
-        alert('Network error. Please try again.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Koneksi Terputus',
+            text: 'Terjadi masalah jaringan. Silakan coba lagi.',
+            confirmButtonColor: '#3b82f6'
+        });
         input.disabled = false;
         if (addBtn) addBtn.disabled = false;
     });

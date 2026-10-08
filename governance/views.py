@@ -517,6 +517,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         
         # 1. Kanban Buckets & KPI Stats
         from django.db.models import Sum
+        user = self.request.user
+        context['can_delete_task'] = user.is_superuser or user.groups.filter(name__in=['Admin', 'Manager']).exists()
+        
         context['tasks'] = tasks
         context['tasks_pending'] = tasks.filter(status='Pending')
         context['tasks_progress'] = tasks.filter(status='In Progress')
@@ -835,6 +838,32 @@ class CreateProjectTaskView(LoginRequiredMixin, View):
             )
             
             return JsonResponse({'success': True, 'task_id': task.id, 'name': task.name})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class DeleteProjectTaskView(LoginRequiredMixin, View):
+    def post(self, request, task_id):
+        try:
+            task = ProjectTask.objects.get(pk=task_id)
+            project = task.project
+            user = request.user
+            
+            # Check permission: Only Superuser, Admin, Manager
+            if not (user.is_superuser or user.groups.filter(name__in=['Admin', 'Manager']).exists()):
+                return JsonResponse({'success': False, 'error': 'Akses ditolak. Anda tidak memiliki izin untuk menghapus tugas.'})
+                
+            task_name = task.name
+            task.delete()
+            
+            ProjectActivity.objects.create(
+                project=project,
+                user=user,
+                action="Tugas Dihapus",
+                description=f"Menghapus tugas: <b>{task_name}</b>."
+            )
+            return JsonResponse({'success': True})
+        except ProjectTask.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Tugas tidak ditemukan.'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
