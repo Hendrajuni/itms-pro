@@ -130,6 +130,7 @@ def get_dashboard_stats(user):
         ).select_related('infrastructure')
         
         # Combine and Sort
+        # Combine and Sort
         combined_maint = []
         for m in asset_maint:
             combined_maint.append({
@@ -146,6 +147,25 @@ def get_dashboard_stats(user):
                 'date': m.scheduled_date,
                 'type': 'Infrastructure',
                 'technician': m.technician
+            })
+            
+        # Also include PM Schedules that are due in the next 7 days
+        # Because of Lazy Evaluation, tickets are only created on the exact day.
+        from maintenance.models import MaintenanceSchedule
+        upcoming_schedules = MaintenanceSchedule.objects.filter(
+            is_active=True,
+            next_run_date__range=[start_date, end_date]
+        ).select_related('asset', 'infrastructure', 'assigned_to')
+        
+        for s in upcoming_schedules:
+            target_name = s.asset.name if s.asset else (s.infrastructure.name if s.infrastructure else "Unknown")
+            type_name = "Asset (PM)" if s.asset else "Infrastructure (PM)"
+            combined_maint.append({
+                'title': s.title,
+                'target': target_name,
+                'date': s.next_run_date,
+                'type': type_name,
+                'technician': s.assigned_to
             })
             
         # Sort by date
