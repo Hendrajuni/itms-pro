@@ -17,6 +17,15 @@ class MaintenanceDashboardView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user = self.request.user
         
+        # 0. LAZY SCHEDULE EVALUATION
+        # Check and run any overdue active schedules automatically
+        from django.utils import timezone
+        from .models import MaintenanceSchedule
+        today = timezone.now().date()
+        due_schedules = MaintenanceSchedule.objects.filter(is_active=True, next_run_date__lte=today)
+        for schedule in due_schedules:
+            schedule.create_ticket(advance_schedule=True)
+        
         # 1. Base Query
         asset_tasks = AssetMaintenance.objects.filter(parent__isnull=True).select_related('asset', 'asset__location', 'technician').order_by('scheduled_date')
         infra_tasks = InfraMaintenance.objects.filter(parent__isnull=True).select_related('infrastructure', 'infrastructure__location', 'technician').order_by('scheduled_date')

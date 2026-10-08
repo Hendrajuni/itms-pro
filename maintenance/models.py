@@ -233,12 +233,21 @@ class MaintenanceSchedule(models.Model):
         # Basic Validation: Ensure either asset or infra is set, not both or neither (though model allows both, logic should prefer one)
         super().save(*args, **kwargs)
 
-    def create_ticket(self):
+    def create_ticket(self, advance_schedule=False):
         """
         Creates a Maintenance Ticket (Asset or Infra) based on this schedule.
         """
         from .models import AssetMaintenance, InfraMaintenance
         from django.utils import timezone
+        import datetime
+        import calendar
+
+        def add_months(sourcedate, months):
+            month = sourcedate.month - 1 + months
+            year = sourcedate.year + month // 12
+            month = month % 12 + 1
+            day = min(sourcedate.day, calendar.monthrange(year, month)[1])
+            return datetime.date(year, month, day)
 
         # 1. Determine Target
         if self.asset:
@@ -253,32 +262,38 @@ class MaintenanceSchedule(models.Model):
             return None # Should not happen if validation works
 
         # 2. Create Ticket
-        # We append the date to title to make it unique/clear
         run_date = timezone.now().date()
         new_title = f"{self.title} - {run_date.strftime('%d/%m/%Y')}"
         
         ticket = ModelClass(
             title=new_title,
             maintenance_type=self.maintenance_type,
-            # priority='Normal', # Field does not exist in MaintenanceBase
             status='Scheduled',
             scheduled_date=run_date,
             technician=self.assigned_to,
             maintenance_checklist=self.checklist,
-            notes=self.description, # Map description to notes
+            notes=self.description, 
         )
-        
-        # Set the specific FK
         setattr(ticket, target_field, target_obj)
-        
         ticket.save()
         
         # 3. Update Schedule
         self.last_generated = timezone.now()
-        # Optionally update next_run_date here if we were doing strict scheduling
-        # But for 'Generate Now' manual trigger, strictly speaking we might not want to push the next date
-        # OR we might want to. Let's leave next_run_date alone for manual triggers for now, 
-        # as the user might be testing or doing an extra run.
+        
+        if advance_schedule:
+            def advance(date, freq):
+                if freq == 'Weekly': return date + datetime.timedelta(days=7)
+                elif freq == 'Monthly': return add_months(date, 1)
+                elif freq == 'Quarterly': return add_months(date, 3)
+                elif freq == 'Yearly': return add_months(date, 12)
+                return date
+                
+            self.next_run_date = advance(self.next_run_date, self.frequency)
+            
+            # Fast-forward if still in the past
+            while self.next_run_date < run_date:
+                self.next_run_date = advance(self.next_run_date, self.frequency)
+        
         self.save()
         
         return ticket
