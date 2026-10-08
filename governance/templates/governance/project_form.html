@@ -264,10 +264,11 @@ body {
                     <div class="col-lg-5">
                         <div class="mb-4">
                             <h4 class="section-title">Project Thumbnail</h4>
-                            <div class="upload-box" onclick="document.getElementById('id_thumbnail').click();">
-                                <i class="far fa-image fs-1 text-muted mb-3"></i>
-                                <h6 class="fw-bold mb-1">Click to upload image</h6>
-                                <p class="text-muted small m-0">PNG, JPG up to 2MB</p>
+                            <div class="upload-box position-relative" id="thumbnail-preview-box" onclick="document.getElementById('id_thumbnail').click();" style="{% if form.instance.thumbnail %}padding: 10px;{% endif %}">
+                                <i class="far fa-image fs-1 text-muted mb-3 {% if form.instance.thumbnail %}d-none{% endif %}" id="thumbnail-icon"></i>
+                                <h6 class="fw-bold mb-1 {% if form.instance.thumbnail %}d-none{% endif %}" id="thumbnail-text">Click to upload image</h6>
+                                <p class="text-muted small m-0 {% if form.instance.thumbnail %}d-none{% endif %}" id="thumbnail-subtext">PNG, JPG up to 2MB</p>
+                                <img id="thumbnail-preview" src="{% if form.instance.thumbnail %}{{ form.instance.thumbnail.url }}{% endif %}" class="img-fluid rounded {% if not form.instance.thumbnail %}d-none{% endif %}" style="max-height: 250px; width: 100%; object-fit: contain; background-color: #f8fafc;">
                                 <div class="d-none">
                                     {{ form.thumbnail }}
                                 </div>
@@ -312,7 +313,7 @@ body {
                     </div>
                 </div>
                 <div class="d-flex justify-content-between mt-5 pt-3 border-top">
-                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="1">Cancel</button>
+                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="1"><i class="fas fa-arrow-left me-2"></i> Back</button>
                     <button type="button" class="btn btn-primary px-5 py-2 fw-bold btn-next" data-next="3">Next <i class="fas fa-arrow-right ms-2"></i></button>
                 </div>
             </div>
@@ -329,7 +330,7 @@ body {
                     </div>
                 </div>
                 <div class="d-flex justify-content-between mt-5 pt-3 border-top">
-                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="2">Cancel</button>
+                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="2"><i class="fas fa-arrow-left me-2"></i> Back</button>
                     <button type="button" class="btn btn-primary px-5 py-2 fw-bold btn-next" data-next="4">Next <i class="fas fa-arrow-right ms-2"></i></button>
                 </div>
             </div>
@@ -359,7 +360,7 @@ body {
                 </button>
 
                 <div class="d-flex justify-content-between mt-5 pt-3 border-top">
-                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="3">Cancel</button>
+                    <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="3"><i class="fas fa-arrow-left me-2"></i> Back</button>
                     <button type="submit" class="btn btn-primary px-5 py-2 fw-bold shadow">
                         <i class="fas fa-save me-2"></i> Create Project
                     </button>
@@ -408,7 +409,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     nextBtns.forEach(btn => btn.addEventListener('click', function() {
-        showStep(this.getAttribute('data-next'));
+        let currentStep = this.closest('.wizard-step-content');
+        let inputs = currentStep.querySelectorAll('input, select, textarea');
+        let isValid = true;
+        
+        for (let i = 0; i < inputs.length; i++) {
+            if (!inputs[i].checkValidity()) {
+                inputs[i].reportValidity();
+                isValid = false;
+                break; // Stop at the first invalid field
+            }
+        }
+        
+        if (isValid) {
+            showStep(this.getAttribute('data-next'));
+        }
     }));
 
     prevBtns.forEach(btn => btn.addEventListener('click', function() {
@@ -426,6 +441,28 @@ document.addEventListener('DOMContentLoaded', function() {
             let newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formIdx);
             tasksContainer.insertAdjacentHTML('beforeend', newFormHtml);
             totalFormsInput.value = formIdx + 1;
+        });
+    }
+    // Thumbnail Preview Logic
+    const thumbnailInput = document.getElementById('id_thumbnail');
+    if (thumbnailInput) {
+        thumbnailInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('thumbnail-preview');
+                    preview.src = e.target.result;
+                    preview.classList.remove('d-none');
+                    
+                    document.getElementById('thumbnail-icon').classList.add('d-none');
+                    document.getElementById('thumbnail-text').classList.add('d-none');
+                    document.getElementById('thumbnail-subtext').classList.add('d-none');
+                    
+                    document.getElementById('thumbnail-preview-box').style.padding = '10px';
+                }
+                reader.readAsDataURL(file);
+            }
         });
     }
 });
