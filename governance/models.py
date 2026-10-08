@@ -58,6 +58,11 @@ class Project(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Software Development')
     description = models.TextField()
     thumbnail = models.ImageField(upload_to='project_thumbnails/', blank=True, null=True)
+    
+    # On Hold Tracking
+    on_hold_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='projects_on_hold', on_delete=models.SET_NULL, null=True, blank=True)
+    on_hold_date = models.DateTimeField(null=True, blank=True)
+    
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_projects')
     location = models.ForeignKey('assets.Location', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
     vendor = models.ForeignKey('assets.Vendor', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')

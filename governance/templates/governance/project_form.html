@@ -231,9 +231,15 @@ body {
                             {{ form.name|as_crispy_field }}
                         </div>
                         
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
-                            {{ form.category|as_crispy_field }}
+                        <div class="row mb-4">
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+                                {{ form.category|as_crispy_field }}
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold text-danger">Project Status <span class="text-danger">*</span></label>
+                                {{ form.status|as_crispy_field }}
+                            </div>
                         </div>
                         
                         <div class="mb-4">
@@ -346,18 +352,23 @@ body {
                     <div class="task-form-row p-3 mb-3 rounded border bg-light">
                         {{ task_form.id }}
                         <div class="row">
-                            <div class="col-md-4">{{ task_form.name|as_crispy_field }}</div>
-                            <div class="col-md-4">{{ task_form.assigned_to|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ task_form.name|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ task_form.assigned_to|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ task_form.weight|as_crispy_field }}</div>
                             <div class="col-md-2">{{ task_form.start_date|as_crispy_field }}</div>
                             <div class="col-md-2">{{ task_form.due_date|as_crispy_field }}</div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
-                
-                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="add-task-btn">
-                    <i class="fas fa-plus me-1"></i> Add Another Task
-                </button>
+                <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="add-task-btn">
+                        <i class="fas fa-plus me-1"></i> Add Another Task
+                    </button>
+                    <div class="px-3 py-2 rounded bg-light border fw-bold shadow-sm" id="weight-indicator" style="font-size: 0.95rem;">
+                        Total Weight: <span id="weight-total" class="text-primary fs-5">0</span> % / 100%
+                    </div>
+                </div>
 
                 <div class="d-flex justify-content-between mt-5 pt-3 border-top">
                     <button type="button" class="btn btn-light px-4 py-2 fw-bold text-muted border btn-prev" data-prev="3"><i class="fas fa-arrow-left me-2"></i> Back</button>
@@ -375,8 +386,9 @@ body {
 <div id="empty-task-form" style="display: none;">
     <div class="task-form-row p-3 mb-3 rounded border bg-light">
         <div class="row">
-            <div class="col-md-4">{{ tasks.empty_form.name|as_crispy_field }}</div>
-            <div class="col-md-4">{{ tasks.empty_form.assigned_to|as_crispy_field }}</div>
+            <div class="col-md-3">{{ tasks.empty_form.name|as_crispy_field }}</div>
+            <div class="col-md-3">{{ tasks.empty_form.assigned_to|as_crispy_field }}</div>
+            <div class="col-md-2">{{ tasks.empty_form.weight|as_crispy_field }}</div>
             <div class="col-md-2">{{ tasks.empty_form.start_date|as_crispy_field }}</div>
             <div class="col-md-2">{{ tasks.empty_form.due_date|as_crispy_field }}</div>
         </div>
@@ -465,6 +477,62 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Weight Calculation Logic
+    function calculateTotalWeight() {
+        let total = 0;
+        const weightInputs = document.querySelectorAll('input[name$="-weight"]');
+        weightInputs.forEach(input => {
+            // Only sum up fields that are visible (not in the empty template)
+            if (!input.closest('#empty-task-form')) {
+                const val = parseFloat(input.value);
+                if (!isNaN(val)) {
+                    total += val;
+                }
+            }
+        });
+        
+        const weightTotalEl = document.getElementById('weight-total');
+        const weightIndicator = document.getElementById('weight-indicator');
+        
+        weightTotalEl.textContent = total;
+        
+        // Update styling based on total
+        weightTotalEl.classList.remove('text-primary', 'text-success', 'text-danger', 'text-warning');
+        weightIndicator.classList.remove('border-success', 'border-danger', 'border-warning');
+        
+        if (total === 100) {
+            weightTotalEl.classList.add('text-success');
+            weightIndicator.classList.add('border-success');
+            weightIndicator.style.backgroundColor = '#f0fdf4';
+        } else if (total > 100) {
+            weightTotalEl.classList.add('text-danger');
+            weightIndicator.classList.add('border-danger');
+            weightIndicator.style.backgroundColor = '#fef2f2';
+        } else {
+            weightTotalEl.classList.add('text-warning');
+            weightIndicator.classList.add('border-warning');
+            weightIndicator.style.backgroundColor = '#fffbeb';
+        }
+    }
+
+    // Bind event listeners to existing weight inputs
+    document.getElementById('tasks-container').addEventListener('input', function(e) {
+        if (e.target.name && e.target.name.endsWith('-weight')) {
+            calculateTotalWeight();
+        }
+    });
+
+    // Also calculate when a new task form is added
+    if (addTaskBtn) {
+        addTaskBtn.addEventListener('click', function() {
+            setTimeout(calculateTotalWeight, 50); // Small delay to let DOM update
+        });
+    }
+
+    // Initial calculation on page load
+    calculateTotalWeight();
+    
 });
 </script>
 <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>

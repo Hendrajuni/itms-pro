@@ -58,8 +58,9 @@ from .models import Project, ProjectTask
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['name', 'category', 'description', 'thumbnail', 'location', 'vendor', 'tags', 'template', 'budget', 'budget_source', 'budget_allocated', 'start_date', 'end_date', 'manager']
+        fields = ['name', 'category', 'status', 'description', 'thumbnail', 'location', 'vendor', 'tags', 'template', 'budget', 'budget_source', 'budget_allocated', 'start_date', 'end_date', 'manager']
         widgets = {
+            'status': forms.Select(attrs={'class': 'form-select fw-bold'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Penambahan CCTV'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Describe project objectives...'}),

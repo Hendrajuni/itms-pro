@@ -491,6 +491,7 @@ class ProjectListView(LoginRequiredMixin, ListView):
         context['planning_count'] = Project.objects.filter(status='Planning').count()
         context['progress_count'] = Project.objects.filter(status='In Progress').count()
         context['completed_count'] = Project.objects.filter(status='Completed').count()
+        context['on_hold_count'] = Project.objects.filter(status='On Hold').count()
         
         # Years for filter
         from assets.models import Location
@@ -933,8 +934,20 @@ class ProjectUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def form_valid(self, form):
         context = self.get_context_data()
         tasks = context['tasks']
+        
+        # Track On Hold Details
+        project = form.save(commit=False)
+        if project.status == 'On Hold':
+            if not project.on_hold_date:
+                project.on_hold_date = timezone.now()
+                project.on_hold_by = self.request.user
+        else:
+            project.on_hold_date = None
+            project.on_hold_by = None
+            
         with transaction.atomic():
-            self.object = form.save()
+            self.object = project
+            self.object.save()
             if tasks.is_valid():
                 tasks.instance = self.object
                 tasks.save()

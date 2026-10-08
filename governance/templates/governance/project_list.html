@@ -101,6 +101,22 @@
             </div>
         </div>
     </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card shadow h-100 py-2" style="border-left: 4px solid #dc2626;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #dc2626;">On Hold</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ on_hold_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-pause-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Project Grid / List -->
@@ -146,7 +162,7 @@
                             </div>
                         </td>
                         <td>
-                             <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-info{% else %}bg-secondary{% endif %} rounded-pill px-2">
+                             <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-info{% elif project.status == 'On Hold' or project.status == 'Cancelled' %}bg-danger{% else %}bg-secondary{% endif %} rounded-pill px-2">
                                 {{ project.status }}
                             </span>
                         </td>
@@ -198,7 +214,7 @@
         <div class="card shadow h-100 border-bottom-{{ project.status_color|default:'primary' }}">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
-                    <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-info{% else %}bg-secondary{% endif %} rounded-pill px-2">
+                    <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-info{% elif project.status == 'On Hold' or project.status == 'Cancelled' %}bg-danger{% else %}bg-secondary{% endif %} rounded-pill px-2">
                         {{ project.status }}
                     </span>
                     <div class="dropdown no-arrow">
