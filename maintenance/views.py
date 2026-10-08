@@ -880,3 +880,37 @@ def toggle_schedule_active(request):
         return JsonResponse({'status': 'success', 'is_active': schedule.is_active})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+def schedule_history_api(request, pk):
+    from django.http import JsonResponse
+    from .models import MaintenanceSchedule, AssetMaintenance, InfraMaintenance
+    try:
+        schedule = MaintenanceSchedule.objects.get(pk=pk)
+        
+        # Determine prefix. create_ticket sets title like "Title - DD/MM/YYYY"
+        prefix = f"{schedule.title} -"
+        
+        # Query both
+        asset_tasks = list(AssetMaintenance.objects.filter(title__startswith=prefix).order_by('-completed_date', '-scheduled_date'))
+        infra_tasks = list(InfraMaintenance.objects.filter(title__startswith=prefix).order_by('-completed_date', '-scheduled_date'))
+        
+        # Combine and sort
+        all_tasks = asset_tasks + infra_tasks
+        # Sort by completed_date (if completed) or scheduled_date
+        all_tasks.sort(key=lambda x: x.completed_date or x.scheduled_date or x.created_at, reverse=True)
+        
+        history = []
+        for t in all_tasks:
+            date_str = t.completed_date.strftime('%d %b %Y') if t.completed_date else t.scheduled_date.strftime('%d %b %Y')
+            history.append({
+                'id': t.pk,
+                'title': t.title,
+                'status': t.status,
+                'date': date_str,
+                'type': 'Asset' if isinstance(t, AssetMaintenance) else 'Infra'
+            })
+            
+        return JsonResponse({'status': 'success', 'history': history})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

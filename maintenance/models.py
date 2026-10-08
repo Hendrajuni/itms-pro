@@ -202,6 +202,7 @@ class MaintenanceSchedule(models.Model):
         ('Weekly', 'Weekly'),
         ('Monthly', 'Monthly'),
         ('Quarterly', 'Quarterly'),
+        ('Semi-Annually', 'Semi-Annually (6 Months)'),
         ('Yearly', 'Yearly'),
     ]
 
@@ -285,6 +286,7 @@ class MaintenanceSchedule(models.Model):
                 if freq == 'Weekly': return date + datetime.timedelta(days=7)
                 elif freq == 'Monthly': return add_months(date, 1)
                 elif freq == 'Quarterly': return add_months(date, 3)
+                elif freq == 'Semi-Annually': return add_months(date, 6)
                 elif freq == 'Yearly': return add_months(date, 12)
                 return date
                 

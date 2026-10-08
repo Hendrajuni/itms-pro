@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/task-detail/<str:task_type>/<int:pk>/', views.task_detail_api, name='task_detail_api'),
     path('api/add-subtask/', views.add_subtask, name='add_subtask'),
     path('api/toggle-schedule-active/', views.toggle_schedule_active, name='toggle_schedule_active'),
+    path('api/schedule-history/<int:pk>/', views.schedule_history_api, name='schedule_history_api'),
     
     # Report
     path('report/<str:task_type>/<int:pk>/', views.maintenance_report, name='maintenance_report'),

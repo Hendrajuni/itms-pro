@@ -50,8 +50,10 @@
                     {% for schedule in schedules %}
                     <tr>
                         <td class="ps-4">
-                            <div class="fw-bold text-dark">{{ schedule.title }}</div>
-                            <small class="text-muted">{{ schedule.maintenance_type }}</small>
+                            <a href="#" class="fw-bold text-primary text-decoration-none" onclick="showScheduleHistory({{ schedule.pk }}, '{{ schedule.title|escapejs }}'); return false;">
+                                {{ schedule.title }} <i class="fas fa-history ms-1 text-muted small" title="View History"></i>
+                            </a>
+                            <div class="small text-muted">{{ schedule.maintenance_type }}</div>
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border">{{ schedule.frequency }}</span>
@@ -117,6 +119,24 @@
         </div>
     </div>
 </div>
+
+<!-- History Offcanvas -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="historyOffcanvas" aria-labelledby="historyOffcanvasLabel">
+  <div class="offcanvas-header bg-light border-bottom">
+    <h5 class="offcanvas-title fw-bold" id="historyOffcanvasLabel">
+        <i class="fas fa-history text-primary me-2"></i>Schedule History
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <div class="p-3 bg-white border-bottom shadow-sm">
+        <h6 class="mb-0 text-dark fw-bold" id="historyScheduleTitle"></h6>
+    </div>
+    <div id="historyContent" class="p-3">
+        <!-- Content loaded via AJAX -->
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -153,5 +173,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function showScheduleHistory(scheduleId, title) {
+    document.getElementById('historyScheduleTitle').innerText = title;
+    const content = document.getElementById('historyContent');
+    content.innerHTML = '<div class="text-center text-muted my-5"><div class="spinner-border spinner-border-sm me-2"></div>Loading history...</div>';
+    
+    var historyCanvas = new bootstrap.Offcanvas(document.getElementById('historyOffcanvas'));
+    historyCanvas.show();
+
+    fetch(`/maintenance/api/schedule-history/${scheduleId}/`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            if (data.history.length === 0) {
+                content.innerHTML = '<div class="text-center text-muted my-5"><i class="fas fa-info-circle fa-2x mb-3 opacity-50"></i><p>Belum ada riwayat maintenance.</p></div>';
+                return;
+            }
+            
+            let html = '<div class="timeline">';
+            data.history.forEach(item => {
+                let badgeClass = item.status === 'Completed' ? 'bg-success' : 'bg-warning text-dark';
+                let iconClass = item.status === 'Completed' ? 'fa-check-circle text-success' : 'fa-clock text-warning';
+                
+                html += `
+                <div class="d-flex mb-3 border-bottom pb-3">
+                    <div class="me-3 mt-1"><i class="fas ${iconClass} fs-5"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <a href="/maintenance/report/${item.type.toLowerCase()}/${item.id}/" class="fw-bold text-dark text-decoration-none hover-primary" target="_blank">${item.title}</a>
+                            <span class="badge ${badgeClass}">${item.status}</span>
+                        </div>
+                        <div class="small text-muted"><i class="fas fa-calendar-day me-1"></i> ${item.date}</div>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+        } else {
+            content.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+        }
+    })
+    .catch(err => {
+        content.innerHTML = `<div class="alert alert-danger">Network Error</div>`;
+    });
+}
 </script>
 {% endblock %}
