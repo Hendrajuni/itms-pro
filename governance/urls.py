@@ -19,6 +19,17 @@ urlpatterns = [
     path('projects/tasks/<int:pk>/update-details/', views.UpdateTaskDetailsView.as_view(), name='update_task_details'),
     path('projects/tasks/<int:pk>/toggle-flag/', views.ToggleTaskFlagView.as_view(), name='toggle_task_flag'),
     path('projects/tasks/<int:task_id>/delete/', views.DeleteProjectTaskView.as_view(), name='delete_project_task'),
+    
+    # Sub-Tasks
+    path('projects/tasks/<int:task_id>/data/', views.GetProjectTaskDataView.as_view(), name='get_project_task_data'),
+    path('projects/tasks/<int:task_id>/subtask/add/', views.AddProjectSubTaskView.as_view(), name='add_project_subtask'),
+    path('projects/subtasks/<int:subtask_id>/toggle/', views.ToggleProjectSubTaskView.as_view(), name='toggle_project_subtask'),
+    path('projects/subtasks/<int:subtask_id>/delete/', views.DeleteProjectSubTaskView.as_view(), name='delete_project_subtask'),
+    
+    # Task Share & Print
+    path('t/<str:token>/', views.SharedTaskDetailView.as_view(), name='shared_task_detail'),
+    path('projects/tasks/<int:pk>/print/', views.ProjectTaskPrintView.as_view(), name='print_project_task'),
+    
     path('projects/<int:project_id>/tasks/create/', views.CreateProjectTaskView.as_view(), name='create_project_task'),
     path('projects/<int:project_id>/team/add/', views.AddProjectTeamMemberView.as_view(), name='add_project_team_member'),
     path('projects/<int:project_id>/document/upload/', views.ProjectDocumentUploadView.as_view(), name='project_document_upload'),

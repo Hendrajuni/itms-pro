@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Task: {{ task.name }} - ITMS Pro</title>
+    <!-- Include Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="card-header bg-primary text-white p-4 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="badge bg-white text-primary rounded-pill mb-2 fw-bold px-3 py-1">{{ task.project.name }}</span>
+                            <h3 class="mb-0 fw-bold">{{ task.name }}</h3>
+                        </div>
+                        <div class="text-end">
+                            <span class="d-block small text-white-50">Status</span>
+                            <span class="badge bg-light text-dark fw-bold fs-6">{{ task.status }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-4 p-lg-5">
+                        
+                        <div class="row g-4 mb-5">
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded-3 h-100 border-start border-primary border-4">
+                                    <span class="d-block small text-muted text-uppercase fw-bold mb-1">Assignee</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-sm bg-primary bg-opacity-10 text-primary fw-bold rounded-circle d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;">
+                                            {{ task.assignee_initial }}
+                                        </div>
+                                        <span class="fw-bold text-dark">{{ task.assignee_name }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded-3 h-100 border-start border-info border-4">
+                                    <span class="d-block small text-muted text-uppercase fw-bold mb-1">Schedule</span>
+                                    <span class="text-dark fw-medium">
+                                        <i class="far fa-calendar-alt text-muted me-1"></i> {{ task.start_date|date:"d M Y"|default:"-" }}
+                                        <span class="mx-1 text-muted">→</span>
+                                        <i class="far fa-calendar-check text-muted me-1"></i> {{ task.due_date|date:"d M Y"|default:"-" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fas fa-align-left text-primary me-2"></i>Description</h5>
+                        <div class="bg-light p-4 rounded-3 mb-5 text-dark" style="white-space: pre-line; line-height: 1.6;">
+                            {{ task.description|default:"Tidak ada deskripsi." }}
+                        </div>
+                        
+                        {% if task.subtasks.count > 0 %}
+                        <h5 class="fw-bold mb-3 border-bottom pb-2 d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-check-square text-primary me-2"></i>Sub-Tasks Checklist</span>
+                            <span class="badge bg-primary rounded-pill">{{ task.subtasks_completed }}/{{ task.subtasks_total }}</span>
+                        </h5>
+                        
+                        <div class="progress mb-4" style="height: 8px;">
+                            <div class="progress-bar {% if task.subtasks_progress_percent == 100 %}bg-success{% else %}bg-primary{% endif %}" style="width: {{ task.subtasks_progress_percent }}%;"></div>
+                        </div>
+                        
+                        <ul class="list-group list-group-flush mb-4 border rounded-3">
+                            {% for st in task.subtasks.all %}
+                            <li class="list-group-item d-flex align-items-center py-3">
+                                <div class="form-check m-0">
+                                    <input class="form-check-input flex-shrink-0" type="checkbox" disabled {% if st.is_completed %}checked{% endif %} style="transform: scale(1.2);">
+                                    <label class="form-check-label ms-2 {% if st.is_completed %}text-decoration-line-through text-muted{% else %}fw-medium text-dark{% endif %}">
+                                        {{ st.title }}
+                                    </label>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        
+                    </div>
+                    <div class="card-footer bg-light border-0 p-4 text-center d-print-none">
+                        <p class="text-muted small mb-0">Dibagikan secara aman dari <span class="fw-bold text-decoration-none">ITMS Pro</span> &bull; Project Governance System</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

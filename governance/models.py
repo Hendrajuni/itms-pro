@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -181,6 +182,9 @@ class ProjectTask(models.Model):
     is_flagged = models.BooleanField(default=False)
     flag_reason = models.CharField(max_length=200, blank=True, help_text="Alasan kenapa task ditandai bermasalah")
     
+    # Sharing
+    share_token = models.UUIDField(default=uuid.uuid4, editable=False, null=True, blank=True, unique=True)
+    
     @property
     def is_past_due(self):
         return self.status != 'Completed' and self.due_date and self.due_date < timezone.now().date()
@@ -203,6 +207,21 @@ class ProjectTask(models.Model):
             days = (self.due_date - self.start_date).days
             return max(0, days)
         return 0
+        
+    @property
+    def subtasks_total(self):
+        return self.subtasks.count()
+        
+    @property
+    def subtasks_completed(self):
+        return self.subtasks.filter(is_completed=True).count()
+        
+    @property
+    def subtasks_progress_percent(self):
+        total = self.subtasks_total
+        if total == 0:
+            return 0
+        return int((self.subtasks_completed / total) * 100)
 
     def save(self, *args, **kwargs):
         if self.status == 'Completed' and not self.completed_at:
@@ -219,6 +238,15 @@ class ProjectTask(models.Model):
 
     def __str__(self):
         return f"{self.project.name} - {self.name}"
+
+class ProjectSubTask(models.Model):
+    task = models.ForeignKey(ProjectTask, on_delete=models.CASCADE, related_name='subtasks')
+    title = models.CharField(max_length=200)
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.title
 
 class ProjectDocument(models.Model):
     DOCUMENT_TYPES = [

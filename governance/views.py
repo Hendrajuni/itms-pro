@@ -513,7 +513,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project = self.object
-        tasks = project.tasks.select_related('assigned_to', 'team_member__internal_user').all()
+        tasks = project.tasks.select_related('assigned_to', 'team_member__internal_user').prefetch_related('subtasks').all()
         
         # 1. Kanban Buckets & KPI Stats
         from django.db.models import Sum
@@ -1359,3 +1359,106 @@ class DeleteProjectExpenseView(LoginRequiredMixin, View):
             messages.error(request, f"Terjadi kesalahan: {str(e)}")
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
+import json
+from django.http import JsonResponse
+from governance.models import ProjectSubTask
+
+class AddProjectSubTaskView(LoginRequiredMixin, View):
+    def post(self, request, task_id):
+        try:
+            task = ProjectTask.objects.get(pk=task_id)
+            title = request.POST.get('title')
+            if title:
+                subtask = ProjectSubTask.objects.create(task=task, title=title)
+                return JsonResponse({
+                    'success': True, 
+                    'subtask': {
+                        'id': subtask.id, 
+                        'title': subtask.title, 
+                        'is_completed': subtask.is_completed
+                    },
+                    'total_subtasks': task.subtasks_total,
+                    'completed_subtasks': task.subtasks_completed,
+                    'progress_percent': task.subtasks_progress_percent
+                })
+            return JsonResponse({'success': False, 'error': 'Title is required'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class ToggleProjectSubTaskView(LoginRequiredMixin, View):
+    def post(self, request, subtask_id):
+        try:
+            subtask = ProjectSubTask.objects.get(pk=subtask_id)
+            subtask.is_completed = not subtask.is_completed
+            subtask.save()
+            task = subtask.task
+            return JsonResponse({
+                'success': True,
+                'is_completed': subtask.is_completed,
+                'total_subtasks': task.subtasks_total,
+                'completed_subtasks': task.subtasks_completed,
+                'progress_percent': task.subtasks_progress_percent
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class DeleteProjectSubTaskView(LoginRequiredMixin, View):
+    def post(self, request, subtask_id):
+        try:
+            subtask = ProjectSubTask.objects.get(pk=subtask_id)
+            task = subtask.task
+            subtask.delete()
+            return JsonResponse({
+                'success': True,
+                'total_subtasks': task.subtasks_total,
+                'completed_subtasks': task.subtasks_completed,
+                'progress_percent': task.subtasks_progress_percent
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class GetProjectTaskDataView(LoginRequiredMixin, View):
+    def get(self, request, task_id):
+        try:
+            task = ProjectTask.objects.get(pk=task_id)
+            subtasks = []
+            for st in task.subtasks.all().order_by('created_at'):
+                subtasks.append({
+                    'id': st.id,
+                    'title': st.title,
+                    'is_completed': st.is_completed
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'share_token': task.share_token.hex if task.share_token else '',
+                'project_name': task.project.name,
+                'start_date': task.start_date.strftime('%d %B %Y') if task.start_date else '-',
+                'due_date': task.due_date.strftime('%d %B %Y') if task.due_date else '-',
+                'is_past_due': task.is_past_due,
+                'subtasks': subtasks,
+                'total_subtasks': task.subtasks_total,
+                'completed_subtasks': task.subtasks_completed,
+                'progress_percent': task.subtasks_progress_percent
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class SharedTaskDetailView(DetailView):
+    model = ProjectTask
+    template_name = 'governance/print_task_report.html'
+    context_object_name = 'task'
+    
+    def get_object(self):
+        token = self.kwargs.get('token')
+        return get_object_or_404(ProjectTask, share_token=token)
+
+class ProjectTaskPrintView(LoginRequiredMixin, DetailView):
+    model = ProjectTask
+    template_name = 'governance/print_task_report.html'
+    context_object_name = 'task'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_print'] = True
+        return context

@@ -69,7 +69,7 @@
         </div>
         
         <!-- Bobot Progress Bar -->
-        <div class="mb-3">
+        <div class="mb-2">
             <div class="d-flex align-items-center gap-2">
                 <div class="d-flex align-items-center gap-1 text-muted flex-shrink-0" style="font-size: 0.72rem;">
                     <i class="fas fa-chart-pie" style="font-size: 0.65rem;"></i>
@@ -85,6 +85,19 @@
                 <span class="fw-bold flex-shrink-0 {% if task.status == 'Completed' %}text-success{% elif task.weight > 0 %}text-primary{% else %}text-muted{% endif %}" style="font-size: 0.75rem; min-width: 32px; text-align: right;">{{ task.weight|default:0 }}%</span>
             </div>
         </div>
+
+        <!-- Sub-Tasks Progress -->
+        {% if task.subtasks_total > 0 %}
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <span class="text-muted flex-shrink-0" style="font-size: 0.72rem; min-width: 55px;"><i class="fas fa-check-square" style="font-size: 0.65rem;"></i> Sub-task</span>
+            <div class="progress flex-grow-1" style="height: 5px; border-radius: 2px;">
+                <div class="progress-bar {% if task.subtasks_progress_percent == 100 %}bg-success{% else %}bg-info{% endif %}" style="width: {{ task.subtasks_progress_percent }}%"></div>
+            </div>
+            <span class="text-muted fw-bold" style="font-size: 0.7rem;">{{ task.subtasks_completed }}/{{ task.subtasks_total }}</span>
+        </div>
+        {% else %}
+        <div class="mb-3"></div>
+        {% endif %}
         
         <!-- Assignee + Overdue -->
         <div class="d-flex justify-content-between align-items-center pt-2" style="border-top: 1px solid #f1f5f9;">

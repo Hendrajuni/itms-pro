@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+{% load humanize %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Report - {{ task.name }}</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Arial', 'Helvetica', sans-serif; color: #000; background: #fff; -webkit-print-color-adjust: exact; }
+        .container { max-width: 216mm; margin: 0 auto; border: 1px solid #000; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-text { font-size: 26px; font-weight: 900; color: #000; letter-spacing: -0.5px; }
+        
+        .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        .qr-box { width: 80px; height: 80px; margin-bottom: 5px; }
+        .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .report-title { font-size: 14px; font-weight:bold; color: #000; }
+        .report-date { font-size: 11px; color: #000; }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .info-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
+        .info-item label { display: block; font-size: 10px; color: #444; text-transform: uppercase; margin-bottom: 3px; font-weight: 700; }
+        .info-item span { display: block; font-size: 13px; font-weight: 600; color: #000; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+        
+        .section-title { background: #eee; padding: 6px 10px; font-size: 12px; font-weight: 800; text-transform: uppercase; margin-top: 25px; margin-bottom: 10px; border-left: 5px solid #000; color: #000; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+        th { text-align: left; background: #f0f0f0; padding: 6px; border-bottom: 2px solid #000; font-weight: 800; color: #000; }
+        td { padding: 6px; border-bottom: 1px solid #ccc; color: #000; }
+        td.text-right, th.text-right { text-align: right; }
+        
+        .status-badge { display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 800; border-radius: 3px; text-transform: uppercase; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-progress { background: #fff3cd; color: #856404; }
+        .status-pending { background: #e2e3e5; color: #383d41; }
+        
+        .check-icon { font-size: 12px; }
+        .check-done { color: #28a745; }
+        .check-pending { color: #ccc; }
+        
+        .notes-box { display: flex; align-items: stretch; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+        .notes-label { background-color: #f0f0f0; padding: 6px 10px; font-weight: bold; font-size: 11px; text-transform: uppercase; border-right: 1px solid #ccc; display: flex; align-items: center; width: 100px; flex-shrink: 0; color: #000; justify-content: center; }
+        .notes-content { padding: 6px 10px; font-size: 11px; white-space: pre-line; flex: 1; color: #000; display: flex; align-items: center; }
+        
+        .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #000; font-size: 10px; color: #000; text-align: center; font-weight: bold; }
+        
+        @media print {
+            body { padding: 0; background: white; }
+            .container { border: none; padding: 0; }
+            @page { size: legal portrait; margin: 15mm; }
+            .no-print { display: none !important; }
+        }
+
+        /* Action Bar */
+        .action-bar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .action-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .action-btn.close-btn {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="action-bar no-print">
+        <button class="action-btn" onclick="window.print()">🖨️ Print Document</button>
+        <button class="action-btn close-btn" onclick="window.close()">❌ Close</button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-section" style="display: flex; align-items: center; gap: 15px;">
+                {% if site_settings.logo %}
+                    <img src="{{ site_settings.logo.url }}" alt="Company Logo" style="height: 50px; width: auto; object-fit: contain;">
+                {% endif %}
+                <div>
+                    <div class="logo-text">{{ site_settings.site_name|default:"ITMS Pro"|upper }}</div>
+                    <div style="font-size:12px; font-weight:bold; margin-top:2px;">{{ site_settings.company_name|upper }}</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <!-- Assuming no QR for tasks currently unless requested. 
+                If we want a QR, we'd need to generate it in the view. We'll leave the block open just in case -->
+                <div class="report-title">PROJECT TASK REPORT</div>
+                <div class="report-date">Generated: {% now "d M Y H:i" %}</div>
+            </div>
+        </div>
+
+        <!-- General Information -->
+        <div class="section-title">General Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Project Name</label>
+                <span>{{ task.project.name }}</span>
+            </div>
+            <div class="info-item">
+                <label>Task Status</label>
+                <span>
+                    <span class="status-badge {% if task.status == 'Completed' %}status-completed{% elif task.status == 'In Progress' %}status-progress{% else %}status-pending{% endif %}">
+                        {{ task.status }}
+                    </span>
+                </span>
+            </div>
+            <div class="info-item">
+                <label>Task Name</label>
+                <span>{{ task.name }}</span>
+            </div>
+            <div class="info-item">
+                <label>Priority</label>
+                <span>{{ task.priority }}</span>
+            </div>
+            <div class="info-item">
+                <label>Task Weight / Progress</label>
+                <span>{{ task.weight }}%</span>
+            </div>
+            <div class="info-item">
+                <label>Flagged / Issue</label>
+                <span>{% if task.is_flagged %}⚠️ Yes - {{ task.flag_reason|default:"-" }}{% else %}No{% endif %}</span>
+            </div>
+        </div>
+
+        <!-- Assignment & Timeline -->
+        <div class="section-title">Assignment &amp; Timeline</div>
+        <div class="info-grid three-col">
+            <div class="info-item">
+                <label>Assignee</label>
+                <span>{{ task.assignee_name|default:"Unassigned" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Start Date</label>
+                <span>{{ task.start_date|date:"d F Y"|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Due Date</label>
+                <span>
+                    {{ task.due_date|date:"d F Y"|default:"-" }}
+                    {% if task.is_past_due %}
+                    <span class="status-badge bg-danger text-white ms-2" style="background-color: #dc3545 !important; color: white !important;">OVERDUE</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Description -->
+        {% if task.description %}
+        <div class="section-title">Description</div>
+        <div style="font-size: 12px; line-height: 1.5; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
+            {{ task.description|linebreaksbr }}
+        </div>
+        {% endif %}
+
+        <!-- Checklist Subtasks -->
+        {% if task.subtasks.count > 0 %}
+        <div class="section-title">Sub-Tasks Checklist ({{ task.subtasks_completed }}/{{ task.subtasks_total }})</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:5%;">No</th>
+                    <th>Sub-Task Name</th>
+                    <th style="width:15%;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for st in task.subtasks.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ st.title }}</td>
+                    <td>
+                        {% if st.is_completed %}
+                            <span class="check-icon check-done">✔</span> Selesai
+                        {% else %}
+                            <span class="check-icon check-pending">○</span> Pending
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <div class="footer">
+            IT Management System • Internal Document • Confidential
+        </div>
+    </div>
+    
+    {% if is_print %}
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

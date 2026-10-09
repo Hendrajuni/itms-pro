@@ -1724,11 +1724,22 @@ function toggleDocMode(mode) {
 
 <!-- Offcanvas Slide-over for Task Detail -->
 <div class="offcanvas offcanvas-end border-start-0 shadow-lg" tabindex="-1" id="taskSlideOver" aria-labelledby="taskSlideOverLabel" style="width: 500px;">
-    <div class="offcanvas-header border-bottom py-3 px-4">
-        <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center" id="taskSlideOverLabel">
+    <div class="offcanvas-header border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+        <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center m-0" id="taskSlideOverLabel">
             <i class="fas fa-list-check text-primary me-2"></i> Task Details
         </h5>
-        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        <div class="d-flex align-items-center">
+            <!-- Share & Print -->
+            <button type="button" class="btn btn-light btn-sm rounded-circle me-1" id="btnTaskPrint" onclick="printTaskDetail()" title="Print Task"><i class="fas fa-print"></i></button>
+            <div class="dropdown me-2">
+                <button type="button" class="btn btn-light btn-sm rounded-circle" data-bs-toggle="dropdown" id="btnTaskShare" title="Share Task"><i class="fas fa-share-alt"></i></button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="#" onclick="copyTaskLink(event)"><i class="far fa-copy me-2 text-primary"></i>Copy Encrypted Link</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="shareTaskWhatsApp(event)"><i class="fab fa-whatsapp me-2 text-success"></i>Share via WhatsApp</a></li>
+                </ul>
+            </div>
+            <button type="button" class="btn-close text-reset ms-2" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
     </div>
     <div class="offcanvas-body p-4 position-relative">
         <form id="taskDetailForm" class="d-flex flex-column h-100">
@@ -1808,7 +1819,25 @@ function toggleDocMode(mode) {
             
             <div class="mb-4 flex-grow-1">
                 <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="fas fa-list-ul me-1"></i> Description</label>
-                <textarea class="form-control text-dark border-0 bg-light rounded-3 p-3" id="taskDescription" rows="5" placeholder="Add detailed instructions, notes, or checklist..." style="resize: none;"></textarea>
+                <textarea class="form-control text-dark border-0 bg-light rounded-3 p-3 mb-4" id="taskDescription" rows="4" placeholder="Add detailed instructions, notes, or checklist..." style="resize: none;"></textarea>
+                
+                <!-- Sub-Task Section -->
+                <div id="subTaskContainer" style="display: none;">
+                    <label class="form-label text-muted small fw-bold text-uppercase mb-2 d-flex justify-content-between align-items-center" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <span><i class="fas fa-check-square me-1"></i> Sub-Tasks Checklist</span>
+                        <span id="subTaskProgressText" class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2">0/0</span>
+                    </label>
+                    <div class="progress mb-3 bg-light" style="height: 6px; border-radius: 3px;">
+                        <div class="progress-bar bg-primary" id="subTaskProgressBar" style="width: 0%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div class="list-group list-group-flush border rounded-3 mb-3" id="subTaskList" style="max-height: 250px; overflow-y: auto;">
+                        <!-- Sub-tasks injected here -->
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control border bg-light shadow-none" id="newSubTaskTitle" placeholder="Tambah sub-task baru..." onkeydown="if(event.key==='Enter'){ event.preventDefault(); addSubTask(); }">
+                        <button class="btn btn-primary px-3 fw-bold" type="button" onclick="addSubTask()"><i class="fas fa-plus"></i></button>
+                    </div>
+                </div>
             </div>
             
         </form>
@@ -2126,12 +2155,164 @@ function openTaskDetail(id, name, status, assignee, start, due, weight, desc, fl
     
     applyStatus();
     
+    if (id) {
+        document.getElementById('subTaskContainer').style.display = 'block';
+        document.getElementById('btnTaskShare').disabled = false;
+        document.getElementById('btnTaskPrint').disabled = false;
+        fetchTaskData(id);
+    } else {
+        document.getElementById('subTaskContainer').style.display = 'none';
+        document.getElementById('btnTaskShare').disabled = true;
+        document.getElementById('btnTaskPrint').disabled = true;
+    }
+    
     taskSlideOver.show();
     
     // Force re-apply status after offcanvas animation completes
     setTimeout(applyStatus, 100);
     setTimeout(applyStatus, 350);
     setTimeout(applyStatus, 600);
+}
+
+let currentTaskData = null;
+
+function fetchTaskData(taskId) {
+    document.getElementById('subTaskList').innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin text-primary"></i></div>';
+    fetch(`/governance/projects/tasks/${taskId}/data/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentTaskData = data;
+                currentTaskShareToken = data.share_token;
+                renderSubTasks(data);
+            }
+        });
+}
+
+function renderSubTasks(data) {
+    const list = document.getElementById('subTaskList');
+    const progBar = document.getElementById('subTaskProgressBar');
+    const progText = document.getElementById('subTaskProgressText');
+    
+    progBar.style.width = data.progress_percent + '%';
+    progText.innerText = `${data.completed_subtasks}/${data.total_subtasks}`;
+    
+    if (data.progress_percent === 100 && data.total_subtasks > 0) {
+        progBar.classList.replace('bg-primary', 'bg-success');
+        progText.classList.replace('bg-primary', 'bg-success');
+        progText.classList.replace('text-primary', 'text-success');
+    } else {
+        progBar.classList.replace('bg-success', 'bg-primary');
+        progText.classList.replace('bg-success', 'bg-primary');
+        progText.classList.replace('text-success', 'text-primary');
+    }
+    
+    list.innerHTML = '';
+    if (data.subtasks.length === 0) {
+        list.innerHTML = '<div class="list-group-item text-muted small text-center bg-light">Belum ada sub-task.</div>';
+        return;
+    }
+    
+    data.subtasks.forEach(st => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-center bg-white border-bottom border-light p-2';
+        item.innerHTML = `
+            <div class="form-check m-0 d-flex align-items-center gap-2 w-100">
+                <input class="form-check-input mt-0 shadow-none cursor-pointer" type="checkbox" ${st.is_completed ? 'checked' : ''} onchange="toggleSubTask(${st.id})" style="transform: scale(1.2);">
+                <label class="form-check-label mb-0 ms-1 cursor-pointer w-100 ${st.is_completed ? 'text-decoration-line-through text-muted' : 'text-dark fw-medium'}" style="font-size: 0.85rem;">
+                    ${st.title}
+                </label>
+            </div>
+            <button class="btn btn-link text-danger p-0 ms-2" onclick="deleteSubTask(${st.id})"><i class="fas fa-times"></i></button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function addSubTask() {
+    const taskId = document.getElementById('taskId').value;
+    const input = document.getElementById('newSubTaskTitle');
+    const title = input.value.trim();
+    if (!taskId || !title) return;
+    
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch(`/governance/projects/tasks/${taskId}/subtask/add/`, {
+        method: 'POST',
+        body: formData
+    }).then(res => res.json()).then(data => {
+        if (data.success) {
+            input.value = '';
+            fetchTaskData(taskId);
+        }
+    });
+}
+
+function toggleSubTask(subtaskId) {
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch(`/governance/projects/subtasks/${subtaskId}/toggle/`, {
+        method: 'POST',
+        body: formData
+    }).then(res => res.json()).then(data => {
+        if (data.success) {
+            const taskId = document.getElementById('taskId').value;
+            fetchTaskData(taskId);
+        }
+    });
+}
+
+function deleteSubTask(subtaskId) {
+    if (!confirm('Hapus sub-task ini?')) return;
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch(`/governance/projects/subtasks/${subtaskId}/delete/`, {
+        method: 'POST',
+        body: formData
+    }).then(res => res.json()).then(data => {
+        if (data.success) {
+            const taskId = document.getElementById('taskId').value;
+            fetchTaskData(taskId);
+        }
+    });
+}
+
+// Share & Print Functions
+function copyTaskLink(e) {
+    e.preventDefault();
+    if (!currentTaskShareToken) return alert('Task belum memiliki link share.');
+    const url = window.location.origin + '/governance/t/' + currentTaskShareToken + '/';
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Link task berhasil disalin: ' + url);
+    });
+}
+
+function shareTaskWhatsApp(e) {
+    e.preventDefault();
+    if (!currentTaskShareToken || !currentTaskData) return alert('Task belum memiliki link share.');
+    const url = window.location.origin + '/governance/t/' + currentTaskShareToken + '/';
+    const taskName = document.getElementById('taskName').value;
+    
+    let text = `Halo, mohon dicek progress task berikut:\n\n`;
+    text += `*Project:* ${currentTaskData.project_name}\n`;
+    text += `*Task:* ${taskName}\n`;
+    text += `*Schedule:* ${currentTaskData.start_date} s/d ${currentTaskData.due_date}\n`;
+    if (currentTaskData.is_past_due) {
+        text += `*Status:* 🚨 OVERDUE\n`;
+    }
+    text += `\n*Link Report:* ${url}`;
+    
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
+}
+
+function printTaskDetail() {
+    const taskId = document.getElementById('taskId').value;
+    if (!taskId) return;
+    window.open(`/governance/projects/tasks/${taskId}/print/`, '_blank');
 }
 
 function deleteTask(taskId) {
@@ -2186,10 +2367,28 @@ function saveTaskDetails() {
         return;
     }
 
+    const status = document.getElementById('taskStatus').value;
+    const progText = document.getElementById('subTaskProgressText').innerText;
+    
+    if (status === 'Completed') {
+        const parts = progText.split('/');
+        if (parts.length === 2 && parts[1] !== "0") {
+            if (parts[0] !== parts[1]) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sub-task Belum Selesai',
+                    text: 'Terdapat checklist sub-task yang belum dicentang. Pastikan semua sub-task selesai sebelum menandai task ini sebagai Completed.',
+                    confirmButtonText: 'Oke, Cek Kembali'
+                });
+                return;
+            }
+        }
+    }
+
     const id = document.getElementById('taskId').value;
     const data = {
         name: document.getElementById('taskName').value,
-        status: document.getElementById('taskStatus').value,
+        status: status,
         team_member_id: document.getElementById('taskAssignee').value,
         start_date: document.getElementById('taskStartDate').value,
         due_date: document.getElementById('taskDueDate').value,
