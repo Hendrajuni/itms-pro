@@ -820,9 +820,19 @@ body {
             <!-- Assignee Filter -->
             <select id="kanbanFilterAssignee" class="form-select form-select-sm border rounded-3 py-2 px-3 fw-medium text-muted bg-white flex-shrink-0" style="border-color: #e2e8f0; width: 160px;">
                 <option value="">All Assignees</option>
+                <optgroup label="Hybrid Team">
                 {% for member in team_members %}
-                <option value="{{ member.id }}">{{ member.get_full_name|default:member.username }}</option>
+                <option value="{{ member.id }}">{{ member.get_name }} ({{ member.role }})</option>
                 {% endfor %}
+                </optgroup>
+                
+                {% if legacy_users %}
+                <optgroup label="Legacy Assignees">
+                {% for user in legacy_users %}
+                <option value="legacy_{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                {% endfor %}
+                </optgroup>
+                {% endif %}
                 <option value="unassigned">Unassigned</option>
             </select>
 
@@ -1201,6 +1211,102 @@ body {
 
         </div>
     </div>
+    <!-- TEAM TAB (Hybrid) -->
+    <div class="tab-pane fade" id="team" role="tabpanel">
+        <!-- Team Action Bar -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold mb-1 text-dark">Project Team Members</h4>
+                <p class="text-secondary small mb-0">Kelola staf IT, PIC lintas divisi, dan vendor eksternal.</p>
+            </div>
+            <button class="btn btn-primary shadow-sm px-4 fw-bold rounded-pill" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
+                <i class="fas fa-user-plus me-2"></i> Add Member
+            </button>
+        </div>
+        
+        <div class="row g-4">
+            <!-- Internal IT Team -->
+            <div class="col-md-6">
+                <div class="card-premium h-100">
+                    <div class="card-header-premium bg-light border-bottom">
+                        <h3 class="card-title-premium text-primary"><i class="fas fa-users-cog me-2"></i> Internal Team (IT & Lintas Divisi)</h3>
+                    </div>
+                    <div class="card-body-premium p-4">
+                        <div class="d-flex flex-column gap-3">
+                            {% for member in team_members %}
+                                {% if member.member_type == 'Internal' %}
+                                <div class="d-flex align-items-center p-3 border rounded-3 bg-white shadow-sm transition-hover">
+                                    <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold shadow-sm" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                                        {{ member.get_name|make_list|first|upper }}
+                                    </div>
+                                    <div class="ms-3 flex-grow-1">
+                                        <h6 class="fw-bold mb-1">{{ member.get_name }}</h6>
+                                        <div class="text-secondary small fw-medium mb-1">{{ member.role }}</div>
+                                        {% if member.contact_info %}
+                                            <div class="text-muted small"><i class="fas fa-envelope me-1"></i>{{ member.contact_info }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <!-- Also show legacy users assigned if not migrated to Hybrid model yet -->
+                            {% for user in legacy_users %}
+                                <div class="d-flex align-items-center p-3 border rounded-3 bg-white shadow-sm transition-hover opacity-75">
+                                    <div class="bg-secondary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center text-secondary fw-bold shadow-sm" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                                        {{ user.first_name|default:user.username|make_list|first|upper }}
+                                    </div>
+                                    <div class="ms-3 flex-grow-1">
+                                        <h6 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h6>
+                                        <div class="text-secondary small fw-medium">IT Support (Legacy Assignee)</div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- External Vendor Team -->
+            <div class="col-md-6">
+                <div class="card-premium h-100">
+                    <div class="card-header-premium bg-light border-bottom">
+                        <h3 class="card-title-premium text-success"><i class="fas fa-briefcase me-2"></i> Vendor / External Team</h3>
+                    </div>
+                    <div class="card-body-premium p-4">
+                        <div class="d-flex flex-column gap-3">
+                            {% for member in team_members %}
+                                {% if member.member_type == 'External' %}
+                                <div class="d-flex align-items-center p-3 border border-success border-opacity-25 rounded-3 bg-white shadow-sm transition-hover">
+                                    <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center text-success fw-bold shadow-sm" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                                        <i class="fas fa-building"></i>
+                                    </div>
+                                    <div class="ms-3 flex-grow-1">
+                                        <h6 class="fw-bold mb-1">{{ member.get_name }}</h6>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill fw-bold border border-success border-opacity-25">{{ member.role }}</span>
+                                            <span class="text-secondary small fw-medium">{{ member.get_company }}</span>
+                                        </div>
+                                        {% if member.contact_info %}
+                                            <div class="text-muted small"><i class="fas fa-phone-alt me-1"></i>{{ member.contact_info }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not team_members %}
+                                <div class="text-center py-4 text-muted opacity-50">
+                                    <i class="fas fa-users-slash fs-3 mb-2"></i>
+                                    <p class="small">Belum ada anggota tim yang didaftarkan.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <!-- ACTIVITY LOG TAB -->
     <div class="tab-pane fade" id="activity" role="tabpanel">
@@ -1239,6 +1345,68 @@ body {
         </div>
     </div>
     
+</div>
+
+<!-- Add Team Member Modal -->
+<div class="modal fade" id="addTeamMemberModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark"><i class="fas fa-user-plus text-primary me-2"></i> Add Team Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addTeamMemberForm">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Jenis Anggota</label>
+                        <select class="form-select" id="memberType" onchange="toggleMemberTypeFields()">
+                            <option value="Internal">Internal (IT / Lintas Divisi)</option>
+                            <option value="External">Vendor / Eksternal</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Internal Fields -->
+                    <div id="internalMemberFields">
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">Pilih Karyawan</label>
+                            <select class="form-select" id="internalUserId">
+                                <option value="">-- Pilih --</option>
+                                {% for user in all_users %}
+                                    <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- External Fields -->
+                    <div id="externalMemberFields" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">Nama Lengkap</label>
+                            <input type="text" class="form-control" id="externalName" placeholder="Contoh: Budi Santoso">
+                        </div>
+                    </div>
+                    
+                    <!-- General Info -->
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Peran / Posisi (Role)</label>
+                        <input type="text" class="form-control" id="memberRole" placeholder="Contoh: PIC Keuangan, Lead Developer, dll." required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Departemen / Perusahaan (Opsional)</label>
+                        <input type="text" class="form-control" id="memberCompany" placeholder="Contoh: Divisi HRD atau PT Vendor Indo">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-bold">Kontak (Opsional)</label>
+                        <input type="text" class="form-control" id="memberContact" placeholder="Nomor Telepon atau Email">
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary w-100 fw-bold py-2 rounded-3" onclick="submitTeamMember()">Tambah ke Tim</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Add Document Modal -->
@@ -1413,9 +1581,17 @@ function toggleDocMode(mode) {
                     <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;"><i class="far fa-user me-1"></i> Assignee</label>
                     <select class="form-select text-dark" id="taskAssignee">
                         <option value="">Unassigned</option>
-                        {% for user in team_members %}
-                            <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                        <optgroup label="Hybrid Team">
+                        {% for member in team_members %}
+                            <option value="{{ member.id }}">{{ member.get_name }} ({{ member.role }})</option>
                         {% endfor %}
+                        </optgroup>
+                        
+                        <optgroup label="Legacy Assignees">
+                        {% for user in legacy_users %}
+                            <option value="legacy_{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                        {% endfor %}
+                        </optgroup>
                     </select>
                 </div>
                 <div class="col-4">
@@ -1840,7 +2016,7 @@ function saveTaskDetails() {
     const data = {
         name: document.getElementById('taskName').value,
         status: document.getElementById('taskStatus').value,
-        assigned_to_id: document.getElementById('taskAssignee').value,
+        team_member_id: document.getElementById('taskAssignee').value,
         start_date: document.getElementById('taskStartDate').value,
         due_date: document.getElementById('taskDueDate').value,
         weight: weightInput.value,
@@ -2277,6 +2453,62 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
+
+function toggleMemberTypeFields() {
+    const type = document.getElementById('memberType').value;
+    if(type === 'Internal') {
+        document.getElementById('internalMemberFields').style.display = 'block';
+        document.getElementById('externalMemberFields').style.display = 'none';
+    } else {
+        document.getElementById('internalMemberFields').style.display = 'none';
+        document.getElementById('externalMemberFields').style.display = 'block';
+    }
+}
+
+function submitTeamMember() {
+    const data = {
+        member_type: document.getElementById('memberType').value,
+        role: document.getElementById('memberRole').value,
+        company: document.getElementById('memberCompany').value,
+        contact_info: document.getElementById('memberContact').value,
+    };
+    
+    if (data.member_type === 'Internal') {
+        data.internal_user_id = document.getElementById('internalUserId').value;
+        if (!data.internal_user_id) {
+            Swal.fire('Error', 'Silakan pilih karyawan internal.', 'error');
+            return;
+        }
+    } else {
+        data.external_name = document.getElementById('externalName').value;
+        if (!data.external_name) {
+            Swal.fire('Error', 'Silakan masukkan nama vendor/eksternal.', 'error');
+            return;
+        }
+    }
+    
+    if (!data.role) {
+        Swal.fire('Error', 'Role / Peran wajib diisi.', 'error');
+        return;
+    }
+    
+    fetch(`/governance/projects/{{ project.id }}/team/add/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if(resData.success) {
+            window.location.reload();
+        } else {
+            Swal.fire('Error', resData.error || 'Terjadi kesalahan.', 'error');
+        }
+    });
+}
 </script>
 
 <style>

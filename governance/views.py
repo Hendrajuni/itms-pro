@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.utils import timezone
 from .models import (
-    DailyLog, DailyLogItem, Project, ProjectTask, FiscalYear, MonthlyReport, BudgetPost, DisposalRequest, ProjectActivity
+    DailyLog, DailyLogItem, Project, ProjectTask, FiscalYear, MonthlyReport, BudgetPost, DisposalRequest, ProjectActivity, ProjectTeamMember
 )
 from maintenance.models import AssetMaintenance, InfraMaintenance
 from tickets.models import Ticket
@@ -513,7 +513,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project = self.object
-        tasks = project.tasks.select_related('assigned_to').all()
+        tasks = project.tasks.select_related('assigned_to', 'team_member__internal_user').all()
         
         # 1. Kanban Buckets & KPI Stats
         from django.db.models import Sum
@@ -531,13 +531,20 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         # 2. My Active Tasks (for quick action)
         context['my_tasks'] = tasks.filter(assigned_to=self.request.user).exclude(status='Completed')
         
-        # 3. Team Members (Distinct assignees)
-        # Using a set comprehension to get unique users, excluding None
-        team_members = {t.assigned_to for t in tasks if t.assigned_to}
-        # Add manager if not already in list
-        if project.manager:
-            team_members.add(project.manager)
+        # 3. Team Members (Hybrid)
+        team_members = project.team_members.select_related('internal_user').all()
         context['team_members'] = team_members
+        
+        # Legacy distinct users
+        legacy_users = {t.assigned_to for t in tasks if t.assigned_to}
+        if project.manager:
+            legacy_users.add(project.manager)
+        context['legacy_users'] = legacy_users
+        
+        # All Users for Add Member Modal
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        context['all_users'] = User.objects.filter(is_active=True).order_by('first_name')
         
         # 4. Progress & Timeline
         total = tasks.count()
@@ -761,8 +768,17 @@ class UpdateTaskDetailsView(LoginRequiredMixin, View):
             if 'due_date' in data: task.due_date = data['due_date'] or None
             if 'description' in data: task.description = data['description']
             if 'priority' in data: task.priority = data['priority']
-            if 'assigned_to_id' in data: 
-                task.assigned_to_id = data['assigned_to_id'] or None
+            if 'team_member_id' in data:
+                val = data['team_member_id']
+                if not val:
+                    task.team_member_id = None
+                    task.assigned_to_id = None
+                elif str(val).startswith('legacy_'):
+                    task.assigned_to_id = int(str(val).replace('legacy_', ''))
+                    task.team_member_id = None
+                else:
+                    task.team_member_id = int(val)
+                    task.assigned_to_id = None
             task.save()
             
             ProjectActivity.objects.create(
@@ -770,6 +786,53 @@ class UpdateTaskDetailsView(LoginRequiredMixin, View):
                 user=request.user,
                 action="Detail Tugas Diperbarui",
                 description=f"Memperbarui detail (status, prioritas, bobot, dsb) pada tugas <b>{task.name}</b>."
+            )
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class AddProjectTeamMemberView(LoginRequiredMixin, View):
+    def post(self, request, project_id):
+        try:
+            project = Project.objects.get(pk=project_id)
+            data = json.loads(request.body)
+            
+            member_type = data.get('member_type', 'Internal')
+            role = data.get('role', '')
+            company = data.get('company', '')
+            contact_info = data.get('contact_info', '')
+            
+            if not role:
+                return JsonResponse({'success': False, 'error': 'Role is required'})
+                
+            team_member = ProjectTeamMember(
+                project=project,
+                member_type=member_type,
+                role=role,
+                company=company,
+                contact_info=contact_info
+            )
+            
+            if member_type == 'Internal':
+                internal_user_id = data.get('internal_user_id')
+                if not internal_user_id:
+                    return JsonResponse({'success': False, 'error': 'Internal User is required'})
+                team_member.internal_user_id = internal_user_id
+            else:
+                external_name = data.get('external_name')
+                if not external_name:
+                    return JsonResponse({'success': False, 'error': 'External Name is required'})
+                team_member.external_name = external_name
+                
+            team_member.save()
+            
+            name = team_member.get_name()
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                action="Anggota Tim Ditambahkan",
+                description=f"Menambahkan <b>{name}</b> ({role}) ke dalam tim proyek."
             )
             
             return JsonResponse({'success': True})
@@ -819,8 +882,17 @@ class CreateProjectTaskView(LoginRequiredMixin, View):
                 weight=data.get('weight', 0),
                 priority=data.get('priority', 'Medium')
             )
-            if 'assigned_to_id' in data and data['assigned_to_id']:
-                task.assigned_to_id = data['assigned_to_id']
+            if 'team_member_id' in data:
+                val = data['team_member_id']
+                if not val:
+                    task.team_member_id = None
+                    task.assigned_to_id = None
+                elif str(val).startswith('legacy_'):
+                    task.assigned_to_id = int(str(val).replace('legacy_', ''))
+                    task.team_member_id = None
+                else:
+                    task.team_member_id = int(val)
+                    task.assigned_to_id = None
             if 'start_date' in data and data['start_date']:
                 task.start_date = data['start_date']
             if 'due_date' in data and data['due_date']:

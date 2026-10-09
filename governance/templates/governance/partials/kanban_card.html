@@ -2,7 +2,7 @@
      {% if task.status == 'Pending' %}bg-white border-secondary border-opacity-25{% elif task.status == 'In Progress' %}bg-primary bg-opacity-10 border-primary border-opacity-50{% elif task.status == 'Completed' %}bg-success bg-opacity-10 border-success border-opacity-50{% endif %}" 
      data-id="{{ task.id }}" 
      data-priority="{{ task.priority|default:'Medium' }}" 
-     data-assignee="{{ task.assigned_to_id|default:'unassigned' }}"
+     data-assignee="{% if task.team_member_id %}{{ task.team_member_id }}{% elif task.assigned_to_id %}legacy_{{ task.assigned_to_id }}{% else %}{% endif %}"
      data-status="{{ task.status }}"
      data-name="{{ task.name }}"
      data-start="{{ task.start_date|date:'Y-m-d'|default:'' }}"
@@ -89,13 +89,13 @@
         <!-- Assignee + Overdue -->
         <div class="d-flex justify-content-between align-items-center pt-2" style="border-top: 1px solid #f1f5f9;">
             <div class="d-flex align-items-center gap-2">
-                {% if task.assigned_to %}
+                {% if task.assignee_name != "Unassigned" %}
                 <div class="kanban-avatar" 
                      style="background-color: {% cycle '#3b82f6' '#10b981' '#8b5cf6' '#f59e0b' '#ef4444' %};" 
-                     title="{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}">
-                    {{ task.assigned_to.first_name.0|default:"U"|upper }}
+                     title="{{ task.assignee_name }}">
+                    {{ task.assignee_initial }}
                 </div>
-                <span class="text-muted fw-medium" style="font-size: 0.75rem;">{{ task.assigned_to.first_name|default:task.assigned_to.username }}</span>
+                <span class="text-muted fw-medium text-truncate" style="font-size: 0.75rem; max-width: 100px;">{{ task.assignee_name }}</span>
                 {% else %}
                 <div class="kanban-avatar-empty" title="Unassigned">
                     <i class="fas fa-user" style="font-size: 0.55rem;"></i>

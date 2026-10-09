@@ -103,6 +103,35 @@ class Project(models.Model):
     def __str__(self):
         return self.name
 
+class ProjectTeamMember(models.Model):
+    MEMBER_TYPE_CHOICES = [
+        ('Internal', 'Internal IT'),
+        ('External', 'Vendor / External'),
+    ]
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='team_members')
+    member_type = models.CharField(max_length=20, choices=MEMBER_TYPE_CHOICES, default='Internal')
+    
+    internal_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='project_team_assignments')
+    external_name = models.CharField(max_length=100, blank=True)
+    
+    role = models.CharField(max_length=100)
+    company = models.CharField(max_length=100, blank=True, help_text="Defaults to Internal IT or Vendor Name")
+    contact_info = models.CharField(max_length=150, blank=True)
+    
+    def get_name(self):
+        if self.member_type == 'Internal' and self.internal_user:
+            return self.internal_user.username
+        return self.external_name or "Unknown"
+
+    def get_company(self):
+        if self.company: return self.company
+        if self.member_type == 'Internal': return "Internal IT"
+        if self.project.vendor: return self.project.vendor.name
+        return "External"
+
+    def __str__(self):
+        return f"{self.get_name()} ({self.role})"
+
 class ProjectTask(models.Model):
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
@@ -111,7 +140,11 @@ class ProjectTask(models.Model):
     ]
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
     name = models.CharField(max_length=200)
-    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Hybrid Assignment
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, help_text="Legacy/Direct internal assignment")
+    team_member = models.ForeignKey(ProjectTeamMember, on_delete=models.SET_NULL, null=True, blank=True, help_text="Assign to specific project team member (Internal or Vendor)")
+    
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     start_date = models.DateField(null=True, blank=True)
@@ -136,6 +169,18 @@ class ProjectTask(models.Model):
     def is_past_due(self):
         return self.status != 'Completed' and self.due_date and self.due_date < timezone.now().date()
         
+    @property
+    def assignee_name(self):
+        if self.team_member: return self.team_member.get_name()
+        if self.assigned_to: return self.assigned_to.username
+        return "Unassigned"
+        
+    @property
+    def assignee_initial(self):
+        if self.assignee_name != "Unassigned" and len(self.assignee_name) > 0:
+            return self.assignee_name[0].upper()
+        return "?"
+
     @property
     def duration_days(self):
         if self.start_date and self.due_date:

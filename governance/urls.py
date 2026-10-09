@@ -20,6 +20,7 @@ urlpatterns = [
     path('projects/tasks/<int:pk>/toggle-flag/', views.ToggleTaskFlagView.as_view(), name='toggle_task_flag'),
     path('projects/tasks/<int:task_id>/delete/', views.DeleteProjectTaskView.as_view(), name='delete_project_task'),
     path('projects/<int:project_id>/tasks/create/', views.CreateProjectTaskView.as_view(), name='create_project_task'),
+    path('projects/<int:project_id>/team/add/', views.AddProjectTeamMemberView.as_view(), name='add_project_team_member'),
     path('projects/<int:project_id>/document/upload/', views.ProjectDocumentUploadView.as_view(), name='project_document_upload'),
     path('logs/<int:pk>/add-item/', views.DailyLogItemCreateView.as_view(), name='dailylog_item_create'),
     
