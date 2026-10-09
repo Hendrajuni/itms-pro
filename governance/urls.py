@@ -22,6 +22,10 @@ urlpatterns = [
     path('projects/<int:project_id>/tasks/create/', views.CreateProjectTaskView.as_view(), name='create_project_task'),
     path('projects/<int:project_id>/team/add/', views.AddProjectTeamMemberView.as_view(), name='add_project_team_member'),
     path('projects/<int:project_id>/document/upload/', views.ProjectDocumentUploadView.as_view(), name='project_document_upload'),
+    path('projects/<int:project_id>/rab-url/', views.UpdateRABSheetUrlView.as_view(), name='update_rab_url'),
+    path('projects/<int:project_id>/expense/add/', views.AddProjectExpenseView.as_view(), name='add_project_expense'),
+    path('projects/expense/<int:expense_id>/edit/', views.EditProjectExpenseView.as_view(), name='edit_project_expense'),
+    path('projects/expense/<int:expense_id>/delete/', views.DeleteProjectExpenseView.as_view(), name='delete_project_expense'),
     path('logs/<int:pk>/add-item/', views.DailyLogItemCreateView.as_view(), name='dailylog_item_create'),
     
     # Other Governance Modules

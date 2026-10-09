@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.utils import timezone
 from .models import (
-    DailyLog, DailyLogItem, Project, ProjectTask, FiscalYear, MonthlyReport, BudgetPost, DisposalRequest, ProjectActivity, ProjectTeamMember
+    DailyLog, DailyLogItem, Project, ProjectTask, FiscalYear, MonthlyReport, BudgetPost, DisposalRequest, ProjectActivity, ProjectTeamMember, ProjectExpense
 )
 from maintenance.models import AssetMaintenance, InfraMaintenance
 from tickets.models import Ticket
@@ -553,6 +553,13 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         
         # Activity Log
         context['activities'] = project.activities.all()[:50]
+        
+        # Budget & Expenses
+        expenses = project.expenses.all().order_by('-date', '-created_at')
+        context['expenses'] = expenses
+        total_actual_cost = sum(e.amount for e in expenses)
+        context['total_actual_cost'] = total_actual_cost
+        context['remaining_budget'] = project.budget_allocated - total_actual_cost
         
         today = timezone.now().date()
         if project.end_date and project.end_date >= today:
@@ -1191,3 +1198,164 @@ class DisposalRequestDetailView(LoginRequiredMixin, DetailView):
             messages.warning(request, "Disposal request rejected.")
             
         return redirect('disposal_list')
+
+# --- Budget & Expense Views ---
+class UpdateRABSheetUrlView(LoginRequiredMixin, View):
+    def post(self, request, project_id):
+        try:
+            project = Project.objects.get(pk=project_id)
+            data = json.loads(request.body)
+            url = data.get('rab_sheet_url', '').strip()
+            
+            project.rab_sheet_url = url
+            project.save()
+            
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                action="RAB Sheet Diperbarui",
+                description="Menautkan/memperbarui Google Sheets RAB untuk proyek ini."
+            )
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+class AddProjectExpenseView(LoginRequiredMixin, View):
+    def post(self, request, project_id):
+        try:
+            project = Project.objects.get(pk=project_id)
+            
+            title = request.POST.get('title')
+            amount = request.POST.get('amount')
+            category = request.POST.get('category')
+            date_str = request.POST.get('date')
+            notes = request.POST.get('notes', '')
+            task_id = request.POST.get('related_task_id')
+            
+            if not title or not amount or not date_str:
+                messages.error(request, "Lengkapi form pengeluaran dengan benar.")
+                return redirect(f"{reverse_lazy('project_detail', kwargs={'pk': project_id})}#budget")
+                
+            expense = ProjectExpense(
+                project=project,
+                title=title,
+                amount=amount,
+                category=category,
+                date=date_str,
+                notes=notes,
+                created_by=request.user
+            )
+            
+            if task_id:
+                expense.related_task_id = task_id
+                
+            if 'receipt_file' in request.FILES:
+                expense.receipt_file = request.FILES['receipt_file']
+                
+            expense.save()
+            
+            # Update Actual Cost on Project automatically
+            # Project actual_cost should be calculated dynamically, or we can update it here.
+            # We'll update it here to be safe and fast for simple queries.
+            from django.db.models import Sum
+            total_actual = project.expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+            project.actual_cost = total_actual
+            project.save()
+            
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                action="Pengeluaran Dicatat",
+                description=f"Mencatat pengeluaran <b>{title}</b> sebesar Rp {float(expense.amount):,.0f}."
+            )
+            
+            messages.success(request, "Pengeluaran berhasil dicatat.")
+            return redirect(f"{reverse_lazy('project_detail', kwargs={'pk': project_id})}#budget")
+            
+        except Exception as e:
+            messages.error(request, f"Terjadi kesalahan: {str(e)}")
+            return redirect(f"{reverse_lazy('project_detail', kwargs={'pk': project_id})}#budget")
+
+class EditProjectExpenseView(LoginRequiredMixin, View):
+    def post(self, request, expense_id):
+        try:
+            expense = ProjectExpense.objects.get(pk=expense_id)
+            project = expense.project
+            
+            title = request.POST.get('title')
+            amount = request.POST.get('amount')
+            category = request.POST.get('category')
+            date_str = request.POST.get('date')
+            notes = request.POST.get('notes', '')
+            task_id = request.POST.get('related_task_id')
+            
+            if not title or not amount or not date_str:
+                messages.error(request, "Lengkapi form pengeluaran dengan benar.")
+                return redirect(f"{reverse_lazy('project_detail', kwargs={'pk': project.id})}#budget")
+                
+            expense.title = title
+            expense.amount = amount
+            expense.category = category
+            expense.date = date_str
+            expense.notes = notes
+            
+            if task_id:
+                expense.related_task_id = task_id
+            else:
+                expense.related_task = None
+                
+            if 'receipt_file' in request.FILES:
+                expense.receipt_file = request.FILES['receipt_file']
+                
+            expense.save()
+            
+            # Update Actual Cost on Project automatically
+            from django.db.models import Sum
+            total_actual = project.expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+            project.actual_cost = total_actual
+            project.save()
+            
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                action="Pengeluaran Diperbarui",
+                description=f"Memperbarui pengeluaran <b>{title}</b> menjadi Rp {float(expense.amount):,.0f}."
+            )
+            
+            messages.success(request, "Pengeluaran berhasil diperbarui.")
+            return redirect(f"{reverse_lazy('project_detail', kwargs={'pk': project.id})}#budget")
+            
+        except Exception as e:
+            messages.error(request, f"Terjadi kesalahan: {str(e)}")
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+class DeleteProjectExpenseView(LoginRequiredMixin, View):
+    def post(self, request, expense_id):
+        try:
+            expense = ProjectExpense.objects.get(pk=expense_id)
+            project = expense.project
+            title = expense.title
+            
+            expense.delete()
+            
+            # Update Actual Cost on Project automatically
+            from django.db.models import Sum
+            total_actual = project.expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+            project.actual_cost = total_actual
+            project.save()
+            
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                action="Pengeluaran Dihapus",
+                description=f"Menghapus pengeluaran <b>{title}</b>."
+            )
+            
+            messages.success(request, f"Pengeluaran '{title}' berhasil dihapus.")
+            return redirect(f"{reverse_lazy('project_detail', kwargs={'pk': project.id})}#budget")
+            
+        except Exception as e:
+            messages.error(request, f"Terjadi kesalahan: {str(e)}")
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+

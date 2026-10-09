@@ -70,6 +70,7 @@ class Project(models.Model):
     budget_source = models.CharField(max_length=200, blank=True)
     budget_allocated = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     actual_cost = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    rab_sheet_url = models.URLField(max_length=500, blank=True, help_text="Link to Google Sheets RAB")
     tags = models.CharField(max_length=200, blank=True)
     template = models.CharField(max_length=100, blank=True)
     start_date = models.DateField(default=timezone.now)
@@ -131,6 +132,21 @@ class ProjectTeamMember(models.Model):
 
     def __str__(self):
         return f"{self.get_name()} ({self.role})"
+
+class ProjectExpense(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='expenses')
+    related_task = models.ForeignKey('ProjectTask', on_delete=models.SET_NULL, null=True, blank=True, related_name='expenses')
+    title = models.CharField(max_length=200)
+    date = models.DateField(default=timezone.now)
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    category = models.CharField(max_length=100, blank=True, help_text="e.g. Hardware, Software, Services")
+    receipt_file = models.FileField(upload_to='project_receipts/', blank=True, null=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.amount}"
 
 class ProjectTask(models.Model):
     STATUS_CHOICES = [
