@@ -390,6 +390,10 @@ def quick_status_update(request):
             task = InfraMaintenance.objects.get(pk=task_id)
         
         task.status = new_status
+        
+        # Auto-set actual_start_time if not set
+        if new_status in ['In Progress', 'Completed'] and not task.actual_start_time:
+            task.actual_start_time = timezone.now()
         if new_status == 'Completed':
             # Strict Validation: Check own checklist
             checklist = task.maintenance_checklist or []
@@ -415,6 +419,8 @@ def quick_status_update(request):
                 task.actual_start_time = parse_datetime(data.get('actual_start_time'))
             if data.get('actual_completion_time'):
                 task.actual_completion_time = parse_datetime(data.get('actual_completion_time'))
+            elif not task.actual_completion_time:
+                task.actual_completion_time = timezone.now()
                 
             # Financial
             try:
