@@ -133,20 +133,28 @@ def get_dashboard_stats(user):
         # Combine and Sort
         combined_maint = []
         for m in asset_maint:
+            location_name = m.asset.location.name if m.asset and m.asset.location else "Unknown"
             combined_maint.append({
                 'title': m.title,
                 'target': m.asset.name,
+                'location': location_name,
+                'frequency': 'One-Time/Ad-hoc',
                 'date': m.scheduled_date,
                 'type': 'Asset',
-                'technician': m.technician
+                'technician': m.technician,
+                'url': '/maintenance/'
             })
         for m in infra_maint:
+            location_name = m.infrastructure.location.name if m.infrastructure and m.infrastructure.location else "Unknown"
             combined_maint.append({
                 'title': m.title,
                 'target': m.infrastructure.name,
+                'location': location_name,
+                'frequency': 'One-Time/Ad-hoc',
                 'date': m.scheduled_date,
                 'type': 'Infrastructure',
-                'technician': m.technician
+                'technician': m.technician,
+                'url': '/maintenance/'
             })
             
         # Also include PM Schedules that are due in the next 7 days
@@ -159,13 +167,17 @@ def get_dashboard_stats(user):
         
         for s in upcoming_schedules:
             target_name = s.asset.name if s.asset else (s.infrastructure.name if s.infrastructure else "Unknown")
+            location_name = s.asset.location.name if s.asset and s.asset.location else (s.infrastructure.location.name if s.infrastructure and s.infrastructure.location else "Unknown")
             type_name = "Asset (PM)" if s.asset else "Infrastructure (PM)"
             combined_maint.append({
                 'title': s.title,
                 'target': target_name,
+                'location': location_name,
+                'frequency': s.get_frequency_display(),
                 'date': s.next_run_date,
                 'type': type_name,
-                'technician': s.assigned_to
+                'technician': s.assigned_to,
+                'url': f"/maintenance/schedules/{s.id}/update/"
             })
             
         # Sort by date

@@ -471,12 +471,15 @@
                     {% for m in upcoming_maintenance %}
                     <div class="list-group-item px-4 py-3 border-bottom-0">
                         <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0 fw-bold text-dark">{{ m.title }}</h6>
+                            <a href="{{ m.url }}" class="mb-0 fw-bold text-primary text-decoration-none">{{ m.title }}</a>
                             <small class="badge bg-light text-dark border">{{ m.date|date:"D, M d" }}</small>
                         </div>
-                        <p class="mb-1 text-muted small"><i class="fas fa-bullseye me-1"></i> {{ m.target }}</p>
+                        <p class="mb-1 text-muted small"><i class="fas fa-bullseye me-1"></i> {{ m.target }} &bull; <i class="fas fa-map-marker-alt ms-1 me-1 text-danger"></i> {{ m.location }}</p>
                         <div class="d-flex justify-content-between align-items-center mt-2">
-                            <span class="badge bg-{{ forloop.counter|divisibleby:2|yesno:'info,primary' }} bg-opacity-10 text-dark">{{ m.type }}</span>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-{{ forloop.counter|divisibleby:2|yesno:'info,primary' }} bg-opacity-10 text-dark">{{ m.type }}</span>
+                                <span class="badge bg-secondary bg-opacity-10 text-dark"><i class="fas fa-redo-alt me-1"></i> {{ m.frequency }}</span>
+                            </div>
                             <small class="text-muted"><i class="fas fa-user-hard-hat me-1"></i> {{ m.technician.username|default:"Unassigned" }}</small>
                         </div>
                     </div>
